@@ -2,9 +2,17 @@
 
 [Open the live demo](https://adieyal.github.io/transactions/) · [Apache 2.0 license](LICENSE)
 
-Transactions is a browser application for exploring bank and card statements. It groups spending into threads, shows recurring charges and instalments, and lets you annotate transactions, compare changes, and save views of your spending. An optional assistant can answer questions about your statements.
+Transactions is a browser app for making sense of what you spend. A statement can show that in one month you paid a vet, a hardware shop and an airline. It can't show that the dog was ill, you were redoing the bathroom and you flew to a wedding. That context is what explains the numbers, and Transactions is built around adding it.
 
-The application builds into a single HTML file that can be served by any static web server or opened directly in a browser.
+You start with your statements and shape the view around your own life. You decide how charges are grouped, using a short text list that you can change whenever your idea of a category changes. You mark the stretches of time that mattered, such as a trip, a move or the months of a renovation, and write down what was going on. When the reason for a charge isn't obvious, you add a note. Over time the timeline becomes a record of what happened, with the spending attached to it.
+
+The calculations can be changed too. Each chart or table is a short JavaScript function you can read and edit. A question such as "what did the renovation cost apart from the builder?" can get its own view, written by you or by a connected assistant.
+
+The app also handles the routine work: it imports CSV and spreadsheet statements, matches transfers between your own accounts so they are not counted twice, forecasts recurring charges and instalments, and points out regular charges whose price has changed.
+
+Transactions is a single HTML file. Open it in a browser or serve it from any static host. Opened on its own, it keeps your statements in browser storage, and nothing is sent anywhere unless you connect an assistant.
+
+![Demo spending timeline with recurring charges and account coverage](docs/screenshots/01-timeline.png)
 
 ## Try the demo
 
