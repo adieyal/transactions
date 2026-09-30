@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Transactions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Instrument+Sans:wght@400;500;600&family=Noto+Sans+Hebrew:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- TRANSACTIONS_STYLES -->
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1 class="mark"><svg width="26" height="22" viewBox="0 0 26 22" aria-hidden="true"><line x1="1" y1="5" x2="25" y2="5" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="11" x2="25" y2="11" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="17" x2="25" y2="17" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="5" r="3" fill="#2F6B8F"/><circle cx="13" cy="5" r="2" fill="#2F6B8F"/><circle cx="18" cy="11" r="3.5" fill="#A4502F"/><circle cx="9" cy="17" r="2.5" fill="#5E8237"/><circle cx="21" cy="17" r="2.5" fill="none" stroke="#5E8237" stroke-dasharray="1.5 1.5"/></svg>Transactions</h1>
+    <span class="sub" id="demoNotice">Demo · all example data is fictional</span>
+    <div class="chips" id="accts" aria-label="Accounts"></div>
+    <div class="spacer"></div>
+    <div class="chips" id="ranges" role="group" aria-label="Time range"></div>
+    <button class="btn quiet" id="panelBtn" hidden>Threads and Ask</button>
+    <button class="btn" id="addBtn">Add statements</button>
+    <div class="menu" id="moreMenu">
+      <button class="btn quiet" id="moreBtn" aria-haspopup="true" aria-expanded="false">More</button>
+      <div role="menu">
+        <button role="menuitem" data-act="ai">AI assistant settings</button>
+        <button role="menuitem" data-act="dl-rules">Download threads as text</button>
+        <button role="menuitem" data-act="dl-all">Download everything (JSON)</button>
+        <button role="menuitem" data-act="import-backup">Import backup (JSON)</button>
+        <button role="menuitem" data-act="reset-lenses">Restore starter lenses</button>
+      </div>
+    </div>
+    <input type="file" id="backupFile" class="vh" accept=".json,application/json">
+    <input type="file" id="file" multiple class="vh" accept=".xls,.xlsx,.csv,.txt,.html,.htm">
+  </header>
+  <main>
+    <section class="left" aria-label="Timeline">
+      <div class="filterbar">
+        <div class="search" id="searchBox"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="11" y1="11" x2="15" y2="15" stroke="currentColor" stroke-width="1.6"/></svg>
+          <input id="q" type="search" placeholder="Filter by description, note, #tag or @period" aria-label="Filter transactions" autocomplete="off" spellcheck="false" dir="auto">
+          <button id="qClear" aria-label="Clear filter" hidden>×</button></div>
+        <span class="filterinfo" id="qInfo"></span>
+        <div class="tags" id="qTags" aria-label="Tags in your notes"></div>
+      </div>
+      <div id="tlwrap"><div id="tl"></div><div id="tip" role="status"></div></div>
+      <div id="parkbar" aria-label="Parked threads"></div>
+      <div id="insp"></div>
+      <div id="changes"></div>
+      <div id="lenses"></div>
+    </section>
+    <aside class="right">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-threads" aria-selected="true" aria-controls="pane-threads">Threads</button>
+        <button class="tab" role="tab" id="tab-ask" aria-selected="false" aria-controls="pane-ask">Ask</button>
+        <button class="tab" role="tab" id="tab-reports" aria-selected="false" aria-controls="pane-reports">Reports</button>
+        <button class="hidepanel" id="hidePanel" title="Give the timeline the whole width">Hide panel</button>
+      </div>
+      <div class="pane on" id="pane-threads" role="tabpanel" aria-labelledby="tab-threads">
+        <p class="lead">Each thread is a wire on the timeline. Type a name, then indented bits of merchant names, #tags from your notes, or /patterns/. Put the cursor on a line to see what it catches.</p>
+        <div class="editor" id="editor">
+          <div class="gutter" aria-hidden="true"><div class="gutter-in" id="gutter"></div></div>
+          <textarea id="rules" spellcheck="false" wrap="off" aria-label="Thread rules"></textarea>
+        </div>
+        <div class="previewbar" id="previewbar">
+          <div id="previewmsg"></div>
+          <div class="row-actions"><button class="btn small" id="keepPreview">Keep these threads</button><button class="btn small quiet" id="dropPreview">Discard</button></div>
+        </div>
+        <div class="under">
+          <button class="btn quiet small" id="suggestBtn" hidden>Suggest threads</button>
+          <span class="status" id="saveStatus"></span>
+        </div>
+      </div>
+      <div class="pane" id="pane-reports" role="tabpanel" aria-labelledby="tab-reports">
+        <p class="lead">Questions you ask again and again. Run them after adding statements; each run starts with what changed since the last one.</p>
+        <div id="reports"></div>
+        <div class="askbox" style="margin-top:12px"><textarea id="repInput" placeholder="Save a question, e.g. “How did this month compare with a typical month?”" aria-label="Report question"></textarea>
+          <div class="row-actions"><span class="sub"></span><button class="btn small" id="repSave">Save and run</button></div></div>
+      </div>
+      <div class="pane" id="pane-ask" role="tabpanel" aria-labelledby="tab-ask">
+        <div id="askmem"></div>
+        <div id="log" aria-live="polite"></div>
+        <div class="askbox">
+          <div class="ctx" id="askctx"></div>
+          <textarea id="askInput" placeholder="Ask, or ask for changes: “translate the descriptions into English”" aria-label="Question"></textarea>
+          <div class="row-actions"><span class="sub" id="askNote"></span><span><button class="btn small quiet" id="stopBtn" hidden>Stop</button> <button class="btn small" id="sendBtn">Ask</button></span></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<dialog id="mapDlg" aria-labelledby="mapTitle">
+  <div class="dlg">
+    <h2 id="mapTitle">Teach Transactions this file</h2>
+    <div class="sub" id="mapIntro"></div>
+    <div class="maptable-wrap"><table class="maptable" id="mapTable"></table></div>
+    <div class="mapgrid" id="mapGrid"></div>
+    <div><div class="sub" style="margin-bottom:4px">How it reads</div><div class="maptable-wrap" style="max-height:170px"><table class="maptable" id="mapPreview"></table></div></div>
+    <div class="row-actions" style="justify-content:space-between">
+      <span><button class="btn small quiet" id="mapAsk" hidden>Fill this in for me</button> <span class="sub" id="mapAskNote"></span></span>
+      <span><button class="btn small quiet" id="mapCancel">Skip this file</button> <button class="btn small" id="mapOk">Import</button></span>
+    </div>
+  </div>
+</dialog>
+<dialog id="aiDlg" aria-labelledby="aiTitle">
+  <div class="dlg">
+    <h2 id="aiTitle">AI assistant</h2>
+    <p class="sub" style="margin:0">Pick who suggests threads, writes lenses, answers questions and reads unfamiliar files.</p>
+    <label class="radio"><input type="radio" name="prov" value="claude"> <span><b>Claude</b><br><span class="sub">Built in when Transactions is open in claude.ai. Uses your Claude plan.</span></span></label>
+    <label class="radio"><input type="radio" name="prov" value="openai"> <span><b>ChatGPT or another OpenAI-compatible service</b><br><span class="sub">OpenAI, OpenRouter, Azure-style proxies, or a local model through Ollama or LM Studio.</span></span></label>
+    <div id="aiOpenai" class="mapgrid" style="grid-template-columns:1fr">
+      <label>Host or base URL<input id="aiBase" placeholder="api.openai.com" autocomplete="off" spellcheck="false"></label>
+      <label>API key<input id="aiKey" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false"></label>
+      <label>Model<input id="aiModel" placeholder="The model name your service uses" autocomplete="off" spellcheck="false"></label>
+      <p class="sub" style="margin:0">Just a host like <b>api.openai.com</b> becomes https://api.openai.com/v1. For anything else, paste the full base URL, e.g. http://localhost:11434/v1. The key stays in this browser only. It never goes into your saved data or downloads.</p>
+      <div class="warnbox" id="aiCsp" hidden>This copy of Transactions is running inside claude.ai, where pages can only talk to Claude. To use ChatGPT, open the downloaded <b>transactions.html</b> file in your browser. Your settings here will work there.</div>
+    </div>
+    <div class="row-actions" style="justify-content:space-between">
+      <span><button class="btn small quiet" id="aiTest">Test connection</button> <span class="sub" id="aiNote"></span></span>
+      <span><button class="btn small quiet" id="aiForget">Forget key</button> <button class="btn small quiet" id="aiCancel">Cancel</button> <button class="btn small" id="aiSave">Save</button></span>
+    </div>
+  </div>
+</dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="backupDlg" aria-labelledby="backupTitle">
+  <div class="dlg">
+  <h2 id="backupTitle">Import backup</h2>
+  <p id="backupSummary"></p>
+  <p>This replaces the current statements, threads, notes, merchant names, periods, reports and lenses. Download the current workspace first if you want to keep it.</p>
+  <p class="sub">AI settings and API keys stay in this browser.</p>
+  <p id="backupError" role="alert" class="sub"></p>
+  <div class="row-actions"><button class="btn quiet" id="backupCancel">Cancel</button><button class="btn" id="backupRestore">Replace and import</button></div>
+  </div>
+</dialog>
+<!-- TRANSACTIONS_SCRIPT -->
+</body>
+</html>

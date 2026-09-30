@@ -1,0 +1,2142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Abacus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Instrument+Sans:wght@400;500;600&family=Noto+Sans+Hebrew:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --paper:#ECEEEA; --panel:#F6F7F4; --raised:#FFFFFF; --ink:#1E2528; --ink-2:#5B6569; --ink-3:#8D9699;
+  --wire:#B7BEBD; --grid:#DADFDA; --future:#E1E6EE; --focus:#2446C8; --warn:#A13A26; --sel:#1E2528;
+  --ui:"Instrument Sans","Noto Sans Hebrew",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --display:"Frank Ruhl Libre","Noto Sans Hebrew",Georgia,serif;
+  --code:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --paper:#14181A; --panel:#1B2023; --raised:#232A2D; --ink:#E4E9E7; --ink-2:#9AA4A7; --ink-3:#6C7679;
+  --wire:#3B4447; --grid:#252C2F; --future:#1A2231; --focus:#8EA4FF; --warn:#F08A6E; --sel:#F4F6F5; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#14181A; --panel:#1B2023; --raised:#232A2D; --ink:#E4E9E7; --ink-2:#9AA4A7; --ink-3:#6C7679;
+  --wire:#3B4447; --grid:#252C2F; --future:#1A2231; --focus:#8EA4FF; --warn:#F08A6E; --sel:#F4F6F5; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%; scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0; height:100%; background:var(--paper); color:var(--ink); font:15px/1.45 var(--ui); font-variant-numeric:tabular-nums}
+button,input,textarea,select{font:inherit; color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus); outline-offset:2px}
+.app{display:grid; grid-template-rows:auto 1fr; height:100%}
+header{display:flex; align-items:center; gap:18px; padding:14px 22px 12px; flex-wrap:wrap; border-bottom:1px solid var(--grid)}
+.mark{font:500 26px/1 var(--display); letter-spacing:.01em; margin:0; display:flex; align-items:center; gap:10px}
+.mark svg{display:block}
+.chips{display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+.chip{border:1px solid var(--wire); background:transparent; border-radius:999px; padding:3px 11px; font-size:13px; color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.chip.acct[aria-pressed="false"]{text-decoration:line-through; opacity:.6}
+.spacer{flex:1}
+.btn{border:1px solid var(--ink); background:var(--ink); color:var(--paper); border-radius:6px; padding:6px 13px; font-size:14px; font-weight:500}
+.btn.quiet{background:transparent; color:var(--ink); border-color:var(--wire)}
+.btn.small{padding:3px 9px; font-size:13px}
+.btn:disabled{opacity:.45; cursor:default}
+.linkish{border:0; background:none; padding:0; color:var(--focus); text-decoration:underline; text-underline-offset:2px}
+main{display:grid; grid-template-columns:minmax(0,1fr) 400px; min-height:0}
+body.nopanel main{grid-template-columns:minmax(0,1fr)}
+body.nopanel .right{display:none}
+.tabs .hidepanel{margin-left:auto; border:0; background:none; color:var(--ink-2); font-size:13px; padding:12px 0 10px}
+.tabs .hidepanel:hover{color:var(--ink)}
+.parkbtn{cursor:pointer; opacity:.28}
+.parkbtn:hover,.parkbtn:focus{opacity:1}
+.parkbtn circle{fill:var(--paper); stroke:var(--ink-3)}
+.parkbtn text{fill:var(--ink-2)!important; font-size:12px}
+.parkedlabel{font-size:13px; font-style:italic; fill:var(--ink-2)!important; cursor:pointer}
+.parkedlabel:hover{text-decoration:underline}
+.wire.parked{stroke-dasharray:1 4}
+#parkbar{display:flex; gap:6px 8px; flex-wrap:wrap; align-items:center; margin:6px 16px 0 24px; font-size:13px; color:var(--ink-2)}
+#parkbar:empty{display:none}
+#parkbar button{border:1px solid var(--wire); background:transparent; border-radius:999px; padding:1px 10px; font-size:12.5px}
+#parkbar button:hover{border-color:var(--ink-2); color:var(--ink)}
+#askmem{font-size:12.5px; color:var(--ink-2); margin:0 0 8px}
+.left{overflow:auto; min-height:0; padding:0 0 40px}
+.right{border-left:1px solid var(--grid); background:var(--panel); overflow:auto; min-height:0; display:flex; flex-direction:column}
+@media (max-width:980px){
+  body{height:auto}
+  .app{display:block; height:auto}
+  main{display:block}
+  .left,.right{overflow:visible}
+  .right{border-left:0; border-top:1px solid var(--grid)}
+  .tabs{position:static}
+  .tabs .hidepanel{display:none}
+  .editor,#rules{min-height:320px}
+  header{padding:12px 14px}
+  #insp,#lenses{margin-left:14px; margin-right:14px}
+  .empty{margin:20px 14px 0}
+}
+#tlwrap{position:relative; padding:10px 16px 0 0; user-select:none; -webkit-user-select:none}
+#tl svg{display:block; overflow:visible}
+#tl text{fill:var(--ink); font-family:var(--ui)}
+.axis{font-size:11.5px; fill:var(--ink-2)!important}
+.gridline{stroke:var(--grid); stroke-width:1}
+.wire{stroke:var(--wire); stroke-width:1.2}
+.futurebg{fill:var(--future)}
+.todayline{stroke:var(--ink-2); stroke-width:1; stroke-dasharray:2 3}
+.rowlabel{font-size:14px; font-weight:500; cursor:pointer}
+.rowlabel:hover{text-decoration:underline}
+.rowtotal{font-size:12px; fill:var(--ink-2)!important}
+.exp{font-size:11.5px; fill:var(--ink-2)!important; font-style:italic}
+.cov-on{fill:var(--ink-3); opacity:.55; cursor:pointer}
+.cov-on:hover{opacity:.9}
+.cov-off{fill:none; stroke:var(--ink-3); stroke-dasharray:2 2; opacity:.6}
+.covlabel{font-size:11px; fill:var(--ink-2)!important}
+.bead{cursor:pointer; transition:opacity .15s}
+.bead.dim{opacity:.16}
+.bead.sel{stroke:var(--sel)!important; stroke-width:2.4!important}
+.arc{fill:none; stroke-width:1.2; opacity:.55}
+.arc.dash{stroke-dasharray:3 3}
+.arc.dim{opacity:.1}
+.lasso{fill:var(--focus); fill-opacity:.08; stroke:var(--focus); stroke-dasharray:4 3}
+#tip{position:absolute; pointer-events:none; background:var(--raised); border:1px solid var(--wire); border-radius:6px; padding:6px 9px; font-size:13px; box-shadow:0 4px 14px rgba(0,0,0,.12); max-width:300px; z-index:5; display:none}
+#tip .m{font-family:var(--display); font-size:15px}
+#tip .s{color:var(--ink-2)}
+.empty{min-height:420px; display:grid; place-items:center; text-align:center; padding:40px 24px; border:1.5px dashed var(--wire); border-radius:14px; margin:28px 16px 0 24px}
+.empty h2{font:500 30px/1.15 var(--display); margin:0 0 10px}
+.empty p{color:var(--ink-2); max-width:46ch; margin:0 auto 18px}
+body.dragging .left{outline:3px dashed var(--focus); outline-offset:-8px}
+/* inspector */
+#insp{margin:8px 16px 0 24px; border-top:1px solid var(--grid); padding:14px 0 4px; min-height:92px}
+#insp .hint{color:var(--ink-2); font-size:14px}
+.ins-grid{display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:6px 28px}
+@media (max-width:700px){ .ins-grid{grid-template-columns:1fr} }
+.ins-m{font:500 24px/1.2 var(--display); margin:0 0 2px}
+.ins-amt{font-size:22px; font-weight:600}
+dl.kv{display:grid; grid-template-columns:auto 1fr; gap:3px 14px; margin:8px 0 0; font-size:13.5px}
+dl.kv dt{color:var(--ink-2)}
+dl.kv dd{margin:0}
+.note{width:100%; min-height:62px; resize:vertical; border:1px solid var(--wire); background:var(--raised); border-radius:6px; padding:7px 9px; font-size:14px}
+.sub{color:var(--ink-2); font-size:13px}
+.row-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px}
+.row-actions input{border:1px solid var(--wire); background:var(--raised); border-radius:6px; padding:5px 9px; min-width:160px}
+/* lenses */
+#lenses{margin:22px 16px 0 24px}
+.sec-h{display:flex; align-items:baseline; gap:12px; margin:0 0 10px}
+.sec-h h2{font:500 21px/1.2 var(--display); margin:0}
+.lens-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:16px}
+.lens.wide{grid-column:1 / -1}
+.lens{background:var(--raised); border:1px solid var(--grid); border-radius:10px; padding:12px 14px 10px; display:flex; flex-direction:column; min-width:0}
+.lens h3{font:600 14.5px/1.3 var(--ui); margin:0 0 8px; display:flex; gap:8px; align-items:baseline}
+.lens h3 span{flex:1}
+.lens .foot{display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:auto; padding-top:10px; font-size:12.5px}
+.lens .foot button{border:0; background:none; color:var(--ink-2); padding:0; white-space:nowrap}
+.lens .foot button:hover{color:var(--ink)}
+.lens textarea{width:100%; min-height:170px; font:12.5px/1.5 var(--code); border:1px solid var(--wire); border-radius:6px; background:var(--panel); padding:8px; margin-top:8px; resize:vertical; white-space:pre; tab-size:2}
+.lens .err{color:var(--warn); font:12.5px/1.4 var(--code); white-space:pre-wrap; margin-top:6px}
+.bars{display:flex; flex-direction:column; gap:4px}
+.bar{display:grid; grid-template-columns:minmax(70px,38%) 1fr auto; gap:8px; align-items:center; font-size:13px; border:0; background:none; padding:2px 0; text-align:start}
+.bar .l{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.bar .t{height:10px; background:var(--grid); border-radius:2px; overflow:hidden}
+.bar .t i{display:block; height:100%; background:var(--ink-2)}
+.bar:hover .t i,.bar.on .t i{background:var(--focus)}
+.bar .v{color:var(--ink-2)}
+.ltable{width:100%; border-collapse:collapse; font-size:13px}
+.ltable th{text-align:start; color:var(--ink-2); font-weight:500; border-bottom:1px solid var(--grid); padding:4px 14px 4px 0; white-space:nowrap; vertical-align:bottom}
+.ltable td{padding:5px 14px 5px 0; border-bottom:1px solid var(--grid); vertical-align:top}
+.ltable td:last-child,.ltable th:last-child{padding-right:0}
+.ltable td.num{white-space:nowrap; text-align:end}
+.ltable td[dir="auto"],.bar .l{text-align:left; unicode-bidi:plaintext}
+.ltable th.num{text-align:end}
+.lens .scroll{overflow:auto; max-height:420px}
+.ltable tr[data-ids]{cursor:pointer}
+.ltable tr[data-ids]:hover td{color:var(--focus)}
+.lnum{font:500 34px/1.1 var(--display)}
+.newlens{border:1.5px dashed var(--wire); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; background:transparent}
+.newlens textarea{border:1px solid var(--wire); border-radius:6px; background:var(--raised); padding:7px 9px; min-height:64px; resize:vertical}
+/* right panel */
+.tabs{display:flex; gap:0; border-bottom:1px solid var(--grid); padding:0 18px; position:sticky; top:0; background:var(--panel); z-index:2}
+.tab{border:0; background:none; padding:12px 12px 10px; font-weight:500; color:var(--ink-2); border-bottom:2px solid transparent; margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--ink)}
+.pane{padding:14px 18px 24px; display:none; flex:1; min-height:0}
+.pane.on{display:flex; flex-direction:column}
+.pane p.lead{margin:0 0 10px; color:var(--ink-2); font-size:13.5px}
+.editor{position:relative; display:grid; grid-template-columns:62px 1fr; border:1px solid var(--wire); border-radius:8px; background:var(--raised); overflow:hidden; min-height:380px; flex:1}
+.editor.preview{border-color:var(--focus); box-shadow:0 0 0 2px color-mix(in srgb,var(--focus) 25%,transparent)}
+.gutter{overflow:hidden; background:var(--panel); border-right:1px solid var(--grid); position:relative}
+.gutter-in{position:absolute; left:0; right:0; top:0; padding:10px 6px 10px 0; font:12px/22px var(--ui); color:var(--ink-3); text-align:right}
+.gutter-in div{height:22px; white-space:nowrap; overflow:hidden}
+.gutter-in .th{color:var(--ink-2); font-weight:600}
+.gutter-in .zero{opacity:.55}
+.gutter-in .bad{color:var(--warn); font-weight:600}
+#rules{border:0; outline:0; resize:none; background:transparent; font:14px/22px var(--ui); padding:10px 10px; white-space:pre; overflow:auto; width:100%; height:100%; tab-size:2; min-height:380px}
+#rules[readonly]{background:color-mix(in srgb,var(--focus) 6%,transparent)}
+.previewbar{display:none; margin-top:10px; padding:10px 12px; border:1px solid var(--focus); border-radius:8px; font-size:13.5px; background:var(--raised)}
+.previewbar.on{display:block}
+.previewbar .row-actions{margin-top:8px}
+.under{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px}
+.status{font-size:12.5px; color:var(--ink-2)}
+/* ask */
+#log{flex:1; overflow:auto; display:flex; flex-direction:column; gap:14px; padding-bottom:10px; min-height:240px}
+.q{align-self:flex-end; background:var(--ink); color:var(--paper); border-radius:12px 12px 2px 12px; padding:7px 11px; max-width:88%; white-space:pre-wrap; font-size:14px}
+.a{font-size:14.5px}
+.a p{margin:0 0 8px} .a ul{margin:0 0 8px; padding-inline-start:18px}
+.a .thinking{color:var(--ink-2); font-style:italic}
+.cite{display:inline-flex; gap:4px; align-items:baseline; border:1px solid var(--wire); background:var(--raised); border-radius:5px; padding:0 6px; font-size:12.5px; margin:0 1px; max-width:220px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; vertical-align:baseline}
+.cite:hover{border-color:var(--focus)}
+.a-actions{display:flex; gap:12px; font-size:12.5px; margin-top:2px}
+.askbox{border:1px solid var(--wire); border-radius:10px; background:var(--raised); padding:8px; display:flex; flex-direction:column; gap:6px}
+.askbox textarea{border:0; outline:0; resize:none; background:transparent; min-height:52px; padding:2px 4px}
+.askbox .row-actions{margin:0; justify-content:space-between}
+.ctx{font-size:12.5px; color:var(--ink-2)}
+.suggestions{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
+.suggestions button{text-align:start; border:1px solid var(--grid); background:var(--raised); border-radius:8px; padding:6px 10px; font-size:13.5px}
+.suggestions button:hover{border-color:var(--wire)}
+/* dialog */
+dialog{border:1px solid var(--wire); border-radius:12px; background:var(--panel); color:var(--ink); padding:0; width:min(880px,94vw); max-height:90vh}
+#aiDlg{width:min(580px,94vw)}
+dialog::backdrop{background:rgba(10,14,16,.35)}
+.dlg{padding:18px 20px; display:flex; flex-direction:column; gap:12px; max-height:88vh; overflow:auto}
+.dlg h2{font:500 22px/1.2 var(--display); margin:0}
+.maptable-wrap{overflow:auto; max-height:230px; border:1px solid var(--grid); border-radius:8px; background:var(--raised)}
+.maptable{border-collapse:collapse; font-size:12.5px; white-space:nowrap}
+.maptable td,.maptable th{padding:3px 8px; border-bottom:1px solid var(--grid)}
+.maptable th{color:var(--ink-3); font-weight:500; position:sticky; top:0; background:var(--raised)}
+.maptable tr.hdr td{font-weight:600; background:color-mix(in srgb,var(--focus) 8%,transparent)}
+.maptable tr.skip td{color:var(--ink-3)}
+.mapgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px 14px}
+.mapgrid label{display:flex; flex-direction:column; gap:3px; font-size:12.5px; color:var(--ink-2)}
+.mapgrid select,.mapgrid input{border:1px solid var(--wire); border-radius:6px; background:var(--raised); padding:5px 7px; font-size:13.5px; color:var(--ink)}
+.toastbtn{border:0; background:none; color:inherit; text-decoration:underline; text-underline-offset:2px; font-weight:600; padding:0 0 0 6px}
+.tagtools{display:flex; flex-wrap:wrap; gap:6px 8px; align-items:center; margin-top:10px}
+.tagtools input{border:1px solid var(--wire); background:var(--raised); border-radius:6px; padding:5px 9px; width:170px}
+.tagchip{display:inline-flex; align-items:center; gap:4px; border:1px solid var(--wire); background:transparent; border-radius:999px; padding:1px 4px 1px 9px; font-size:12.5px; color:var(--ink-2)}
+.tagchip button{border:0; background:none; color:var(--ink-3); padding:0 4px; font-size:14px; line-height:1}
+.tagchip button:hover{color:var(--warn)}
+#qTagForm{display:inline-flex; gap:6px; align-items:center}
+#qTagForm input{border:1px solid var(--wire); background:var(--raised); border-radius:6px; padding:4px 8px; width:150px; font-size:13px}
+#toast{position:fixed; left:20px; bottom:calc(20px + env(safe-area-inset-bottom,0px)); background:var(--ink); color:var(--paper); padding:9px 14px; border-radius:8px; font-size:14px; max-width:min(520px,90vw); display:none; z-index:20}
+.menu{position:relative}
+.menu > div{position:absolute; right:0; top:calc(100% + 6px); background:var(--raised); border:1px solid var(--wire); border-radius:8px; padding:6px; display:none; flex-direction:column; min-width:210px; z-index:10; box-shadow:0 6px 18px rgba(0,0,0,.12)}
+.menu.open > div{display:flex}
+.menu > div button{border:0; background:none; text-align:start; padding:7px 10px; border-radius:5px; font-size:14px}
+.menu > div button:hover{background:var(--panel)}
+.vh{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+.filterbar{display:flex; gap:10px 14px; align-items:center; flex-wrap:wrap; padding:12px 16px 0 24px}
+.search{position:relative; flex:0 1 380px; min-width:220px}
+.search input{width:100%; border:1px solid var(--wire); background:var(--raised); border-radius:8px; padding:7px 30px 7px 32px; font-size:14px}
+.search svg{position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--ink-3); pointer-events:none}
+.search button{position:absolute; right:6px; top:50%; transform:translateY(-50%); border:0; background:none; color:var(--ink-3); font-size:18px; line-height:1; padding:2px 6px}
+.search.on input{border-color:var(--focus)}
+.search input::-webkit-search-cancel-button,.search input::-webkit-search-decoration{-webkit-appearance:none; appearance:none}
+.filterinfo{font-size:13px; color:var(--ink-2)}
+.tags{display:flex; gap:6px; flex-wrap:wrap}
+.tag{border:1px dashed var(--wire); background:transparent; border-radius:999px; padding:1px 9px; font-size:12.5px; color:var(--ink-2)}
+.tag[aria-pressed="true"]{border-style:solid; border-color:var(--focus); color:var(--focus)}
+.radio{display:flex; gap:8px; align-items:flex-start; font-size:14px; color:var(--ink)}
+.radio input{margin-top:3px}
+.warnbox{border:1px solid var(--warn); color:var(--ink); border-radius:8px; padding:8px 11px; font-size:13.5px}
+@media (max-width:980px){ .filterbar{padding:12px 14px 0} }
+.pstrip{fill:transparent; cursor:crosshair}
+.pstrip:hover{fill:var(--grid); fill-opacity:.35}
+.period .pbody{cursor:grab}
+.period .pedge{fill:transparent; cursor:ew-resize}
+.period.on .pbody{stroke-width:1.6}
+.plabel{font-size:11.5px; pointer-events:none; fill:var(--ink)!important}
+.phint{font-size:11.5px; fill:var(--ink-3)!important; font-style:italic; pointer-events:none}
+.pdraft{fill:var(--focus); fill-opacity:.15; stroke:var(--focus); stroke-dasharray:3 2; pointer-events:none}
+.bbar{fill:var(--c); fill-opacity:.12}
+.bbar.over{fill:var(--warn); fill-opacity:.2}
+.bexp{fill:none; stroke:var(--c); stroke-opacity:.5; stroke-dasharray:2 2}
+.bexp.over{stroke:var(--warn)}
+.bover{font-size:10.5px; fill:var(--warn)!important; font-weight:600}
+.bline{stroke-width:1.4; stroke-dasharray:6 3; pointer-events:none}
+.blabel{font-size:11px; fill:var(--ink-2)!important}
+.bhandle{cursor:ns-resize}
+.bhandle circle{fill:var(--paper); stroke-width:2}
+.bhandle:hover circle,.bhandle:focus circle{fill:var(--raised); stroke-width:3}
+.transferlink{fill:none; stroke:#6F7F99; stroke-dasharray:2 3; opacity:.8}
+.transferlink.dim{opacity:.1}
+.flagmark{font-size:10px; fill:var(--warn)!important}
+#changes{margin:18px 16px 0 24px}
+#changes:empty{display:none}
+ul.changes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; font-size:14px}
+ul.changes li{background:var(--raised); border:1px solid var(--grid); border-radius:8px; padding:7px 11px}
+.chg{display:inline-block; width:16px; text-align:center}
+.chg.up{color:var(--warn)} .chg.down{color:#3F7F4F} .chg.gone{color:var(--ink-3)}
+.pname{font:500 24px/1.2 var(--display); border:0; border-bottom:2px solid; background:transparent; padding:2px 0; width:100%; color:var(--ink)}
+.pname:focus{outline:none; border-bottom-width:3px}
+.row-actions input[type=date]{min-width:0; padding:3px 6px}
+.note.story{min-height:150px}
+.storyview{font-size:14.5px; line-height:1.55; background:var(--raised); border:1px solid var(--grid); border-radius:8px; padding:10px 12px}
+.storyview p{margin:0 0 8px}
+.report{background:var(--raised); border:1px solid var(--grid); border-radius:10px; padding:10px 12px; margin-bottom:10px}
+.report h3{font:600 14.5px/1.35 var(--ui); margin:0 0 2px}
+.report .a{margin-top:8px}
+@media (max-width:980px){ #changes{margin:18px 14px 0} }
+@media (prefers-reduced-motion:reduce){ .bead{transition:none} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1 class="mark"><svg width="26" height="22" viewBox="0 0 26 22" aria-hidden="true"><line x1="1" y1="5" x2="25" y2="5" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="11" x2="25" y2="11" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="17" x2="25" y2="17" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="5" r="3" fill="#2F6B8F"/><circle cx="13" cy="5" r="2" fill="#2F6B8F"/><circle cx="18" cy="11" r="3.5" fill="#A4502F"/><circle cx="9" cy="17" r="2.5" fill="#5E8237"/><circle cx="21" cy="17" r="2.5" fill="none" stroke="#5E8237" stroke-dasharray="1.5 1.5"/></svg>Abacus</h1>
+    <div class="chips" id="accts" aria-label="Accounts"></div>
+    <div class="spacer"></div>
+    <div class="chips" id="ranges" role="group" aria-label="Time range"></div>
+    <button class="btn quiet" id="panelBtn" hidden>Threads and Ask</button>
+    <button class="btn" id="addBtn">Add statements</button>
+    <div class="menu" id="moreMenu">
+      <button class="btn quiet" id="moreBtn" aria-haspopup="true" aria-expanded="false">More</button>
+      <div role="menu">
+        <button role="menuitem" data-act="ai">AI assistant settings</button>
+        <button role="menuitem" data-act="dl-rules">Download threads as text</button>
+        <button role="menuitem" data-act="dl-all">Download everything (JSON)</button>
+        <button role="menuitem" data-act="reset-lenses">Restore starter lenses</button>
+      </div>
+    </div>
+    <input type="file" id="file" multiple class="vh" accept=".xls,.xlsx,.csv,.txt,.html,.htm">
+  </header>
+  <main>
+    <section class="left" aria-label="Timeline">
+      <div class="filterbar">
+        <div class="search" id="searchBox"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="11" y1="11" x2="15" y2="15" stroke="currentColor" stroke-width="1.6"/></svg>
+          <input id="q" type="search" placeholder="Filter by description, note, #tag or @period" aria-label="Filter transactions" autocomplete="off" spellcheck="false" dir="auto">
+          <button id="qClear" aria-label="Clear filter" hidden>×</button></div>
+        <span class="filterinfo" id="qInfo"></span>
+        <div class="tags" id="qTags" aria-label="Tags in your notes"></div>
+      </div>
+      <div id="tlwrap"><div id="tl"></div><div id="tip" role="status"></div></div>
+      <div id="parkbar" aria-label="Parked threads"></div>
+      <div id="insp"></div>
+      <div id="changes"></div>
+      <div id="lenses"></div>
+    </section>
+    <aside class="right">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-threads" aria-selected="true" aria-controls="pane-threads">Threads</button>
+        <button class="tab" role="tab" id="tab-ask" aria-selected="false" aria-controls="pane-ask">Ask</button>
+        <button class="tab" role="tab" id="tab-reports" aria-selected="false" aria-controls="pane-reports">Reports</button>
+        <button class="hidepanel" id="hidePanel" title="Give the timeline the whole width">Hide panel</button>
+      </div>
+      <div class="pane on" id="pane-threads" role="tabpanel" aria-labelledby="tab-threads">
+        <p class="lead">Each thread is a wire on the timeline. Type a name, then indented bits of merchant names, #tags from your notes, or /patterns/. Put the cursor on a line to see what it catches.</p>
+        <div class="editor" id="editor">
+          <div class="gutter" aria-hidden="true"><div class="gutter-in" id="gutter"></div></div>
+          <textarea id="rules" spellcheck="false" wrap="off" aria-label="Thread rules"></textarea>
+        </div>
+        <div class="previewbar" id="previewbar">
+          <div id="previewmsg"></div>
+          <div class="row-actions"><button class="btn small" id="keepPreview">Keep these threads</button><button class="btn small quiet" id="dropPreview">Discard</button></div>
+        </div>
+        <div class="under">
+          <button class="btn quiet small" id="suggestBtn" hidden>Suggest threads</button>
+          <span class="status" id="saveStatus"></span>
+        </div>
+      </div>
+      <div class="pane" id="pane-reports" role="tabpanel" aria-labelledby="tab-reports">
+        <p class="lead">Questions you ask again and again. Run them after adding statements; each run starts with what changed since the last one.</p>
+        <div id="reports"></div>
+        <div class="askbox" style="margin-top:12px"><textarea id="repInput" placeholder="Save a question, e.g. “How did this month compare with a typical month?”" aria-label="Report question"></textarea>
+          <div class="row-actions"><span class="sub"></span><button class="btn small" id="repSave">Save and run</button></div></div>
+      </div>
+      <div class="pane" id="pane-ask" role="tabpanel" aria-labelledby="tab-ask">
+        <div id="askmem"></div>
+        <div id="log" aria-live="polite"></div>
+        <div class="askbox">
+          <div class="ctx" id="askctx"></div>
+          <textarea id="askInput" placeholder="Ask, or ask for changes: “translate the descriptions into English”" aria-label="Question"></textarea>
+          <div class="row-actions"><span class="sub" id="askNote"></span><span><button class="btn small quiet" id="stopBtn" hidden>Stop</button> <button class="btn small" id="sendBtn">Ask</button></span></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<dialog id="mapDlg" aria-labelledby="mapTitle">
+  <div class="dlg">
+    <h2 id="mapTitle">Teach Abacus this file</h2>
+    <div class="sub" id="mapIntro"></div>
+    <div class="maptable-wrap"><table class="maptable" id="mapTable"></table></div>
+    <div class="mapgrid" id="mapGrid"></div>
+    <div><div class="sub" style="margin-bottom:4px">How it reads</div><div class="maptable-wrap" style="max-height:170px"><table class="maptable" id="mapPreview"></table></div></div>
+    <div class="row-actions" style="justify-content:space-between">
+      <span><button class="btn small quiet" id="mapAsk" hidden>Fill this in for me</button> <span class="sub" id="mapAskNote"></span></span>
+      <span><button class="btn small quiet" id="mapCancel">Skip this file</button> <button class="btn small" id="mapOk">Import</button></span>
+    </div>
+  </div>
+</dialog>
+<dialog id="aiDlg" aria-labelledby="aiTitle">
+  <div class="dlg">
+    <h2 id="aiTitle">AI assistant</h2>
+    <p class="sub" style="margin:0">Pick who suggests threads, writes lenses, answers questions and reads unfamiliar files.</p>
+    <label class="radio"><input type="radio" name="prov" value="claude"> <span><b>Claude</b><br><span class="sub">Built in when Abacus is open in claude.ai. Uses your Claude plan.</span></span></label>
+    <label class="radio"><input type="radio" name="prov" value="openai"> <span><b>ChatGPT or another OpenAI-compatible service</b><br><span class="sub">OpenAI, OpenRouter, Azure-style proxies, or a local model through Ollama or LM Studio.</span></span></label>
+    <div id="aiOpenai" class="mapgrid" style="grid-template-columns:1fr">
+      <label>Host or base URL<input id="aiBase" placeholder="api.openai.com" autocomplete="off" spellcheck="false"></label>
+      <label>API key<input id="aiKey" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false"></label>
+      <label>Model<input id="aiModel" placeholder="The model name your service uses" autocomplete="off" spellcheck="false"></label>
+      <p class="sub" style="margin:0">Just a host like <b>api.openai.com</b> becomes https://api.openai.com/v1. For anything else, paste the full base URL, e.g. http://localhost:11434/v1. The key stays in this browser only. It never goes into your saved data or downloads.</p>
+      <div class="warnbox" id="aiCsp" hidden>This copy of Abacus is running inside claude.ai, where pages can only talk to Claude. To use ChatGPT, open the downloaded <b>abacus.html</b> file in your browser. Your settings here will work there.</div>
+    </div>
+    <div class="row-actions" style="justify-content:space-between">
+      <span><button class="btn small quiet" id="aiTest">Test connection</button> <span class="sub" id="aiNote"></span></span>
+      <span><button class="btn small quiet" id="aiForget">Forget key</button> <button class="btn small quiet" id="aiCancel">Cancel</button> <button class="btn small" id="aiSave">Save</button></span>
+    </div>
+  </div>
+</dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ───────────── small helpers ───────────── */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const BIDI = /[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
+function fnv(str) { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(16).padStart(8, "0"); }
+const pad2 = n => String(n).padStart(2, "0");
+const isoOf = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const TODAY = isoOf(new Date());
+const ms = iso => { const [y, m, d] = iso.split("-").map(Number); return Date.UTC(y, m - 1, d || 1); };
+const monthOf = iso => iso.slice(0, 7);
+function addMonths(iso, k) {
+  let [y, m, d] = iso.split("-").map(Number); m = m - 1 + k; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return `${y}-${pad2(m + 1)}-${pad2(Math.min(d || 1, last))}`;
+}
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const monthName = ym => { const [y, m] = ym.split("-").map(Number); return `${MONTHS[m - 1]} ${y}`; };
+const fmt = (n, dp) => { const v = Number(n) || 0; const d = dp ?? (Math.abs(v) >= 1000 ? 0 : 2); return (v < 0 ? "−" : "") + "₪" + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }); };
+const fmtShort = n => { const a = Math.abs(n); const s = a >= 10000 ? (a / 1000).toFixed(0) + "k" : a >= 1000 ? (a / 1000).toFixed(1) + "k" : a.toFixed(0); return (n < 0 ? "−" : "") + "₪" + s; };
+const fmtDate = iso => { const [y, m, d] = iso.split("-").map(Number); return `${d} ${MONTHS[m - 1]} ${y}`; };
+function debounce(fn, t) { let h; return (...a) => { clearTimeout(h); h = setTimeout(() => fn(...a), t); }; }
+function normText(s) { return String(s ?? "").toLowerCase().replace(BIDI, "").replace(/["'`׳״*.,\-_()\/\\:;|]+/g, " ").replace(/\d+/g, " ").replace(/\s+/g, " ").trim(); }
+let toastTimer;
+function toast(msg, t = 4200, action) {
+  const el = $("#toast"); el.textContent = msg;
+  if (action) { const b = document.createElement("button"); b.textContent = action.label; b.className = "toastbtn"; b.onclick = () => { el.style.display = "none"; action.fn(); }; el.append(" ", b); }
+  el.style.display = "block"; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.style.display = "none", action ? Math.max(t, 9000) : t);
+}
+
+/* ───────────── parsing money and dates ───────────── */
+function parseAmount(v) {
+  if (v == null || v === "") return null;
+  if (typeof v === "number") return isFinite(v) ? { amount: v, currency: null } : null;
+  let s = String(v).replace(BIDI, "").trim(); if (!s) return null;
+  let currency = null;
+  if (s.includes("$")) currency = "USD"; else if (s.includes("€")) currency = "EUR"; else if (s.includes("£")) currency = "GBP"; else if (s.includes("₪") || /ש"ח|ש״ח/.test(s)) currency = "ILS";
+  const neg = /-|−/.test(s) || /^\(.*\)$/.test(s);
+  let num = s.replace(/[^\d.,]/g, ""); if (!/\d/.test(num)) return null;
+  const lc = num.lastIndexOf(","), ld = num.lastIndexOf(".");
+  if (lc > -1 && ld > -1) num = lc > ld ? num.replace(/\./g, "").replace(",", ".") : num.replace(/,/g, "");
+  else if (lc > -1) num = (num.length - lc - 1 === 3) ? num.replace(/,/g, "") : num.replace(/,/g, ".");
+  const n = parseFloat(num); if (!isFinite(n)) return null;
+  return { amount: neg ? -n : n, currency };
+}
+function parseDateCell(v, order = "DMY") {
+  if (v == null || v === "") return null;
+  if (v instanceof Date && !isNaN(v)) return isoOf(v);
+  if (typeof v === "number" && v > 20000 && v < 80000) { const d = new Date(Date.UTC(1899, 11, 30) + v * 864e5); return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`; }
+  const s = String(v).replace(BIDI, "").trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return `${m[1]}-${pad2(m[2])}-${pad2(m[3])}`;
+  m = s.match(/^(\d{1,4})[\/.\-](\d{1,2})[\/.\-](\d{1,4})/); if (!m) return null;
+  let a = +m[1], b = +m[2], c = +m[3], y, mo, d;
+  if (order === "YMD" || m[1].length === 4) { y = a; mo = b; d = c; } else if (order === "MDY") { mo = a; d = b; y = c; } else { d = a; mo = b; y = c; }
+  if (y < 100) y += 2000; if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return `${y}-${pad2(mo)}-${pad2(d)}`;
+}
+const HE_MONTHS = { "ינואר": 1, "פברואר": 2, "מרץ": 3, "מרס": 3, "אפריל": 4, "מאי": 5, "יוני": 6, "יולי": 7, "אוגוסט": 8, "ספטמבר": 9, "אוקטובר": 10, "נובמבר": 11, "דצמבר": 12 };
+const INST_RE = /תשלום\s*-?\s*(\d+)\s*מ(?:תוך)?\s*-?\s*(\d+)/;
+
+/* ───────────── importers ───────────── */
+function parseLeumiHTML(html, file) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  if (!doc.body || !doc.body.textContent.includes("תאריך העסקה")) return null;
+  const rows = []; let account = null, period = null, section = "", cols = null; const occ = {};
+  for (const tr of doc.querySelectorAll("tr")) {
+    if (tr.querySelector("tr")) { // an outer row wrapping nested tables: only use it for the card header
+      const t = tr.textContent.replace(BIDI, "").replace(/\s+/g, " ");
+      if (t.length < 400) { const m = t.match(/פרוט עסקאות לכרטיס\s+(.+?)\s+לתקופה:?\s*(\S+)\s+(\d{4})/); if (m) { account = m[1].trim(); const mo = HE_MONTHS[m[2]]; if (mo) period = `${m[3]}-${pad2(mo)}`; } }
+      continue;
+    }
+    const cells = [...tr.cells].map(c => c.textContent.replace(BIDI, "").replace(/\s+/g, " ").trim());
+    const joined = cells.join(" ");
+    const hm = joined.length < 400 && joined.match(/פרוט עסקאות לכרטיס\s+(.+?)\s+לתקופה:?\s*(\S+)\s+(\d{4})/);
+    if (hm) { account = hm[1].trim(); const mo = HE_MONTHS[hm[2]]; if (mo) period = `${hm[3]}-${pad2(mo)}`; continue; }
+    if (cells.length === 1 && /^עסקאות/.test(cells[0]) && cells[0].length < 80) { section = cells[0]; continue; }
+    if (cells.includes("תאריך העסקה")) {
+      cols = {}; cells.forEach((c, i) => {
+        if (c === "תאריך העסקה") cols.date = i; else if (c === "שם בית העסק") cols.merchant = i; else if (c === "סכום העסקה") cols.orig = i;
+        else if (c === "סוג העסקה") cols.type = i; else if (c === "פרטים") cols.details = i; else if (c === "סכום חיוב") cols.amount = i;
+      }); continue;
+    }
+    if (!cols || cols.date == null || cols.amount == null) continue;
+    const date = parseDateCell(cells[cols.date], "DMY"); if (!date) continue;
+    const amt = parseAmount(cells[cols.amount]); if (!amt) continue;
+    rows.push({ date, merchant: cells[cols.merchant] || "", origRaw: cells[cols.orig], type: cells[cols.type] || "", details: cells[cols.details] || "", amount: amt.amount, section });
+  }
+  if (!rows.length) return null;
+  account = account || "Leumi card";
+  period = period || monthOf(rows.map(r => r.date).sort().at(-1));
+  const out = rows.map(r => {
+    const o = parseAmount(r.origRaw); const im = r.details.match(INST_RE);
+    const inst = im ? { n: +im[1], of: +im[2] } : null;
+    const base = [account, r.date, r.merchant, r.amount, r.details].join("|");
+    occ[base] = (occ[base] || 0) + 1;
+    return {
+      id: "t" + fnv(base + "|" + occ[base]), account, period, date: r.date,
+      chargeDate: inst ? `${period}-10` : r.date, merchant: r.merchant,
+      orig: o ? { amount: o.amount, currency: o.currency || "ILS" } : null,
+      type: r.type, details: r.details, amount: r.amount, inst, section: r.section, file
+    };
+  });
+  return { kind: "leumi", account, periods: [period], file, rows: out };
+}
+function htmlMatrix(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html"); const m = [];
+  for (const tr of doc.querySelectorAll("tr")) { if (tr.querySelector("tr")) continue; const c = [...tr.cells].map(x => x.textContent.replace(BIDI, "").replace(/\s+/g, " ").trim()); if (c.some(Boolean)) m.push(c); }
+  return m;
+}
+function csvMatrix(text) {
+  const first = text.split(/\r?\n/, 5).join("\n");
+  const delim = [",", ";", "\t", "|"].map(d => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if (ch === '"') q = true; else if (ch === delim) { row.push(cur); cur = ""; }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cur); cur = ""; if (row.some(x => x.trim())) rows.push(row.map(x => x.trim())); row = []; }
+    else cur += ch;
+  }
+  row.push(cur); if (row.some(x => x.trim())) rows.push(row.map(x => x.trim()));
+  return rows;
+}
+function decodeText(buf) {
+  let t = new TextDecoder("utf-8").decode(buf);
+  if ((t.match(/\uFFFD/g) || []).length > 3) { try { t = new TextDecoder("windows-1255").decode(buf); } catch {} }
+  return t.replace(/^\uFEFF/, "");
+}
+async function readMatrix(file) {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const head = new TextDecoder("latin1").decode(buf.slice(0, 1024)).toLowerCase();
+  if (/<(html|table|!doctype)/.test(head)) {
+    const text = decodeText(buf);
+    const leumi = parseLeumiHTML(text, file.name); if (leumi) return { batch: leumi };
+    return { matrix: htmlMatrix(text) };
+  }
+  if (/\.(csv|txt|tsv)$/i.test(file.name)) return { matrix: csvMatrix(decodeText(buf)) };
+  if (!window.XLSX) throw new Error("The spreadsheet reader didn't load, so .xlsx files can't be opened right now. Export as CSV instead.");
+  const wb = XLSX.read(buf, { type: "array", cellDates: true });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const m = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" }).map(r => r.map(c => c instanceof Date ? isoOf(c) : c));
+  return { matrix: m.filter(r => r.some(c => String(c).trim())) };
+}
+const sigOf = row => (row || []).map(c => String(c ?? "").trim()).filter(Boolean).join("|");
+function guessHeaderRow(m) {
+  for (let i = 0; i < Math.min(30, m.length); i++) { const r = m[i]; const txt = r.filter(c => typeof c === "string" && c.trim() && !parseDateCell(c) && !parseAmount(c)); if (txt.length >= 3) return i; }
+  return 0;
+}
+function applyMapping(matrix, map, file) {
+  const out = []; const occ = {}; const account = (map.account || "").trim() || file.replace(/\.[^.]+$/, "");
+  for (let r = (map.headerRow ?? 0) + 1; r < matrix.length; r++) {
+    const row = matrix[r]; if (!row) continue;
+    const date = parseDateCell(row[map.date], map.dateFormat || "DMY"); if (!date) continue;
+    let amount = null;
+    if (map.amount != null && map.amount !== "") { const a = parseAmount(row[map.amount]); if (a) amount = map.expenseSign === "negative" ? -a.amount : a.amount; }
+    else if (map.debit != null || map.credit != null) {
+      const d = map.debit != null ? parseAmount(row[map.debit]) : null, c = map.credit != null ? parseAmount(row[map.credit]) : null;
+      if (d || c) amount = (d ? Math.abs(d.amount) : 0) - (c ? Math.abs(c.amount) : 0);
+    }
+    if (amount == null || amount === 0) continue;
+    const merchant = String(row[map.merchant] ?? "").replace(BIDI, "").trim();
+    const o = map.orig != null ? parseAmount(row[map.orig]) : null;
+    const details = map.details != null ? String(row[map.details] ?? "").trim() : "";
+    const im = details.match(INST_RE); const inst = im ? { n: +im[1], of: +im[2] } : null;
+    const base = [account, date, merchant, amount, details].join("|"); occ[base] = (occ[base] || 0) + 1;
+    out.push({ id: "t" + fnv(base + "|" + occ[base]), account, period: monthOf(date), date, chargeDate: inst ? `${monthOf(date)}-10` : date, merchant,
+      orig: o ? { amount: o.amount, currency: o.currency || "ILS" } : null, type: map.type != null ? String(row[map.type] ?? "").trim() : "", details, amount, inst, section: "", file });
+  }
+  return { kind: "generic", account, periods: [...new Set(out.map(r => r.period))].sort(), file, rows: out };
+}
+
+/* ───────────── storage (private to this person) ───────────── */
+function localBackend() {
+  const P = "abacus:";
+  return {
+    kind: "local",
+    async all() { const out = {}; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith(P)) out[k.slice(P.length)] = JSON.parse(localStorage.getItem(k)); } } catch {} return out; },
+    async put(k, v) { try { localStorage.setItem(P + k, JSON.stringify(v)); } catch { toast("This browser wouldn't save that. Download a copy from More."); } },
+    async del(k) { try { localStorage.removeItem(P + k); } catch {} }
+  };
+}
+function dbBackend(db, uid) {
+  const col = db.collection("data/users/" + uid); const chains = {};
+  const run = (k, f) => (chains[k] = (chains[k] || Promise.resolve()).then(f).catch(e => {
+    if (e?.code === "quota_exceeded") toast("Your storage is full. Remove an old statement to make room.");
+    else if (e?.code === "unavailable") setTimeout(() => f().catch(() => toast("Couldn't save just now. Your last change may not be kept.")), 800 + Math.random() * 800);
+    else toast("Couldn't save: " + (e?.message || "unknown problem"));
+  }));
+  return {
+    kind: "account",
+    async all() { const snap = await col.limit(1000).get(); const out = {}; for (const d of snap.docs) out[d.id] = JSON.parse(JSON.stringify(d.data())); return out; },
+    put: (k, v) => run(k, () => col.doc(k).set(v)),
+    del: k => run(k, () => col.doc(k).delete())
+  };
+}
+const Store = { backend: localBackend() };
+const saveSoon = (() => { const t = {}; return (key, get, wait = 700) => { clearTimeout(t[key]); t[key] = setTimeout(() => { Store.backend.put(key, get()); setStatus(); }, wait); }; })();
+function setStatus() { $("#saveStatus").textContent = Store.backend.kind === "account" ? "Saved privately to your Claude account" : "Saved in this browser only"; }
+
+function saveBatch(b) {
+  const CH = 350, parts = Math.max(1, Math.ceil(b.rows.length / CH));
+  for (let i = 0; i < parts; i++) Store.backend.put(`batch_${b.id}_${i}`, { batchId: b.id, kind: b.kind, account: b.account, periods: b.periods, file: b.file, added: b.added, part: i, parts, rows: b.rows.slice(i * CH, (i + 1) * CH) });
+}
+function removeBatch(b) { for (let i = 0; i < (b.parts || 1); i++) Store.backend.del(`batch_${b.id}_${i}`); delete state.batches[b.id]; }
+
+/* ───────────── state ───────────── */
+const PALETTE = ["#2F6B8F", "#A4502F", "#5E8237", "#7C4F93", "#B38A1F", "#2E857B", "#A33E63", "#5D6BA8", "#86662F", "#3F7F4F"];
+const LOOSE = "Loose ends";
+const TRANSFERS = "Transfers";
+const STARTER_RULES = `// A thread: a name on its own line,
+// then indented patterns. A pattern is
+// part of a merchant name, a #tag
+// from your notes, or a /regex/.
+// First matching thread wins.
+
+Bills
+  חשמל
+  פרטנר
+  בזק
+  אמישראגז
+  דמי כרטיס
+
+Groceries
+  שופרסל
+  רמי לוי
+  יוחננוף
+  ויקטורי
+
+Getting around
+  דלק
+  פנגו
+  מוביט
+  סונול
+
+Subscriptions
+  netlify
+  microsoft
+  netflix
+  spotify
+`;
+const STARTER_LENSES = [
+  { id: "l-where", title: "Where it went, by thread", code:
+`// Money out per thread, largest first. Click a bar to light up its beads.
+const out = txns.filter(t => t.amount > 0);
+const g = lib.groupBy(out, t => t.thread);
+return {
+  kind: "bars",
+  items: Object.entries(g)
+    .map(([name, ts]) => ({ label: name, value: lib.sum(ts, t => t.amount), ids: ts.map(t => t.id) }))
+    .sort((a, b) => b.value - a.value)
+};` },
+  { id: "l-spoken", title: "Already spoken for", code:
+`// What's expected in the coming months: recurring charges
+// that showed up in your latest statement, plus instalments still to run.
+const g = lib.groupBy(lib.expected, t => lib.month(t.date));
+return {
+  kind: "bars",
+  items: Object.keys(g).sort().map(m => ({
+    label: m,
+    value: lib.sum(g[m], t => t.amount),
+    ids: g[m].map(t => t.id)
+  }))
+};` },
+  { id: "l-recurring", title: "Things that keep coming back", code:
+`// Merchants seen in more than one statement, with their latest charge.
+const rec = txns.filter(t => t.recurring);
+const g = lib.groupBy(rec, t => t.key);
+const rows = Object.values(g)
+  .map(ts => ts.sort((a, b) => a.date < b.date ? -1 : 1))
+  .sort((a, b) => b.at(-1).amount - a.at(-1).amount);
+return {
+  kind: "table",
+  columns: ["Merchant", "Seen", "Latest"],
+  rows: rows.map(ts => [ts.at(-1).merchant, ts.length + "×", lib.fmt(ts.at(-1).amount)]),
+  rowIds: rows.map(ts => ts.map(t => t.id))
+};` }
+];
+const state = {
+  loaded: false, batches: {}, rules: STARTER_RULES, previewRules: null, previewSummary: "", notes: {}, lenses: STARTER_LENSES.map(l => ({ ...l })),
+  adapters: {}, names: {}, transferOv: {}, dismissed: {}, periods: [], periodSel: null, storyEdit: null, reports: [], budgetDrag: null, hiddenAccounts: new Set(), query: "", view: { parked: [], panel: true, showParked: false }, range: "all", selection: new Set(), highlight: new Set(), statement: null, turns: [], editing: new Set()
+};
+const caps = { sample: null, claude: null, tools: false, claudeTools: false, downloads: null };
+let D = null; // derived view of everything
+
+/* ───────────── rules ───────────── */
+function parseRules(text) {
+  const lines = text.split("\n"); const threads = []; const errors = {}; let cur = null;
+  const mk = (src, line) => {
+    src = src.trim(); if (!src) return null;
+    const rm = src.match(/^\/(.+)\/([a-z]*)$/);
+    if (rm) { try { const re = new RegExp(rm[1], rm[2].includes("i") ? rm[2] : rm[2] + "i"); return { line, src, test: t => re.test(t.raw) }; } catch (e) { errors[line] = "This pattern isn't a valid regular expression"; return null; } }
+    if (src.startsWith("#")) { const tag = src.toLowerCase(); return { line, src, test: t => t.noteLower.includes(tag) }; }
+    const n = normText(src); if (!n) { errors[line] = "Nothing left to match once numbers and punctuation are removed"; return null; }
+    return { line, src, test: t => t.norm.includes(n) };
+  };
+  lines.forEach((raw, i) => {
+    const s = raw.trim(); if (!s || s.startsWith("//")) return;
+    const indented = /^\s/.test(raw);
+    if (!indented) {
+      if (s.startsWith("#")) return; // a top-level # line reads as a comment
+      let head = s, budget = null;
+      const bm = head.match(/\[\s*budget\s+([\d,.]+)\s*(?:\/\s*(?:month|mo))?\s*\]/i);
+      if (bm) { budget = parseFloat(bm[1].replace(/,/g, "")); head = (head.slice(0, bm.index) + head.slice(bm.index + bm[0].length)).trim(); }
+      const ci = head.indexOf(":"); let name = head, inline = [];
+      if (ci > 0) { name = head.slice(0, ci).trim(); inline = head.slice(ci + 1).split(",").filter(x => x.trim()); }
+      cur = { name, line: i, patterns: [], budget: isFinite(budget) ? budget : null }; threads.push(cur);
+      inline.forEach(p => { const pp = mk(p, i); if (pp) cur.patterns.push(pp); });
+    } else {
+      if (!cur) { errors[i] = "Indented lines belong under a thread name"; return; }
+      const pp = mk(s, i); if (pp) cur.patterns.push(pp);
+    }
+  });
+  const seen = {}; threads.forEach(t => { const k = t.name.toLowerCase(); if (seen[k] != null) errors[t.line] = "Another thread already has this name, so this one is merged into it"; seen[k] ??= t; });
+  const merged = []; const byName = {};
+  threads.forEach(t => { const k = t.name.toLowerCase(); if (byName[k]) { byName[k].patterns.push(...t.patterns); byName[k].budget ??= t.budget; } else { byName[k] = { ...t, patterns: [...t.patterns] }; merged.push(byName[k]); } });
+  merged.forEach((t, i) => t.color = PALETTE[i % PALETTE.length]);
+  return { threads: merged, errors, lineCount: lines.length };
+}
+
+/* ───────────── derive everything from source data ───────────── */
+function derive() {
+  const R = parseRules(state.previewRules ?? state.rules);
+  const all = new Map();
+  for (const b of Object.values(state.batches)) for (const r of b.rows) if (!all.has(r.id)) all.set(r.id, r);
+  const accounts = [...new Set([...all.values()].map(r => r.account))].sort();
+  const coverage = {}; for (const b of Object.values(state.batches)) { (coverage[b.account] ||= new Set()); b.periods.forEach(p => coverage[b.account].add(p)); }
+  const TR = detectTransfers([...all.values()]);
+  const txns = [];
+  for (const r of all.values()) {
+    if (state.hiddenAccounts.has(r.account)) continue;
+    const note = state.notes[r.id] || "";
+    const nk = normText(r.merchant); const alias = state.names[nk]?.name || "";
+    const t = { ...r, merchant: alias || r.merchant, original: r.merchant, nameKey: nk, renamed: !!alias, note, key: r.account + "::" + nk, noteLower: note.toLowerCase(),
+      raw: (alias ? alias + " " : "") + r.merchant + " " + note, norm: (alias ? normText(alias) + " " : "") + nk + " " + normText(note), kind: "actual", transfer: TR.info[r.id] || null };
+    txns.push(t);
+  }
+  // threads
+  const lineHits = {};
+  for (const t of txns) {
+    t.thread = LOOSE; t.matchLine = null;
+    if (t.transfer) { t.thread = TRANSFERS; continue; }
+    outer: for (const th of R.threads) for (const p of th.patterns) if (p.test(t)) { t.thread = th.name; t.matchLine = p.line; t.threadLine = th.line; break outer; }
+    if (t.matchLine != null) (lineHits[t.matchLine] ||= []).push(t);
+  }
+  // recurring: same merchant in two or more statement months; projected only if it's in the latest one
+  const groups = {};
+  for (const t of txns) if (!t.inst && !t.transfer) (groups[t.key] ||= []).push(t);
+  const expected = []; const links = [];
+  const horizon = addMonths(TODAY, 3);
+  for (const g of Object.values(groups)) {
+    const periods = new Set(g.map(t => t.period));
+    if (periods.size < 2) continue;
+    g.sort((a, b) => a.date < b.date ? -1 : 1); g.forEach(t => t.recurring = true);
+    const last = g.at(-1); const cov = [...(coverage[last.account] || [])].sort();
+    const chain = g.map(t => t.id);
+    if (cov.at(-1) === last.period) {
+      for (let k = 1; k <= 12; k++) {
+        const d = addMonths(last.date, k); if (d > horizon) break; if (d <= TODAY) continue;
+        const e = { ...last, id: `x${last.id}-${k}`, date: d, chargeDate: d, kind: "ghost", note: "", recurring: true, amount: last.amount, details: "", derivedFrom: last, why: `Expected, because ${last.merchant} appears in ${periods.size} statements` };
+        expected.push(e); chain.push(e.id);
+      }
+    }
+    links.push(chain);
+  }
+  // instalments: fill in missing payments and project the rest
+  const plans = {};
+  for (const t of txns) if (t.inst && !t.transfer) (plans[t.key + "|" + t.date + "|" + t.inst.of] ||= []).push(t);
+  const purchases = [];
+  for (const ps of Object.values(plans)) {
+    ps.sort((a, b) => a.inst.n - b.inst.n); const ref = ps[0]; const have = new Set(ps.map(p => p.inst.n));
+    const purchase = { ...ref, id: `p${ref.id}`, kind: "purchase", chargeDate: ref.date, details: "", derivedFrom: ref, amount: ref.orig?.amount ?? ref.amount * ref.inst.of, why: `Bought in ${ref.inst.of} payments` };
+    purchases.push(purchase);
+    const chain = [purchase.id];
+    for (let n = 1; n <= ref.inst.of; n++) {
+      const got = ps.find(p => p.inst.n === n);
+      if (got) { chain.push(got.id); continue; }
+      const d = addMonths(ref.chargeDate, n - ref.inst.n);
+      const e = { ...ref, id: `i${ref.id}-${n}`, chargeDate: d, date: d, inst: { n, of: ref.inst.of }, note: "", kind: d > TODAY ? "ghost" : "inferred", details: "", derivedFrom: ref,
+        why: d > TODAY ? `Payment ${n} of ${ref.inst.of}, still to come` : `Payment ${n} of ${ref.inst.of}, in a statement you haven't added` };
+      if (e.kind === "ghost") expected.push(e); else purchases.push(e);
+      chain.push(e.id);
+    }
+    links.push(chain);
+  }
+  for (const t of txns) if (t.transfer?.kind === "pair" && t.transfer.dir === "out") links.push([t.id, t.transfer.other]);
+  let extras = [...expected, ...purchases];
+  for (const t of [...txns, ...extras]) { const d = t.date; t.periods = state.periods.filter(p => d >= p.start && d <= p.end).map(p => p.name); }
+  const flags = findChanges(groups, coverage); const flagged = {};
+  for (const f of flags) flagged[f.t.id] = f.type === "price" ? (f.b > f.a ? "▲" : "▼") : "◌";
+  const byId = new Map(); [...txns, ...extras].forEach(t => byId.set(t.id, t));
+  // the filter box: every term must match the description, details or note; #tags look only in notes; -term excludes
+  const Q = parseQuery(state.query);
+  let shown = txns, shownExpected = expected;
+  if (Q) {
+    const ok = t => Q.every(q => q.test(t) !== q.neg);
+    shown = txns.filter(ok); extras = extras.filter(t => ok(t.derivedFrom ? { ...t, note: t.derivedFrom.note || "" } : t)); shownExpected = expected.filter(t => extras.includes(t));
+    for (const k of Object.keys(lineHits)) lineHits[k] = lineHits[k].filter(ok);
+  }
+  const names = [...R.threads.map(t => t.name), LOOSE, ...(txns.some(t => t.transfer) ? [TRANSFERS] : [])];
+  const colorOf = Object.fromEntries(R.threads.map(t => [t.name, t.color])); colorOf[LOOSE] = "#7B8588"; colorOf[TRANSFERS] = "#6F7F99";
+  const tags = {}; for (const n of Object.values(state.notes)) for (const m of String(n).toLowerCase().matchAll(/#[\p{L}\p{N}_-]+/gu)) tags[m[0]] = (tags[m[0]] || 0) + 1;
+  D = { R, txns: shown, allTxns: txns, expected: shownExpected, extras, byId, links, accounts, coverage, names, colorOf, lineHits, tags, filtered: !!Q, flags, flagged, stmts: TR.stmts, stmtPaid: TR.paid };
+}
+
+function parseQuery(q) {
+  const terms = String(q || "").trim().split(/\s+/).filter(Boolean); if (!terms.length) return null;
+  return terms.map(raw => {
+    const neg = raw.startsWith("-") && raw.length > 1; const term = (neg ? raw.slice(1) : raw).toLowerCase();
+    if (term.startsWith("@") && term.length > 1) return { neg, test: t => (t.periods || []).some(n => n.toLowerCase().includes(term.slice(1))) };
+    if (term.startsWith("#")) return { neg, test: t => new RegExp("(^|[^\\p{L}\\p{N}_-])" + term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![\\p{L}\\p{N}_-])", "u").test(String(t.note || "").toLowerCase()) };
+    const n = normText(term);
+    return { neg, test: t => { const hay = (t.merchant + " " + (t.original && t.original !== t.merchant ? t.original + " " : "") + (t.details || "") + " " + (t.note || "")).toLowerCase(); return hay.includes(term) || (!!n && normText(hay).includes(n)); } };
+  });
+}
+function renderFilterBar() {
+  const box = $("#searchBox"), q = state.query.trim();
+  box.classList.toggle("on", !!q); $("#qClear").hidden = !q;
+  if ($("#q").value !== state.query) $("#q").value = state.query;
+  const has = state.loaded && D?.allTxns?.length;
+  $(".filterbar").style.display = has ? "" : "none"; if (!has) return;
+  const sum = D.txns.reduce((a, t) => a + t.amount, 0);
+  const qi = $("#qInfo");
+  if (!q) qi.innerHTML = "";
+  else if (!qi.querySelector("#qTagForm input:focus")) {
+    qi.innerHTML = `${D.txns.length} of ${D.allTxns.length} match, ${fmt(sum, 0)}${D.txns.length ? ` · <span id="qTagForm"><input placeholder="#tag" aria-label="Tag everything that matches" list="allTags2"><datalist id="allTags2">${Object.keys(D.tags).map(t => `<option value="${esc(t)}">`).join("")}</datalist><button class="btn small quiet">Tag all ${D.txns.length}</button></span>` : ""}`;
+    const f = $("#qTagForm");
+    if (f) { const inp = f.querySelector("input"); const go = () => { const tags = parseTags(inp.value); if (!tags.length) { inp.focus(); return; }
+      const ids = D.txns.map(t => t.id); bulkTag(ids, tags, []); };
+      f.querySelector("button").onclick = go; inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); go(); } }); }
+  }
+  const active = new Set(q.toLowerCase().split(/\s+/).filter(x => x.startsWith("#")));
+  $("#qTags").innerHTML = Object.entries(D.tags).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([t, n]) => `<button class="tag" data-tag="${esc(t)}" aria-pressed="${active.has(t)}" title="${n} note${n > 1 ? "s" : ""}" dir="auto">${esc(t)}</button>`).join("");
+}
+function wireFilter() {
+  const input = $("#q");
+  const redraw = debounce(() => { state.selection.clear(); state.highlight.clear(); derive(); renderFilterBar(); renderTimeline(); renderEditor(); renderInspector(); renderLenses(); }, 120);
+  const apply = () => { state.query = input.value; redraw(); };
+  input.addEventListener("input", apply);
+  input.addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); input.value = ""; apply(); } });
+  $("#qClear").onclick = () => { input.value = ""; apply(); input.focus(); };
+  $("#qTags").onclick = e => { const b = e.target.closest("[data-tag]"); if (!b) return; const t = b.dataset.tag; const parts = input.value.split(/\s+/).filter(Boolean);
+    input.value = (parts.some(p => p.toLowerCase() === t) ? parts.filter(p => p.toLowerCase() !== t) : [...parts, t]).join(" "); apply(); };
+  addEventListener("keydown", e => { if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) && !document.activeElement?.isContentEditable) { e.preventDefault(); input.focus(); } });
+}
+
+/* ───────────── timeline ───────────── */
+let POS = [], TL = null;
+const isoFromMs = v => new Date(v).toISOString().slice(0, 10);
+const niceBudget = v => v <= 0 ? 0 : v < 100 ? Math.round(v / 10) * 10 : v < 1000 ? Math.round(v / 50) * 50 : Math.round(v / 100) * 100;
+function domain() {
+  const dates = [...D.txns, ...D.extras].map(t => t.chargeDate || t.date);
+  state.periods.forEach(p => { dates.push(p.start, p.end); });
+  let lo = dates.reduce((a, b) => a < b ? a : b, TODAY), hi = dates.reduce((a, b) => a > b ? a : b, TODAY);
+  if (hi < addMonths(TODAY, 3)) hi = addMonths(TODAY, 3);
+  const r = { "3": 3, "6": 6, "12": 12 }[state.range];
+  if (r) { const s = addMonths(TODAY, -r); if (s > lo) lo = s; }
+  return [ms(lo) - 8 * 864e5, ms(hi) + 10 * 864e5];
+}
+function renderTimeline() {
+  const host = $("#tl"); const W = Math.max(320, host.clientWidth);
+  if (!state.loaded) { host.innerHTML = `<div class="empty"><div><p>Opening your ledger…</p></div></div>`; return; }
+  if (!D.txns.length && D.allTxns?.length) { host.innerHTML = `<div class="empty" style="min-height:220px"><div><p>Nothing matches “${esc(state.query.trim())}”.</p><button class="btn quiet" id="emptyClear">Clear the filter</button></div></div>`; $("#emptyClear").onclick = () => $("#qClear").click(); POS = []; TL = null; return; }
+  if (!D.txns.length) {
+    host.innerHTML = `<div class="empty"><div><h2>Drop statements here</h2><p>Leumi card exports are read as they are. For any other bank, you show Abacus the columns once and it remembers that format.</p><button class="btn" id="emptyAdd">Choose files</button></div></div>`;
+    $("#emptyAdd").onclick = () => $("#file").click(); POS = []; TL = null; return;
+  }
+  const narrow = W < 640; const labelW = narrow ? 100 : 158, padR = 10, maxName = narrow ? 11 : 18;
+  const [t0, t1] = domain(); const X = v => labelW + (v - t0) / (t1 - t0) * (W - labelW - padR);
+  const inRange = t => { const v = ms(t.chargeDate || t.date); return v >= t0 && v <= t1; };
+  const accts = D.accounts.filter(a => !state.hiddenAccounts.has(a));
+  const covTop = 4, covH = accts.length * 13; const axisY = covTop + covH + 16; const expY = axisY + 16;
+  // periods: packed into lanes so overlapping ones sit on top of each other
+  const pers = state.periods.filter(p => ms(p.end) >= t0 && ms(p.start) <= t1).sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : (a.end > b.end ? -1 : 1));
+  const laneEnds = [], laneOf = {};
+  for (const p of pers) { let l = laneEnds.findIndex(e => e < p.start); if (l < 0) { l = laneEnds.length; laneEnds.push(p.end); } else laneEnds[l] = p.end; laneOf[p.id] = l; }
+  const laneH = 20, perTop = expY + 8, perBottom = perTop + Math.max(1, laneEnds.length) * laneH;
+  const top = perBottom + 10;
+  const rowH = 60;
+  const rows = D.names.map(name => ({ name, color: D.colorOf[name], items: [] }));
+  const rowOf = Object.fromEntries(rows.map((r, i) => [r.name, i]));
+  for (const t of [...D.txns, ...D.extras]) if (inRange(t)) rows[rowOf[t.thread] ?? rowOf[LOOSE]].items.push(t);
+  const parkedSet = new Set(state.view.parked.map(n => n.toLowerCase()));
+  const isParked = r => parkedSet.has(r.name.toLowerCase());
+  let visibleRows = rows.filter(r => (r.items.length || (r.name !== LOOSE && r.name !== TRANSFERS)) && (state.view.showParked || !isParked(r)));
+  const parkedRows = state.view.showParked ? [] : rows.filter(isParked);
+  if (parkedRows.length) visibleRows.push({ name: "__parked", parked: parkedRows, color: "var(--ink-2)", items: parkedRows.flatMap(r => r.items) });
+  const hasBudget = r => !narrow && (D.R.threads.find(t => t.name === r.name)?.budget != null || state.budgetDrag?.thread === r.name);
+  const rowHeight = r => r.name === "__parked" ? 44 : hasBudget(r) ? 88 : rowH;
+  const rowY = []; let yAcc = top; for (const r of visibleRows) { rowY.push(yAcc + rowHeight(r) / 2); yAcc += rowHeight(r); }
+  const H = yAcc + 8;
+  const hl = state.highlight, sel = state.selection, dimming = hl.size > 0;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Transactions on a timeline, one row per thread">`;
+  const xToday = X(ms(TODAY));
+  s += `<rect class="futurebg" x="${xToday}" y="${covTop}" width="${Math.max(0, W - padR - xToday)}" height="${H - covTop}"/>`;
+  // the selected period shades everything beneath it
+  const selP = pers.find(p => p.id === state.periodSel);
+  if (selP) { const a = Math.max(labelW, X(ms(selP.start))), b = Math.min(W - padR, X(ms(selP.end) + 864e5)); s += `<rect x="${a}" y="${perTop}" width="${Math.max(2, b - a)}" height="${H - perTop}" fill="${selP.color}" opacity=".08" pointer-events="none"/>`; }
+  // months
+  let m = monthOf(new Date(t0).toISOString().slice(0, 10)) + "-01";
+  const expByMonth = {}; D.expected.forEach(e => { if (inRange(e)) expByMonth[monthOf(e.date)] = (expByMonth[monthOf(e.date)] || 0) + e.amount; });
+  const monthsShown = [];
+  while (ms(m) <= t1) { monthsShown.push(m); m = addMonths(m, 1); }
+  const span = monthsShown.length; const every = span > 30 ? 3 : span > 16 ? 2 : 1;
+  const anyCov = new Set(Object.values(D.coverage).flatMap(set => [...set]));
+  monthsShown.forEach((mm, i) => {
+    const x0 = Math.max(labelW, X(ms(mm))), x1 = Math.min(W - padR, X(ms(addMonths(mm, 1))));
+    if (X(ms(mm)) >= labelW) s += `<line class="gridline" x1="${x0}" x2="${x0}" y1="${axisY + 4}" y2="${H}"/>`;
+    const [yy, mo] = mm.split("-").map(Number);
+    if (i % every === 0 && x1 - x0 > (X(ms(mm)) < labelW ? 64 : 20)) s += `<text class="axis" x="${x0 + 4}" y="${axisY}">${MONTHS[mo - 1]}${mo === 1 || i === 0 ? " " + yy : ""}</text>`;
+    accts.forEach((a, ai) => {
+      const y = covTop + ai * 13; const has = D.coverage[a]?.has(monthOf(mm));
+      if (x1 - x0 > 2) s += has ? `<rect class="cov-on" data-acct="${esc(a)}" data-period="${monthOf(mm)}" x="${x0 + 1}" y="${y}" width="${x1 - x0 - 2}" height="8" rx="2"><title>${esc(a)}: statement for ${monthName(monthOf(mm))}</title></rect>`
+        : (mm < TODAY ? `<rect class="cov-off" x="${x0 + 1.5}" y="${y + .5}" width="${x1 - x0 - 3}" height="7" rx="2"><title>No ${monthName(monthOf(mm))} statement for ${esc(a)}</title></rect>` : "");
+    });
+    const ex = expByMonth[monthOf(mm)];
+    if (ex && x1 - x0 > 40) s += `<text class="exp" x="${(x0 + x1) / 2}" y="${expY}" text-anchor="middle"><title>Expected charges this month</title>≈ ${fmtShort(ex)}</text>`;
+  });
+  accts.forEach((a, ai) => s += `<text class="covlabel" x="${labelW - 8}" y="${covTop + ai * 13 + 8}" text-anchor="end">${esc(a.length > (narrow ? 13 : 22) ? a.slice(0, narrow ? 12 : 21) + "…" : a)}</text>`);
+  // periods strip
+  s += `<rect class="pstrip" x="${labelW}" y="${perTop}" width="${W - padR - labelW}" height="${perBottom - perTop}"><title>Drag along this strip to mark a period</title></rect>`;
+  s += `<text class="covlabel" x="${labelW - 8}" y="${perTop + 14}" text-anchor="end">Periods</text>`;
+  if (!pers.length) s += `<text class="phint" x="${labelW + 8}" y="${perTop + 14}">Drag along here to mark a stretch of time: a trip, setting up house, a busy month</text>`;
+  for (const p of pers) {
+    const x0 = Math.max(labelW, X(ms(p.start))), x1 = Math.min(W - padR, X(ms(p.end) + 864e5)); const y = perTop + laneOf[p.id] * laneH + 2; const w = Math.max(6, x1 - x0);
+    const chars = Math.floor((w - 12) / 6.4); const label = chars < 2 ? "" : p.name.length > chars ? p.name.slice(0, Math.max(1, chars - 1)) + "…" : p.name;
+    s += `<g class="period${p.id === state.periodSel ? " on" : ""}" data-pid="${p.id}"><title>${esc(p.name)}: ${fmtDate(p.start)} to ${fmtDate(p.end)}</title><rect class="pbody" x="${x0}" y="${y}" width="${w}" height="16" rx="4" fill="${p.color}" fill-opacity="${p.id === state.periodSel ? .4 : .22}" stroke="${p.color}"/>`
+      + `<text class="plabel" x="${x0 + 6}" y="${y + 12}" dir="auto">${esc(label)}</text>`
+      + `<rect class="pedge" data-edge="start" x="${x0 - 3}" y="${y}" width="7" height="16"/><rect class="pedge" data-edge="end" x="${x0 + w - 4}" y="${y}" width="7" height="16"/></g>`;
+  }
+  s += `<rect id="pDraft" x="0" y="${perTop + 2}" width="0" height="16" rx="4" class="pdraft" style="display:none"/>`;
+  if (xToday > labelW && xToday < W) s += `<line class="todayline" x1="${xToday}" x2="${xToday}" y1="${axisY + 4}" y2="${H}"/><text class="axis" x="${xToday + 4}" y="${H - 4}">today</text>`;
+  // rows
+  POS = []; const P = {}; const budgetMeta = {};
+  visibleRows.forEach((row, ri) => {
+    const cy = rowY[ri];
+    const total = row.items.filter(t => t.kind === "actual").reduce((a, t) => a + t.amount, 0);
+    if (row.name === "__parked") {
+      s += `<line class="wire parked" x1="${labelW}" x2="${W - padR}" y1="${cy}" y2="${cy}"/>`;
+      s += `<text class="parkedlabel" id="parkedLabel" x="${labelW - 12}" y="${cy + 4}" text-anchor="end"><title>Show parked threads on their own wires for now</title>${row.parked.length} parked</text>`;
+    } else {
+      const thr = D.R.threads.find(t => t.name === row.name);
+      const drag = state.budgetDrag?.thread === row.name ? state.budgetDrag : null;
+      const budget = drag ? drag.value : thr?.budget;
+      if (thr && budget != null && !narrow) {
+        // monthly spend against the budget, drawn behind the beads
+        const spent = {}, exp = {};
+        for (const t of row.items) { const k = monthOf(t.chargeDate || t.date); if (t.kind === "actual") spent[k] = (spent[k] || 0) + t.amount; else if (t.kind === "ghost") exp[k] = (exp[k] || 0) + t.amount; }
+        const peak = Math.max(0, ...monthsShown.map(mm => (spent[monthOf(mm)] || 0) + (exp[monthOf(mm)] || 0)));
+        const bandMax = drag ? drag.bandMax : Math.max(budget * 1.35, peak * 1.05, 10);
+        const bandH = 88 - 14, base = cy + bandH / 2, yv = v => base - Math.min(1, Math.max(0, v) / bandMax) * bandH;
+        budgetMeta[row.name] = { base, bandH, bandMax };
+        for (const mm of monthsShown) {
+          const k = monthOf(mm); const a = Math.max(labelW, X(ms(mm))) + 2, b = Math.min(W - padR, X(ms(addMonths(mm, 1)))) - 2; if (b - a < 3) continue;
+          const sp = spent[k] || 0, ex = exp[k] || 0; if (!sp && !ex) continue;
+          const over = sp + ex > budget + .005;
+          if (sp > 0) s += `<rect class="bbar${over ? " over" : ""}" x="${a}" y="${yv(sp)}" width="${b - a}" height="${base - yv(sp)}" style="--c:${row.color}"><title>${monthName(k)}: ${fmt(sp, 0)} of ${fmt(budget, 0)}</title></rect>`;
+          if (ex > 0) s += `<rect class="bexp${over ? " over" : ""}" x="${a}" y="${yv(sp + ex)}" width="${b - a}" height="${yv(sp) - yv(sp + ex)}" style="--c:${row.color}"><title>${monthName(k)}: ${fmt(ex, 0)} expected</title></rect>`;
+          if (over && b - a > 34) s += `<text class="bover" x="${(a + b) / 2}" y="${Math.max(yv(sp + ex) - 3, cy - bandH / 2 + 9)}" text-anchor="middle">${fmtShort(sp + ex)}</text>`;
+        }
+        const yb = yv(budget);
+        s += `<line class="bline" x1="${labelW}" x2="${W - padR - 8}" y1="${yb}" y2="${yb}" stroke="${row.color}"/>`;
+        s += `<text class="blabel" x="${labelW + 4}" y="${yb - 4}">${fmt(budget, 0)} a month</text>`;
+        s += `<g class="bhandle" data-bthread="${esc(row.name)}" tabindex="0" role="slider" aria-label="Budget for ${esc(row.name)}" aria-valuenow="${budget}"><title>Drag up or down to set the monthly budget</title><circle cx="${W - padR - 6}" cy="${yb}" r="6" stroke="${row.color}"/></g>`;
+      }
+      s += `<line class="wire" x1="${labelW}" x2="${W - padR}" y1="${cy}" y2="${cy}"/>`;
+      if (!narrow) {
+        s += `<g class="parkbtn" data-park="${esc(row.name)}" tabindex="0" role="button" aria-label="${isParked(row) ? "Unpark" : "Park"} ${esc(row.name)}"><title>${isParked(row) ? "Unpark this thread" : "Park this thread: fold it into one quiet wire at the bottom"}</title><circle cx="12" cy="${cy - 6}" r="7"/><text x="12" y="${cy - 2}" text-anchor="middle">${isParked(row) ? "+" : "−"}</text></g>`;
+        if (thr && thr.budget == null && !drag) s += `<g class="parkbtn budgetbtn" data-budget="${esc(row.name)}" tabindex="0" role="button" aria-label="Set a budget for ${esc(row.name)}"><title>Give this thread a monthly budget line you can drag</title><circle cx="12" cy="${cy + 12}" r="7"/><text x="12" y="${cy + 16}" text-anchor="middle">₪</text></g>`;
+      }
+      s += `<text class="rowlabel" data-thread="${esc(row.name)}" data-line="${thr ? thr.line : ""}" x="${labelW - 12}" y="${cy - 2}" text-anchor="end" style="fill:${row.color}">${esc(row.name.length > maxName ? row.name.slice(0, maxName - 1) + "…" : row.name)}</text>`;
+      s += `<text class="rowtotal" x="${labelW - 12}" y="${cy + 14}" text-anchor="end">${row.items.some(t => t.kind === "actual") ? (row.name === TRANSFERS ? "moved " : "") + fmt(total, 0) : ""}</text>`;
+    }
+    const items = row.items.map(t => ({ t, x: X(ms(t.chargeDate || t.date)), r: Math.max(3, Math.min(17, 2.2 + Math.sqrt(Math.abs(t.amount)) * .38)) })).sort((a, b) => a.x - b.x || b.r - a.r);
+    const lanes = (row.name === "__parked" ? [0, -7, 7] : [0, -10, 10, -19, 19]).map(off => ({ off, lastX: -1e9, lastR: 0 }));
+    if (row.name === "__parked") items.forEach(it => it.r = Math.max(2.5, it.r * .55));
+    for (const it of items) {
+      let lane = lanes.find(l => it.x - l.lastX > it.r + l.lastR + 1) || lanes.reduce((a, b) => a.lastX < b.lastX ? a : b);
+      lane.lastX = it.x; lane.lastR = it.r; it.y = cy + lane.off;
+      P[it.t.id] = it;
+    }
+  });
+  // arcs (rhythm, instalment chains, transfers between accounts)
+  for (const chain of D.links) {
+    for (let i = 1; i < chain.length; i++) {
+      const a = P[chain[i - 1]], b = P[chain[i]]; if (!a || !b || Math.abs(a.y - b.y) > rowH / 2 + 20) continue;
+      const h = Math.min(22, Math.max(6, Math.abs(b.x - a.x) / 5)); const dash = a.t.kind !== "actual" || b.t.kind !== "actual";
+      const d = dimming && !(hl.has(a.t.id) && hl.has(b.t.id));
+      s += `<path class="arc${dash ? " dash" : ""}${d ? " dim" : ""}" stroke="${D.colorOf[a.t.thread] || "#888"}" d="M${a.x},${a.y - a.r} Q${(a.x + b.x) / 2},${Math.min(a.y, b.y) - h - 8} ${b.x},${b.y - b.r}"/>`;
+    }
+  }
+  // a card payment points up at the statement it settled
+  for (const it of Object.values(P)) {
+    const tr = it.t.transfer; if (tr?.kind !== "card") continue;
+    const ai = accts.indexOf(tr.stmt.account); if (ai < 0) continue;
+    const xm = X(ms(tr.stmt.period + "-01") + 15 * 864e5), ys = covTop + ai * 13 + 8;
+    s += `<path class="transferlink${dimming && !hl.has(it.t.id) ? " dim" : ""}" d="M${it.x},${it.y - it.r} C${it.x},${(it.y + ys) / 2} ${xm},${(it.y + ys) / 2} ${xm},${ys}"><title>Pays the ${esc(tr.stmt.account)} statement for ${monthName(tr.stmt.period)}</title></path>`;
+  }
+  // beads
+  for (const it of Object.values(P)) {
+    const t = it.t, c = D.colorOf[t.thread] || "#888"; const cls = ["bead"];
+    if (dimming && !hl.has(t.id)) cls.push("dim"); if (sel.has(t.id)) cls.push("sel");
+    let attrs;
+    if (t.kind === "ghost") attrs = `fill="none" stroke="${c}" stroke-width="1.4" stroke-dasharray="3 2.5"`;
+    else if (t.kind === "inferred") attrs = `fill="${c}" fill-opacity=".22" stroke="${c}" stroke-width="1.2" stroke-dasharray="2 2"`;
+    else if (t.kind === "purchase") attrs = `fill="none" stroke="${c}" stroke-width="1"`;
+    else if (t.amount < 0) attrs = `fill="var(--paper)" stroke="${c}" stroke-width="2"`;
+    else attrs = `fill="${c}" stroke="var(--paper)" stroke-width="1"`;
+    s += `<circle class="${cls.join(" ")}" data-id="${t.id}" cx="${it.x.toFixed(1)}" cy="${it.y}" r="${it.r.toFixed(1)}" ${attrs}/>`;
+    if (t.kind === "actual" && t.amount < 0) s += `<line x1="${it.x - it.r * .5}" x2="${it.x + it.r * .5}" y1="${it.y}" y2="${it.y}" stroke="${c}" stroke-width="1.6" pointer-events="none"/>`;
+    if (D.flagged[t.id]) s += `<text class="flagmark" x="${it.x}" y="${it.y - it.r - 3}" text-anchor="middle" pointer-events="none">${D.flagged[t.id]}</text>`;
+    POS.push({ id: t.id, x: it.x, y: it.y, r: it.r });
+  }
+  s += `<rect id="lassoRect" class="lasso" x="0" y="0" width="0" height="0" style="display:none"/></svg>`;
+  host.innerHTML = s;
+  TL = { t0, t1, labelW, W, padR, perTop, perBottom, top, budgetMeta, inv: x => t0 + (x - labelW) / (W - labelW - padR) * (t1 - t0) };
+}
+function describe(t) {
+  if (t.kind === "purchase") return `${t.why} · ${fmt(t.amount)}`;
+  if (t.kind === "ghost" || t.kind === "inferred") return t.why;
+  const bits = [fmtDate(t.date)];
+  if (t.inst) bits.push(`payment ${t.inst.n} of ${t.inst.of}`);
+  if (t.transfer) bits.push(transferText(t));
+  if (t.orig && (t.orig.currency !== "ILS" || Math.abs(t.orig.amount - t.amount) > .01)) bits.push(`originally ${t.orig.currency === "USD" ? "$" : t.orig.currency === "EUR" ? "€" : t.orig.currency === "GBP" ? "£" : "₪"}${Math.abs(t.orig.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`);
+  if (t.periods?.length) bits.push(t.periods.join(", "));
+  return bits.join(" · ");
+}
+function transferText(t) {
+  const tr = t.transfer; if (!tr) return "";
+  if (tr.kind === "card") return `pays the ${tr.stmt.account} statement for ${monthName(tr.stmt.period)} (${fmt(tr.stmt.total)})`;
+  if (tr.kind === "pair") { const o = D.byId.get(tr.other); return o ? `moved ${tr.dir === "out" ? "to" : "from"} ${o.account}` : "moved between your accounts"; }
+  return "marked by you as a transfer";
+}
+function showTip(t, ev) {
+  const tip = $("#tip"); const wrap = $("#tlwrap").getBoundingClientRect();
+  tip.innerHTML = `<div class="m" dir="auto">${esc(t.merchant)}</div>${t.renamed ? `<div class="s" dir="auto">${esc(t.original)}</div>` : ""}<div><b>${fmt(t.amount)}</b> <span class="s">${esc(describe(t))}</span></div>${t.note ? `<div class="s" dir="auto">${esc(t.note)}</div>` : ""}`;
+  tip.style.display = "block";
+  let x = ev.clientX - wrap.left + 14, y = ev.clientY - wrap.top + 14;
+  if (x + 300 > wrap.width) x = ev.clientX - wrap.left - 300;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+function setBudget(name, value) {
+  if (state.previewRules != null) { toast("Keep or discard the suggested threads first, then set the budget."); return; }
+  const th = parseRules(state.rules).threads.find(t => t.name === name); if (!th) return;
+  const lines = state.rules.split("\n");
+  let l = lines[th.line].replace(/\s*\[\s*budget[^\]]*\]/i, "");
+  if (value > 0) l += `  [budget ${Math.round(value)}]`;
+  lines[th.line] = l; state.rules = lines.join("\n"); saveSoon("rules", () => ({ text: state.rules }), 300); refresh();
+}
+function wireTimeline() {
+  const host = $("#tl"); let mode = null;
+  const pt = ev => { const r = host.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; };
+  host.addEventListener("pointermove", ev => {
+    if (mode) {
+      const { x, y } = pt(ev);
+      if (mode.kind === "lasso") {
+        const L = $("#lassoRect"); const x0 = Math.min(x, mode.x), y0 = Math.min(y, mode.y), w = Math.abs(x - mode.x), h = Math.abs(y - mode.y);
+        L.setAttribute("x", x0); L.setAttribute("y", y0); L.setAttribute("width", w); L.setAttribute("height", h); L.style.display = w + h > 6 ? "" : "none";
+        mode.box = [x0, y0, x0 + w, y0 + h];
+      } else if (mode.kind === "pnew") {
+        const a = Math.max(TL.labelW, Math.min(x, mode.x)), b = Math.min(TL.W - TL.padR, Math.max(x, mode.x)); const R = $("#pDraft");
+        R.setAttribute("x", a); R.setAttribute("width", b - a); R.style.display = b - a > 4 ? "" : "none"; mode.a = a; mode.b = b;
+      } else if (mode.kind === "budget") {
+        const v = niceBudget((mode.base - y) / mode.bandH * mode.bandMax);
+        if (v !== state.budgetDrag.value) { state.budgetDrag.value = Math.max(0, v); renderTimeline(); }
+      } else if (mode.kind === "move" || mode.kind === "resize") {
+        const days = Math.round((TL.inv(x) - TL.inv(mode.x)) / 864e5); if (Math.abs(x - mode.x) > 3) mode.moved = true; if (!mode.moved) return;
+        const p = state.periods.find(q => q.id === mode.id); if (!p) return;
+        if (mode.kind === "move") { p.start = isoFromMs(ms(mode.start) + days * 864e5); p.end = isoFromMs(ms(mode.end) + days * 864e5); }
+        else if (mode.edge === "start") p.start = isoFromMs(Math.min(ms(mode.end), ms(mode.start) + days * 864e5));
+        else p.end = isoFromMs(Math.max(ms(mode.start), ms(mode.end) + days * 864e5));
+        renderTimeline();
+      }
+      return;
+    }
+    const c = ev.target.closest("circle[data-id]");
+    if (c) showTip(D.byId.get(c.dataset.id), ev); else $("#tip").style.display = "none";
+  });
+  host.addEventListener("pointerleave", () => $("#tip").style.display = "none");
+  host.addEventListener("pointerdown", ev => {
+    if (ev.button !== 0 || !host.querySelector("svg") || !TL) return;
+    const { x, y } = pt(ev);
+    const bh = ev.target.closest(".bhandle");
+    if (bh) { const meta = TL.budgetMeta[bh.dataset.bthread]; const th = D.R.threads.find(t => t.name === bh.dataset.bthread); if (!meta || !th) return;
+      state.budgetDrag = { thread: th.name, value: th.budget, bandMax: meta.bandMax }; mode = { kind: "budget", ...meta }; host.setPointerCapture(ev.pointerId); ev.preventDefault(); return; }
+    const g = ev.target.closest(".period");
+    if (g) { const p = state.periods.find(q => q.id === g.dataset.pid); if (!p) return; const edge = ev.target.closest(".pedge")?.dataset.edge;
+      mode = { kind: edge ? "resize" : "move", edge, id: p.id, x, start: p.start, end: p.end, moved: false }; host.setPointerCapture(ev.pointerId); ev.preventDefault(); return; }
+    if (ev.target.closest("circle[data-id],.rowlabel,.cov-on,.parkbtn,#parkedLabel")) return;
+    if (y >= TL.perTop && y <= TL.perBottom && x >= TL.labelW) { mode = { kind: "pnew", x }; host.setPointerCapture(ev.pointerId); return; }
+    mode = { kind: "lasso", x, y, box: null }; host.setPointerCapture(ev.pointerId);
+  });
+  host.addEventListener("pointerup", ev => {
+    const md0 = mode; mode = null; if (!md0) return;
+    if (md0.kind === "budget") { const v = state.budgetDrag.value; const name = state.budgetDrag.thread; state.budgetDrag = null; setBudget(name, v); if (v > 0) toast(`${name}: ${fmt(v, 0)} a month. Drag the line again any time, or edit it in Threads.`); else toast(`Removed the budget for ${name}.`); return; }
+    if (md0.kind === "move" || md0.kind === "resize") {
+      if (md0.moved) { savePeriods(); refresh(); }
+      else { state.periodSel = state.periodSel === md0.id ? null : md0.id; state.selection.clear(); state.statement = null; refresh(); if (state.periodSel) $("#insp").scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+      return;
+    }
+    if (md0.kind === "pnew") {
+      $("#pDraft").style.display = "none"; if (!md0.a || md0.b - md0.a < 6) return;
+      const start = isoFromMs(TL.inv(md0.a)), end = isoFromMs(Math.max(TL.inv(md0.a), TL.inv(md0.b) - 864e5));
+      const p = { id: "p" + Date.now().toString(36), name: "New period", start, end, story: "", color: PALETTE[(state.periods.length + 3) % PALETTE.length] };
+      state.periods.push(p); state.periodSel = p.id; state.selection.clear(); state.statement = null; savePeriods(); refresh();
+      const n = $("#pName"); if (n) { n.focus(); n.select(); } return;
+    }
+    const L = $("#lassoRect"); if (L) L.style.display = "none"; const box = md0.box;
+    if (!box || (box[2] - box[0]) + (box[3] - box[1]) < 8) { if (!ev.target.closest("circle")) { state.selection.clear(); state.highlight.clear(); state.statement = null; state.periodSel = null; refresh(); } return; }
+    const ids = POS.filter(p => p.x >= box[0] && p.x <= box[2] && p.y >= box[1] && p.y <= box[3]).map(p => p.id);
+    state.selection = new Set(ids); state.highlight.clear(); state.statement = null; state.periodSel = null; refresh();
+  });
+  host.addEventListener("click", ev => {
+    const c = ev.target.closest("circle[data-id]");
+    if (c) {
+      const id = c.dataset.id;
+      if (ev.shiftKey || ev.metaKey) { state.selection.has(id) ? state.selection.delete(id) : state.selection.add(id); }
+      else state.selection = new Set([id]);
+      state.statement = null; state.periodSel = null; state.highlight.clear(); refresh(); return;
+    }
+    const bb = ev.target.closest(".budgetbtn");
+    if (bb) { const name = bb.dataset.budget; const ts = D.allTxns.filter(t => t.thread === name && t.amount > 0);
+      const months = new Set(Object.values(D.coverage).flatMap(set => [...set])); const avg = ts.reduce((a, t) => a + t.amount, 0) / Math.max(1, months.size);
+      setBudget(name, niceBudget(avg) || 500); toast(`Budget line added at about your monthly average. Drag the handle on the right to change it.`); return; }
+    const pk = ev.target.closest(".parkbtn");
+    if (pk) { togglePark(pk.dataset.park); return; }
+    if (ev.target.closest("#parkedLabel")) { state.view.showParked = true; renderTimeline(); renderParkbar(); return; }
+    const lab = ev.target.closest(".rowlabel");
+    if (lab) {
+      const name = lab.dataset.thread; state.highlight = new Set([...D.txns, ...D.extras].filter(t => t.thread === name).map(t => t.id)); state.selection.clear();
+      if (lab.dataset.line !== "") selectRuleLine(+lab.dataset.line); refresh(); return;
+    }
+    const cov = ev.target.closest(".cov-on");
+    if (cov) { state.statement = { account: cov.dataset.acct, period: cov.dataset.period }; state.selection.clear(); state.periodSel = null; refresh(); }
+  });
+  host.addEventListener("keydown", e => {
+    const bh = e.target.closest?.(".bhandle"); if (!bh || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
+    e.preventDefault(); const th = D.R.threads.find(t => t.name === bh.dataset.bthread); if (!th) return;
+    const step = th.budget >= 1000 ? 100 : th.budget >= 100 ? 50 : 10; setBudget(th.name, Math.max(0, th.budget + (e.key === "ArrowUp" ? step : -step)));
+    requestAnimationFrame(() => host.querySelector(`.bhandle[data-bthread="${CSS.escape(th.name)}"]`)?.focus());
+  });
+}
+
+function togglePark(name) {
+  const k = name.toLowerCase(); const has = state.view.parked.some(n => n.toLowerCase() === k);
+  state.view.parked = has ? state.view.parked.filter(n => n.toLowerCase() !== k) : [...state.view.parked, name];
+  saveView(); renderTimeline(); renderParkbar();
+  if (!has) toast(`Parked “${name}”. It still catches its transactions; it just sits on the quiet wire at the bottom.`);
+}
+function renderParkbar() {
+  const el = $("#parkbar"); const known = new Set(D?.names.map(n => n.toLowerCase()) || []);
+  const parked = state.view.parked.filter(n => known.has(n.toLowerCase()));
+  if (!state.loaded || !parked.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<span>Parked:</span>${parked.map(n => `<button data-unpark="${esc(n)}" title="Unpark" dir="auto">${esc(n)} ↩</button>`).join("")}` +
+    `<button data-showparked>${state.view.showParked ? "Fold them back" : "Show them for now"}</button>`;
+}
+function wireParkbar() {
+  $("#parkbar").onclick = e => {
+    const u = e.target.closest("[data-unpark]"); if (u) { togglePark(u.dataset.unpark); return; }
+    if (e.target.closest("[data-showparked]")) { state.view.showParked = !state.view.showParked; renderTimeline(); renderParkbar(); }
+  };
+  $("#tl").addEventListener("keydown", e => { const pk = e.target.closest?.(".parkbtn"); if (pk && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); togglePark(pk.dataset.park); } });
+}
+
+/* ───────────── bulk tags ───────────── */
+const escRe = x => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const tagRe = tag => new RegExp("(^|[^\\p{L}\\p{N}_-])" + escRe(tag) + "(?![\\p{L}\\p{N}_-])", "giu");
+function parseTags(str) { return [...new Set(String(str || "").split(/[\s,]+/).map(x => x.replace(/^#+/, "").replace(/[^\p{L}\p{N}_-]/gu, "")).filter(Boolean).map(x => "#" + x.toLowerCase()))]; }
+function tagsOf(note) { return [...new Set((String(note || "").toLowerCase().match(/#[\p{L}\p{N}_-]+/gu) || []))]; }
+function bulkTag(ids, add = [], remove = []) {
+  const prev = {}; let n = 0;
+  for (const id of ids) {
+    const before = state.notes[id] || ""; let after = before;
+    for (const t of remove) after = after.replace(tagRe(t), "$1");
+    after = after.replace(/[ \t]{2,}/g, " ").replace(/\n{2,}/g, "\n").trim();
+    const missing = add.filter(t => !tagRe(t).test(after));
+    if (missing.length) after = after ? after + " " + missing.join(" ") : missing.join(" ");
+    if (after === before) continue;
+    prev[id] = before; n++; if (after) state.notes[id] = after; else delete state.notes[id];
+  }
+  if (!n) { toast(add.length ? "They all have that tag already." : "None of them had that tag."); return; }
+  saveSoon("notes", () => ({ map: state.notes }), 200); refresh();
+  const what = [add.length ? `added ${add.join(" ")}` : "", remove.length ? `removed ${remove.join(" ")}` : ""].filter(Boolean).join(", ");
+  toast(`${what[0].toUpperCase() + what.slice(1)} on ${n} transaction${n > 1 ? "s" : ""}.`, 9000, { label: "Undo", fn: () => {
+    for (const [id, before] of Object.entries(prev)) { if (before) state.notes[id] = before; else delete state.notes[id]; }
+    saveSoon("notes", () => ({ map: state.notes }), 200); refresh(); toast("Tags put back as they were."); } });
+}
+function tagToolsHTML(ids, key) {
+  const counts = {}; for (const id of ids) for (const t of tagsOf(state.notes[id])) counts[t] = (counts[t] || 0) + 1;
+  const have = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  return `<div class="tagtools" data-tagkey="${key}"><input data-tagin placeholder="#tag or several" aria-label="Tags to add" list="allTags"><datalist id="allTags">${Object.keys(D.tags).map(t => `<option value="${esc(t)}">`).join("")}</datalist>
+    <button class="btn small" data-tagadd>Add tag${ids.length > 1 ? ` to ${ids.length}` : ""}</button>
+    ${have.map(([t, c]) => `<span class="tagchip" dir="auto">${esc(t)}${ids.length > 1 ? ` <span class="sub">${c}</span>` : ""}<button data-tagrm="${esc(t)}" title="Remove ${esc(t)} from ${c > 1 ? "these " + c : "this one"}" aria-label="Remove ${esc(t)}">×</button></span>`).join("")}</div>`;
+}
+function wireTagTools(root, getIds) {
+  const box = root.querySelector(".tagtools"); if (!box) return;
+  const input = box.querySelector("[data-tagin]");
+  const add = () => { const tags = parseTags(input.value); if (!tags.length) { input.focus(); return; } bulkTag(getIds(), tags, []); };
+  box.querySelector("[data-tagadd]").onclick = add;
+  input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); add(); } });
+  box.querySelectorAll("[data-tagrm]").forEach(b => b.onclick = () => bulkTag(getIds(), [], [b.dataset.tagrm]));
+}
+
+/* ───────────── transfers between your accounts ───────────── */
+function detectTransfers(rows) {
+  const ov = state.transferOv; const info = {}; const paid = {};
+  const stmts = Object.values(state.batches).filter(b => b.kind === "leumi" || b.card).map(b => ({ key: b.account + "|" + b.periods[0], account: b.account, period: b.periods[0], total: +b.rows.reduce((a, r) => a + r.amount, 0).toFixed(2) }));
+  const cand = rows.filter(r => ov[r.id] !== false).sort((a, b) => a.date < b.date ? -1 : 1);
+  for (const r of cand) {
+    if (r.amount <= 0) continue;
+    const st = stmts.find(s => !paid[s.key] && s.account !== r.account && Math.abs(s.total - r.amount) <= 1 &&
+      ms(r.date) >= ms(s.period + "-01") - 7 * 864e5 && ms(r.date) <= ms(addMonths(s.period + "-01", 1)) + 12 * 864e5);
+    if (st) { info[r.id] = { kind: "card", stmt: st }; paid[st.key] = r.id; }
+  }
+  const byAmt = {}; for (const r of cand) if (r.amount < 0 && !info[r.id]) (byAmt[(-r.amount).toFixed(2)] ||= []).push(r);
+  for (const r of cand) {
+    if (r.amount <= 0 || info[r.id]) continue;
+    const m = (byAmt[r.amount.toFixed(2)] || []).find(c => !info[c.id] && c.account !== r.account && Math.abs(ms(c.date) - ms(r.date)) <= 4 * 864e5);
+    if (m) { info[r.id] = { kind: "pair", other: m.id, dir: "out" }; info[m.id] = { kind: "pair", other: r.id, dir: "in" }; }
+  }
+  for (const [id, v] of Object.entries(ov)) if (v === true && !info[id]) info[id] = { kind: "manual" };
+  return { info, paid, stmts };
+}
+function setTransfer(id, on) {
+  const t = D.byId.get(id); const auto = !!t?.transfer && t.transfer.kind !== "manual";
+  if (on) state.transferOv[id] = true; else state.transferOv[id] = false;
+  if (on && auto) delete state.transferOv[id];
+  saveSoon("transfers", () => ({ map: state.transferOv }), 200); refresh();
+}
+
+/* ───────────── changes in things you pay for regularly ───────────── */
+function findChanges(groups, coverage) {
+  const flags = [];
+  for (const g of Object.values(groups)) {
+    if (!g[0]?.recurring) continue;
+    const last = g.at(-1); const cov = [...(coverage[last.account] || [])].sort();
+    const perPeriod = {}; g.forEach(t => perPeriod[t.period] = (perPeriod[t.period] || 0) + 1);
+    const oncePer = Object.values(perPeriod).every(n => n === 1);
+    const prev = [...g].reverse().find(t => t.period !== last.period);
+    if (prev && oncePer) {
+      const useOrig = last.orig && prev.orig && last.orig.currency !== "ILS" && last.orig.currency === prev.orig.currency;
+      const a = useOrig ? prev.orig.amount : prev.amount, b = useOrig ? last.orig.amount : last.amount, cur = useOrig ? last.orig.currency : "ILS";
+      if (Math.abs(b - a) >= 1 && Math.abs(b - a) / Math.max(1, Math.abs(a)) >= .03)
+        flags.push({ id: "price|" + last.id, type: "price", t: last, prev, a, b, cur, group: g.map(x => x.id) });
+    }
+    if (cov.length && cov.at(-1) > last.period)
+      flags.push({ id: "gone|" + last.id + "|" + cov.at(-1), type: "gone", t: last, since: cov.at(-1), group: g.map(x => x.id) });
+  }
+  return flags.filter(f => !state.dismissed[f.id]);
+}
+const money = (v, cur) => cur && cur !== "ILS" ? `${{ USD: "$", EUR: "€", GBP: "£" }[cur] || cur + " "}${Math.abs(v).toFixed(2)}` : fmt(v);
+function renderChanges() {
+  const el = $("#changes"); if (!state.loaded || !D?.allTxns.length || !D.flags.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="sec-h"><h2>Worth a look</h2><span class="sub">Changes in things you pay for regularly</span></div><ul class="changes">` + D.flags.map(f => {
+    const who = `<b dir="auto">${esc(f.t.merchant)}</b>`;
+    const line = f.type === "price"
+      ? `<span class="chg ${f.b > f.a ? "up" : "down"}">${f.b > f.a ? "▲" : "▼"}</span> ${who} went from ${money(f.a, f.cur)} to ${money(f.b, f.cur)} (${f.b > f.a ? "+" : "−"}${Math.round(Math.abs(f.b - f.a) / Math.abs(f.a) * 100)}%) in the ${monthName(f.t.period)} statement.`
+      : `<span class="chg gone">◌</span> ${who} isn't in your ${monthName(f.since)} statement. It was last charged on ${fmtDate(f.t.date)} (${fmt(f.t.amount)}).`;
+    return `<li>${line} <button class="linkish" data-flagshow="${esc(f.id)}">Show</button> <button class="linkish" data-flagdismiss="${esc(f.id)}">Dismiss</button></li>`;
+  }).join("") + `</ul>`;
+}
+function wireInspector() {
+  $("#insp").addEventListener("click", e => {
+    const c = e.target.closest("[data-cite]"); if (c) { state.selection = new Set([c.dataset.cite]); state.highlight = new Set([c.dataset.cite]); state.periodSel = null; state.statement = null; refresh(); return; }
+    const op = e.target.closest("[data-openperiod]"); if (op) { state.periodSel = op.dataset.openperiod; state.selection.clear(); refresh(); return; }
+    const b = e.target.closest(".bar[data-ids]"); if (b) { const ids = b.dataset.ids.split(",").filter(Boolean); state.highlight = new Set(ids); renderTimeline(); }
+  });
+}
+function wireChanges() {
+  $("#changes").addEventListener("click", e => {
+    const s = e.target.closest("[data-flagshow]"); if (s) { const f = D.flags.find(x => x.id === s.dataset.flagshow); if (!f) return; state.highlight = new Set(f.group); state.selection = new Set([f.t.id]); state.periodSel = null; refresh(); $("#tlwrap").scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
+    const d = e.target.closest("[data-flagdismiss]"); if (d) { state.dismissed[d.dataset.flagdismiss] = true; saveSoon("dismissed", () => ({ map: state.dismissed }), 200); refresh(); }
+  });
+}
+
+/* ───────────── periods: stretches of time with a story ───────────── */
+const savePeriods = () => saveSoon("periods", () => ({ items: state.periods }), 400);
+function periodStats(p) {
+  const inside = D.allTxns.filter(t => !t.transfer && t.date >= p.start && t.date <= p.end);
+  const out = inside.filter(t => t.amount > 0); const sum = out.reduce((a, t) => a + t.amount, 0);
+  const g = {}; out.forEach(t => g[t.thread] = (g[t.thread] || 0) + t.amount);
+  const days = Math.round((ms(p.end) - ms(p.start)) / 864e5) + 1;
+  return { inside, out, sum, byThread: Object.entries(g).sort((a, b) => b[1] - a[1]), biggest: [...out].sort((a, b) => b.amount - a.amount).slice(0, 6), days };
+}
+function renderPeriodInspector(el, p) {
+  const st = periodStats(p);
+  const overl = state.periods.filter(q => q.id !== p.id && q.start <= p.end && q.end >= p.start);
+  const editing = state.storyEdit === p.id || !p.story;
+  const max = Math.max(1, ...st.byThread.map(x => x[1]));
+  el.innerHTML = `<div class="ins-grid"><div>
+      <input id="pName" class="pname" dir="auto" value="${esc(p.name)}" aria-label="Period name" style="border-bottom-color:${p.color}">
+      <div class="row-actions" style="margin-top:6px"><label class="sub">From <input type="date" id="pStart" value="${p.start}"></label><label class="sub">to <input type="date" id="pEnd" value="${p.end}"></label></div>
+      <p class="sub" style="margin:8px 0 4px">${st.days} day${st.days > 1 ? "s" : ""} · ${st.out.length} charges · ${fmt(st.sum, 0)} out${overl.length ? ` · overlaps <span dir="auto">${overl.map(q => esc(q.name)).join(", ")}</span>` : ""}. Not everything in these dates has to belong; this is context.</p>
+      ${st.byThread.length ? `<div class="bars" style="margin:6px 0">${st.byThread.slice(0, 6).map(([n, v]) => `<button class="bar" data-ids="${esc(st.out.filter(t => t.thread === n).map(t => t.id).join(","))}"><span class="l" dir="auto">${esc(n)}</span><span class="t"><i style="width:${(v / max * 100).toFixed(1)}%"></i></span><span class="v">${fmt(v, 0)}</span></button>`).join("")}</div>` : ""}
+      ${st.biggest.length ? `<div class="sub" style="margin-top:6px">Biggest: ${st.biggest.map(t => `<button class="cite" data-cite="${t.id}"><span dir="auto">${esc(t.merchant.slice(0, 22))}</span> ${fmt(t.amount, 0)}</button>`).join(" ")}</div>` : ""}
+    </div><div>
+      <div class="sub" style="margin-bottom:4px">The story. What was going on?</div>
+      ${editing ? `<textarea class="note story" id="pStory" dir="auto" placeholder="e.g. Moved into the new flat. Most of the Home Center and IKEA runs are furniture and fixing up.">${esc(p.story || "")}</textarea>`
+        : `<div class="storyview" dir="auto">${md(p.story)}</div>`}
+      <div class="row-actions">${!editing ? `<button class="btn small quiet" id="pEdit">Edit the story</button>` : ""}${caps.sample ? `<button class="btn small quiet" id="pDraftStory">${p.story ? "Rework it with " : "Draft it with "}${AI()}</button>` : ""}
+        <button class="btn small quiet" id="pFilter">Show only this period</button><button class="btn small quiet" id="pRemove">Remove period</button></div>
+      <p class="sub" id="pNote"></p>
+    </div></div>`;
+  const upd = () => { savePeriods(); refreshSoon(); };
+  $("#pName").addEventListener("input", e => { p.name = e.target.value.trim() || "Untitled period"; upd(); });
+  $("#pStart").addEventListener("change", e => { if (e.target.value) { p.start = e.target.value; if (p.end < p.start) p.end = p.start; upd(); renderInspector(); } });
+  $("#pEnd").addEventListener("change", e => { if (e.target.value) { p.end = e.target.value; if (p.end < p.start) p.start = p.end; upd(); renderInspector(); } });
+  $("#pStory")?.addEventListener("input", e => { p.story = e.target.value; savePeriods(); });
+  $("#pStory")?.addEventListener("blur", () => { if (p.story) { state.storyEdit = null; renderInspector(); } });
+  $("#pEdit")?.addEventListener("click", () => { state.storyEdit = p.id; renderInspector(); $("#pStory")?.focus(); });
+  $("#pFilter").onclick = () => { const q = "@" + p.name.split(/\s+/)[0]; $("#q").value = q; state.query = q; refresh(); };
+  $("#pRemove").onclick = () => { const i = state.periods.indexOf(p); state.periods.splice(i, 1); state.periodSel = null; savePeriods(); refresh();
+    toast(`Removed “${p.name}”.`, 9000, { label: "Undo", fn: () => { state.periods.splice(i, 0, p); state.periodSel = p.id; savePeriods(); refresh(); } }); };
+  $("#pDraftStory")?.addEventListener("click", () => draftStory(p));
+}
+async function draftStory(p) {
+  const btn = $("#pDraftStory"); const note = $("#pNote"); btn.disabled = true; note.textContent = `${AI()} is reading what happened in those dates…`;
+  const st = periodStats(p);
+  const months = new Set(Object.values(D.coverage).flatMap(s => [...s])).size || 1;
+  const typical = {}; D.allTxns.filter(t => !t.transfer && t.amount > 0).forEach(t => typical[t.thread] = (typical[t.thread] || 0) + t.amount / months);
+  const overl = state.periods.filter(q => q.id !== p.id && q.start <= p.end && q.end >= p.start);
+  const input = `You're helping one person keep a record of their own life through their card and bank statements, in a personal tool called Abacus. They marked a stretch of time and want a short story of what was going on.
+Period: "${p.name}", ${p.start} to ${p.end} (${st.days} days). Today is ${TODAY}.
+${p.story ? `What they already wrote (keep their words and facts; weave the data around them):\n${p.story}\n` : ""}${overl.length ? `Other periods overlapping it: ${overl.map(q => `"${q.name}" ${q.start}–${q.end}${q.story ? ` (${q.story.slice(0, 200)})` : ""}`).join("; ")}\n` : ""}
+Charges in those dates (id | date | merchant | original description | ₪ amount | thread | their note):
+${st.inside.slice().sort((a, b) => b.amount - a.amount).slice(0, 250).map(t => [t.id, t.date, t.merchant, t.original !== t.merchant ? t.original : "", t.amount, t.thread, t.note].join(" | ")).join("\n")}
+Spend by thread in the period: ${st.byThread.map(([n, v]) => `${n} ₪${v.toFixed(0)}`).join(", ") || "none"}.
+A typical month for them, by thread: ${Object.entries(typical).map(([n, v]) => `${n} ₪${v.toFixed(0)}`).join(", ")}.
+Statement months available: ${coverageText()}.
+
+Write 80 to 180 words in the first person, as the person's own plain notes: what was going on, what the money went on, anything unusual compared with a typical month. Not everything in the dates belongs to this period, so leave out charges that are clearly routine. Stay with what the data and their notes support; don't invent reasons. Cite up to 6 specific transactions inline as [[id]]. Reply with only the story text.`;
+  const before = p.story;
+  try {
+    const r = await caps.sample(input, { modelTier: "default", cache: false });
+    p.story = r.text.trim(); state.storyEdit = null; savePeriods(); renderInspector();
+    toast("Story drafted. Edit it however you like.", 9000, { label: "Undo", fn: () => { p.story = before; savePeriods(); renderInspector(); } });
+  } catch (e) { if ($("#pNote")) $("#pNote").textContent = sampleErr(e); if ($("#pDraftStory")) $("#pDraftStory").disabled = false; }
+}
+
+/* ───────────── saved questions (reports) ───────────── */
+const saveReports = () => saveSoon("reports", () => ({ items: state.reports.map(r => ({ id: r.id, q: r.q, answer: r.answer || "", ranAt: r.ranAt || "", dataKey: r.dataKey || "", coverage: r.coverage || "" })) }), 400);
+const dataKey = () => fnv(Object.keys(state.batches).sort().join(","));
+const staleReports = () => state.reports.filter(r => r.dataKey !== dataKey());
+function renderReports() {
+  const el = $("#reports"); if (!el) return;
+  const stale = staleReports().length;
+  let h = "";
+  if (!state.reports.length) h = `<p class="sub">Nothing saved yet. Save a question below, or use “Save as a report” under any answer in Ask.</p><div class="suggestions">${["Anything new or unusual since the last statement?", "How did this month compare with a typical month, thread by thread?", "Which subscriptions changed price or appeared for the first time?"].map(s => `<button data-repsug="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
+  else if (stale && caps.sample) h = `<div class="row-actions" style="margin:0 0 10px"><span class="sub">${stale} report${stale > 1 ? "s have" : " has"} new statements since the last run.</span><button class="btn small" id="runStale">Run ${stale > 1 ? "them" : "it"}</button></div>`;
+  h += state.reports.map(r => `<article class="report" data-rid="${r.id}">
+      <h3 dir="auto">${esc(r.q)}</h3>
+      <div class="sub">${r.running ? "Running…" : r.ranAt ? `Last run ${fmtDate(r.ranAt)}${r.dataKey !== dataKey() ? " · <b>new statements since</b>" : ""}` : "Not run yet"}</div>
+      ${r.running && r.draft ? `<div class="a" dir="auto">${md(r.draft)}</div>` : r.answer ? `<div class="a" dir="auto">${md(r.answer)}</div>` : ""}
+      ${r.error ? `<p class="sub">${esc(r.error)}</p>` : ""}
+      <div class="a-actions">${caps.sample && !r.running ? `<button class="linkish" data-run="${r.id}">Run again</button>` : ""}<button class="linkish" data-rmrep="${r.id}">Remove</button></div></article>`).join("");
+  el.innerHTML = h;
+}
+async function runReport(r) {
+  if (!caps.sample || r.running) return;
+  r.running = true; r.draft = ""; r.error = ""; renderReports();
+  const prev = r.answer ? `\nThis report was last run on ${r.ranAt}, when the statements covered: ${r.coverage || "unknown"}. The answer then was:\n${r.answer}\nOpen with what's new or different since then (new statements, changed figures), then answer the question as things stand now.` : "";
+  const input = [{ role: "user", content: buildIntro(false) }, { role: "user", content: `This is a saved report the person re-runs whenever they add statements.\nReport question: ${r.q}${prev}` }];
+  const reply = { content: "" };
+  try {
+    const text = await callAssistant(input, reply, { write: false, onText: t => { r.draft = t; renderReports(); } });
+    r.answer = text; r.ranAt = TODAY; r.dataKey = dataKey(); r.coverage = coverageText();
+  } catch (e) { r.error = sampleErr(e); }
+  r.running = false; r.draft = ""; saveReports(); renderReports();
+}
+async function runStale() { for (const r of staleReports()) await runReport(r); }
+function addReport(q, answer) {
+  state.reports.push({ id: "r" + Date.now().toString(36), q, answer: answer || "", ranAt: answer ? TODAY : "", dataKey: answer ? dataKey() : "", coverage: answer ? coverageText() : "" });
+  saveReports(); openTab("reports");
+}
+function wireReports() {
+  $("#reports").addEventListener("click", e => {
+    if (e.target.id === "runStale") { runStale(); return; }
+    const sg = e.target.closest("[data-repsug]"); if (sg) { addReport(sg.dataset.repsug); runReport(state.reports.at(-1)); return; }
+    const run = e.target.closest("[data-run]"); if (run) { runReport(state.reports.find(r => r.id === run.dataset.run)); return; }
+    const rm = e.target.closest("[data-rmrep]"); if (rm) { const i = state.reports.findIndex(r => r.id === rm.dataset.rmrep); const [r] = state.reports.splice(i, 1); saveReports(); renderReports();
+      toast("Report removed.", 9000, { label: "Undo", fn: () => { state.reports.splice(i, 0, r); saveReports(); renderReports(); } }); return; }
+    const c = e.target.closest("[data-cite]"); if (c) { state.selection = new Set([c.dataset.cite]); state.highlight = new Set([c.dataset.cite]); state.periodSel = null; refresh(); $("#tlwrap").scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+  });
+  $("#repSave").onclick = () => { const q = $("#repInput").value.trim(); if (!q) { $("#repInput").focus(); return; } $("#repInput").value = ""; addReport(q); if (caps.sample) runReport(state.reports.at(-1)); };
+  $("#repInput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#repSave").click(); } });
+}
+
+/* ───────────── inspector ───────────── */
+function renderInspector() {
+  const el = $("#insp");
+  if (!state.loaded || !D.allTxns.length) { el.innerHTML = ""; return; }
+  const selP = state.periods.find(p => p.id === state.periodSel);
+  if (selP) { renderPeriodInspector(el, selP); return; }
+  if (state.statement) {
+    const { account, period } = state.statement;
+    const bs = Object.values(state.batches).filter(b => b.account === account && b.periods.includes(period));
+    const paidId = D.stmtPaid[account + "|" + period]; const paid = paidId && D.byId.get(paidId);
+    const stT = D.stmts.find(x => x.account === account && x.period === period);
+    el.innerHTML = `<div class="ins-m" dir="auto">${esc(account)}</div><div class="sub">${monthName(period)}${stT ? ` · statement total ${fmt(stT.total)}` : ""}</div>`
+      + (paid ? `<p class="sub">Paid from <span dir="auto">${esc(paid.account)}</span> on ${fmtDate(paid.date)}: <button class="cite" data-cite="${paid.id}"><span dir="auto">${esc(paid.merchant.slice(0, 22))}</span> ${fmt(paid.amount, 0)}</button>. That payment isn't counted as spending, so these charges aren't counted twice.</p>` : stT ? `<p class="sub">No payment for this statement found in your other accounts yet.</p>` : "") + bs.map(b =>
+      `<p class="sub">From <b dir="auto">${esc(b.file)}</b>: ${b.rows.length} transactions${b.periods.length > 1 ? ` covering ${b.periods.length} months` : ""}.</p><div class="row-actions"><button class="btn small quiet" data-rm="${b.id}">Remove this ${b.kind === "leumi" ? "statement" : "import"}</button></div>`).join("");
+    el.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { const bt = state.batches[b.dataset.rm]; if (!confirm(`Remove ${bt.rows.length} transactions from ${bt.file}?`)) return; removeBatch(bt); state.statement = null; refresh(); toast("Removed. Add the file again any time."); });
+    return;
+  }
+  const ids = [...state.selection].filter(id => D.byId.has(id));
+  if (!ids.length) { el.innerHTML = `<p class="hint">Hover a bead for the short story, click it for where it came from. Drag across the timeline to gather several and turn them into a thread.</p><p class="hint">Solid beads are charges on your statements. Hollow ones with a line are refunds. Dashed ones are expected or missing: recurring charges projected ahead, instalments still to come, or payments that sit in a statement you haven't added.</p>`; return; }
+  if (ids.length === 1) {
+    const t = D.byId.get(ids[0]); const thr = D.R.threads.find(x => x.name === t.thread);
+    const rule = t.matchLine != null ? `caught by line ${t.matchLine + 1} <button class="linkish" data-line="${t.matchLine}">“${esc((state.previewRules ?? state.rules).split("\n")[t.matchLine].trim())}”</button>` : "not caught by any thread yet";
+    const kv = [];
+    kv.push([t.kind === "purchase" ? "Full price" : "Charged", `${fmt(t.amount)}${t.kind === "ghost" ? " (expected)" : t.kind === "inferred" ? " (worked out)" : ""}`]);
+    if (t.orig && t.kind === "actual") kv.push(["Original amount", `${t.orig.currency} ${t.orig.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`]);
+    kv.push([t.kind === "purchase" ? "Bought" : "Date", fmtDate(t.date) + (t.kind === "actual" && t.chargeDate && t.chargeDate !== t.date ? ` (charged around ${fmtDate(t.chargeDate)})` : "")]);
+    if (t.type) kv.push(["Type", `<span dir="auto">${esc(t.type)}</span>`]);
+    if (t.details) kv.push(["Details", `<span dir="auto">${esc(t.details)}</span>`]);
+    if (t.transfer) kv.push(["Transfer", `${esc(transferText(t))}. Not counted as spending.${t.transfer.kind === "pair" ? ` <button class="linkish" data-cite="${t.transfer.other}">See the other side</button>` : ""}`]);
+    else kv.push(["Thread", `<b style="color:${thr?.color || "var(--ink-2)"}">${esc(t.thread)}</b>, ${rule}`]);
+    if (t.periods?.length) kv.push(["During", t.periods.map(n => { const p = state.periods.find(x => x.name === n); return p ? `<button class="linkish" data-openperiod="${p.id}" dir="auto">${esc(n)}</button>` : esc(n); }).join(", ")]);
+    if (t.derivedFrom) kv.push(["Source", `Worked out from the <span dir="auto">${esc(t.account)}</span> ${monthName(t.derivedFrom.period)} statement`]);
+    else kv.push(["Source", `<span dir="auto">${esc(t.account)}</span>, ${t.period ? monthName(t.period) + " statement, " : ""}<span dir="auto">${esc(t.file || "")}</span>`]);
+    if (t.why) kv.push(["Why it's here", esc(t.why)]);
+    const realId = t.kind === "actual" ? t.id : null;
+    const nk = t.nameKey || normText(t.original || t.merchant);
+    kv.unshift(["Description", `<input id="nameBox" dir="auto" value="${esc(t.renamed ? t.merchant : "")}" placeholder="${esc(t.original || t.merchant)}" aria-label="Display name" style="width:100%;border:1px solid var(--wire);background:var(--raised);border-radius:6px;padding:3px 7px">
+      <div class="sub" dir="auto" style="margin-top:2px">${t.renamed ? `On the statement: ${esc(t.original)} · ${state.names[nk]?.by === "ai" ? "translated by the assistant" : "your name"} · <button class="linkish" id="nameReset">Use the original</button>` : "Type a name to show instead. The original stays on file."}</div>`]);
+    el.innerHTML = `<div class="ins-grid"><div><div class="ins-m" dir="auto">${esc(t.merchant)}</div><dl class="kv">${kv.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div>
+      <div>${realId ? `<label class="sub" for="noteBox">Note. Any #tag you write here can be caught by a thread.</label><textarea class="note" id="noteBox" dir="auto" placeholder="e.g. #vet  Bella's checkup">${esc(state.notes[realId] || "")}</textarea>` : `<p class="sub">This bead is worked out from other charges, so there's nothing to annotate yet.</p>`}
+      ${realId ? tagToolsHTML([realId], "one") : ""}
+      <div class="row-actions">${caps.sample ? `<button class="btn small quiet" id="askThese">Ask about this</button>` : ""}${realId ? `<button class="btn small quiet" id="trToggle">${t.transfer ? "Not a transfer" : "This is a transfer between my accounts"}</button>` : ""}</div></div></div>`;
+    $("#trToggle")?.addEventListener("click", () => setTransfer(realId, !t.transfer));
+    if (realId) wireTagTools(el, () => [realId]);
+    el.querySelector("[data-line]")?.addEventListener("click", e => selectRuleLine(+e.currentTarget.dataset.line));
+    const setName = v => { v = v.trim(); if (v && v !== (t.original || t.merchant)) state.names[nk] = { name: v, by: "you" }; else delete state.names[nk]; saveSoon("names", () => ({ map: state.names })); refreshSoon(); };
+    $("#nameBox")?.addEventListener("input", e => setName(e.target.value));
+    $("#nameReset")?.addEventListener("click", () => { setName(""); renderInspector(); });
+    if (realId) $("#noteBox").addEventListener("input", e => { const v = e.target.value; if (v.trim()) state.notes[realId] = v; else delete state.notes[realId]; saveSoon("notes", () => ({ map: state.notes })); refreshSoon(); });
+  } else {
+    const ts = ids.map(id => D.byId.get(id)); const real = ts.filter(t => t.kind === "actual");
+    const sum = real.reduce((a, t) => a + t.amount, 0); const dates = ts.map(t => t.date).sort();
+    const merch = [...new Set(ts.map(t => t.merchant))];
+    el.innerHTML = `<div class="ins-m">${ids.length} beads</div><div class="sub">${fmt(sum)} on statements${ts.length > real.length ? `, plus ${ts.length - real.length} expected` : ""}, ${fmtDate(dates[0])} to ${fmtDate(dates.at(-1))}</div>
+      <p class="sub" dir="auto" style="margin:6px 0 0">${merch.slice(0, 8).map(esc).join(" · ")}${merch.length > 8 ? ` and ${merch.length - 8} more` : ""}</p>
+      <div class="row-actions"><input id="threadName" placeholder="Thread name" aria-label="Thread name" list="threadNames"><datalist id="threadNames">${D.R.threads.map(t => `<option value="${esc(t.name)}">`).join("")}</datalist>
+      <button class="btn small" id="makeThread">Thread these</button>${caps.sample ? `<button class="btn small quiet" id="askThese">Ask about these</button>` : ""}<button class="btn small quiet" id="clearSel">Clear</button></div>
+      ${real.length ? tagToolsHTML(real.map(t => t.id), "sel") : `<p class="sub">These are all worked-out beads, so there's nothing to tag.</p>`}`;
+    wireTagTools(el, () => real.map(t => t.id));
+    $("#makeThread").onclick = () => { const n = $("#threadName").value.trim(); if (!n) { $("#threadName").focus(); return; } addToThread(n, real.length ? real : ts); };
+    $("#threadName").addEventListener("keydown", e => { if (e.key === "Enter") $("#makeThread").click(); });
+    $("#clearSel").onclick = () => { state.selection.clear(); refresh(); };
+  }
+  $("#askThese")?.addEventListener("click", () => { openTab("ask"); renderAskCtx(); $("#askInput").focus(); });
+}
+function addToThread(name, ts) {
+  const pats = [...new Set(ts.map(t => normText(t.merchant)).filter(Boolean))];
+  const lines = state.rules.split("\n");
+  const idx = lines.findIndex(l => !/^\s/.test(l) && l.trim() && !l.trim().startsWith("//") && l.trim().replace(/:.*$/, "").toLowerCase() === name.toLowerCase());
+  let at, count;
+  if (idx >= 0) { let j = idx + 1; while (j < lines.length && /^\s+\S/.test(lines[j])) j++; lines.splice(j, 0, ...pats.map(p => "  " + p)); at = j; count = pats.length; }
+  else { let j = 0; while (j < lines.length && (!lines[j].trim() || lines[j].trim().startsWith("//"))) j++; lines.splice(j, 0, name, ...pats.map(p => "  " + p), ""); at = j; count = pats.length + 1; }
+  state.rules = lines.join("\n"); state.previewRules = null; saveSoon("rules", () => ({ text: state.rules }), 300);
+  state.selection.clear(); openTab("threads"); refresh(); selectRuleLine(at, count);
+  const landed = ts.map(t => D.byId.get(t.id)).filter(Boolean); const elsewhere = landed.filter(t => t.thread.toLowerCase() !== name.toLowerCase());
+  if (elsewhere.length) { const who = [...new Set(elsewhere.map(t => t.thread))].join(", "); toast(`${landed.length - elsewhere.length} of ${landed.length} are now on “${name}”. The rest are still caught by ${who}, which comes first. Move “${name}” above it to change that.`, 8000); }
+  else toast(`${landed.length} beads now on “${name}”. The new lines are highlighted in Threads.`);
+}
+/* ───────────── rules editor ───────────── */
+function renderEditor() {
+  const ta = $("#rules"); const text = state.previewRules ?? state.rules;
+  if (ta.value !== text) ta.value = text;
+  ta.readOnly = state.previewRules != null;
+  $("#editor").classList.toggle("preview", state.previewRules != null);
+  $("#previewbar").classList.toggle("on", state.previewRules != null);
+  $("#previewmsg").innerHTML = state.previewRules != null ? `<b>${AI()}'s suggestion is showing on the timeline.</b> ${esc(state.previewSummary)}` : "";
+  const lines = text.split("\n"); const counts = {};
+  for (const [ln, ts] of Object.entries(D?.lineHits || {})) counts[ln] = ts.length;
+  const threadAt = {}; (D?.R.threads || []).forEach(t => threadAt[t.line] = t);
+  const tsByThread = {}; (D?.txns || []).forEach(t => (tsByThread[t.thread] ||= []).push(t));
+  let g = "";
+  lines.forEach((l, i) => {
+    const err = D?.R.errors[i];
+    if (err) g += `<div class="bad" title="${esc(err)}">!</div>`;
+    else if (threadAt[i]) { const ts = tsByThread[threadAt[i].name] || []; const sum = ts.reduce((a, t) => a + t.amount, 0); g += `<div class="th" title="${ts.length} transactions">${ts.length ? fmtShort(sum) : "–"}</div>`; }
+    else if (/^\s+\S/.test(l) && !l.trim().startsWith("//")) g += `<div class="${counts[i] ? "" : "zero"}">${counts[i] || 0}</div>`;
+    else g += `<div></div>`;
+  });
+  $("#gutter").innerHTML = g; syncGutter();
+}
+function syncGutter() { $("#gutter").style.transform = `translateY(${-$("#rules").scrollTop}px)`; }
+function selectRuleLine(line, count = 1) {
+  openTab("threads"); const ta = $("#rules"); const lines = ta.value.split("\n");
+  let s = 0; for (let i = 0; i < line; i++) s += lines[i].length + 1;
+  let e = s; for (let i = line; i < Math.min(lines.length, line + count); i++) e += lines[i].length + 1;
+  ta.focus({ preventScroll: true }); ta.setSelectionRange(s, Math.max(s, e - 1));
+  ta.scrollTop = Math.max(0, line * 22 - 80); syncGutter(); caretHighlight();
+}
+function caretLine() { const ta = $("#rules"); return ta.value.slice(0, ta.selectionStart).split("\n").length - 1; }
+function caretHighlight() {
+  if (document.activeElement !== $("#rules") || !D) return;
+  const ln = caretLine(); const th = D.R.threads.find(t => t.line === ln);
+  let ids = [];
+  if (th) ids = [...D.txns, ...D.extras].filter(t => t.thread === th.name).map(t => t.id);
+  else if (D.lineHits[ln]) { const hit = new Set(D.lineHits[ln].map(t => t.key)); ids = [...D.txns, ...D.extras].filter(t => t.matchLine === ln || (t.kind !== "actual" && hit.has(t.key))).map(t => t.id); }
+  const same = ids.length === state.highlight.size && ids.every(i => state.highlight.has(i));
+  if (!same) { state.highlight = new Set(ids); renderTimeline(); }
+}
+
+/* ───────────── lenses (small programs you can read and change) ───────────── */
+const lensLib = () => ({
+  sum: (a, f = x => x) => a.reduce((s, x) => s + (Number(f(x)) || 0), 0),
+  groupBy: (a, f) => a.reduce((o, x) => { const k = f(x); (o[k] ||= []).push(x); return o; }, {}),
+  month: d => String(d).slice(0, 7), fmt: n => fmt(n), today: TODAY,
+  threads: D.names, accounts: D.accounts, expected: D.expected.map(publicTxn),
+  periods: state.periods.map(p => ({ name: p.name, start: p.start, end: p.end, story: p.story || "" })),
+  budgets: Object.fromEntries(D.R.threads.filter(t => t.budget != null).map(t => [t.name, t.budget])),
+  transfers: D.allTxns.filter(t => t.transfer).map(publicTxn)
+});
+function publicTxn(t) { return { id: t.id, date: t.date, chargeDate: t.chargeDate, merchant: t.merchant, original: t.original || t.merchant, amount: t.amount, orig: t.orig, type: t.type, details: t.details, inst: t.inst, thread: t.thread, account: t.account, note: t.note || "", period: t.period, periods: t.periods || [], recurring: !!t.recurring, key: t.key, kind: t.kind }; }
+function runLens(code) {
+  const txns = D.txns.filter(t => !t.transfer).map(publicTxn); const lib = lensLib();
+  const fn = new Function("txns", "lib", code); const v = fn(txns, lib);
+  if (!v || typeof v !== "object") throw new Error("The lens needs to return a view, e.g. { kind: 'bars', items: [...] }");
+  return v;
+}
+function renderView(v) {
+  if (v.kind === "bars") {
+    const items = (v.items || []).slice(0, 40); const max = Math.max(1e-9, ...items.map(i => Math.abs(+i.value || 0)));
+    if (!items.length) return `<p class="sub">Nothing to show yet.</p>`;
+    return `<div class="bars">${items.map(i => `<button class="bar" data-ids="${esc((i.ids || []).join(","))}"><span class="l" dir="auto">${esc(/^\d{4}-\d{2}$/.test(i.label) ? monthName(i.label) : i.label)}</span><span class="t"><i style="width:${(Math.abs(+i.value || 0) / max * 100).toFixed(1)}%"></i></span><span class="v">${v.unit === "" ? esc(i.value) : fmt(+i.value || 0, 0)}</span></button>`).join("")}</div>`;
+  }
+  if (v.kind === "table") {
+    const rows = (v.rows || []).slice(0, 60);
+    const isNum = c => typeof c === "number" || /^\s*[−-]?\s*[₪$€£]?\s*[−-]?[\d.,]+\s*(%|×|x)?\s*$|^\d{4}-\d{2}(-\d{2})?$/.test(String(c ?? ""));
+    const numCol = (v.columns || []).map((_, j) => rows.length && rows.every(r => r[j] == null || r[j] === "" || isNum(r[j])));
+    const cell = (c, j) => `<td${numCol[j] || isNum(c) ? ` class="num"` : ` dir="auto"`}>${esc(typeof c === "number" ? (Number.isInteger(c) ? c : c.toFixed(2)) : c)}</td>`;
+    return `<div class="scroll"><table class="ltable"><thead><tr>${(v.columns || []).map((c, j) => `<th${numCol[j] ? ` class="num"` : ""}>${esc(c)}</th>`).join("")}</tr></thead><tbody>${rows.map((r, i) => `<tr${v.rowIds?.[i] ? ` data-ids="${esc(v.rowIds[i].join(","))}"` : ""}>${r.map(cell).join("")}</tr>`).join("")}</tbody></table></div>`;
+  }
+  if (v.kind === "number") return `<div class="lnum"${v.ids ? ` data-ids="${esc(v.ids.join(","))}" style="cursor:pointer"` : ""}>${typeof v.value === "number" ? fmt(v.value, 0) : esc(v.value)}</div><div class="sub">${esc(v.label || "")}</div>`;
+  if (v.kind === "text") return `<p dir="auto" style="margin:0">${esc(v.text)}</p>`;
+  throw new Error(`Unknown view kind “${v.kind}”. Use bars, table, number or text.`);
+}
+function renderLenses() {
+  const el = $("#lenses");
+  if (!state.loaded || !D.allTxns.length) { el.innerHTML = ""; return; }
+  let h = `<div class="sec-h"><h2>Lenses</h2>${D.filtered ? `<span class="sub">Showing only what matches the filter.</span>` : ""}<span class="sub">Small programs over your transactions. Open one to read or change it.</span></div><div class="lens-grid">`;
+  state.lenses.forEach(l => {
+    let body, err = null, view = null;
+    try { view = runLens(l.code); body = renderView(view); } catch (e) { err = e.message || String(e); body = ""; }
+    const open = state.editing.has(l.id);
+    const wide = l.wide ?? (view?.kind === "table" && (view.columns || []).length >= 4);
+    h += `<article class="lens${wide ? " wide" : ""}" data-lens="${l.id}"><h3><span contenteditable="true" spellcheck="false" data-title="${l.id}">${esc(l.title)}</span></h3>${body}${err ? `<div class="err">${esc(err)}</div>` : ""}
+      ${open ? `<textarea spellcheck="false" data-code="${l.id}" aria-label="Lens code">${esc(l.code)}</textarea>` : ""}
+      <div class="foot"><button data-toggle="${l.id}">${open ? "Hide code" : "Open code"}</button><button data-wide="${l.id}" data-was="${wide ? 1 : 0}">${wide ? "Narrower" : "Full width"}</button>${caps.sample ? `<button data-fix="${l.id}">${err ? "Fix with " + AI() : "Change with " + AI()}</button>` : ""}<button data-del="${l.id}">Remove</button></div></article>`;
+  });
+  h += `<div class="newlens">${caps.sample ? `<label class="sub" for="lensBrief">Describe a new lens and ${AI()} will write it. You can read and edit the result.</label><textarea id="lensBrief" placeholder="e.g. Pet costs month by month, vet vs everything else"></textarea><div class="row-actions" style="margin:0"><button class="btn small" id="lensGo">Write the lens</button><span class="sub" id="lensNote"></span></div>`
+    : `<p class="sub" style="margin:0">No AI assistant is set up here (see More → AI assistant settings), but you can still write lenses by hand.</p>`}<button class="btn small quiet" id="lensBlank">Start a blank lens</button></div></div>`;
+  el.innerHTML = h;
+}
+function wireLenses() {
+  const el = $("#lenses");
+  el.addEventListener("click", async ev => {
+    const b = ev.target.closest("[data-ids]");
+    if (b && !ev.target.closest("textarea")) {
+      const ids = b.dataset.ids ? b.dataset.ids.split(",") : [];
+      const same = ids.length && ids.length === state.highlight.size && ids.every(i => state.highlight.has(i));
+      state.highlight = same ? new Set() : new Set(ids); state.selection.clear(); renderTimeline();
+      el.querySelectorAll(".bar.on,tr.on").forEach(x => x.classList.remove("on")); if (!same) b.classList.add("on");
+      return;
+    }
+    const w = ev.target.closest("[data-wide]"); if (w) { const l = state.lenses.find(x => x.id === w.dataset.wide); l.wide = w.dataset.was !== "1"; saveLenses(); renderLenses(); return; }
+    const t = ev.target.closest("[data-toggle]"); if (t) { const id = t.dataset.toggle; state.editing.has(id) ? state.editing.delete(id) : state.editing.add(id); renderLenses(); el.querySelector(`[data-code="${id}"]`)?.focus(); return; }
+    const d = ev.target.closest("[data-del]"); if (d) { const l = state.lenses.find(x => x.id === d.dataset.del); if (!confirm(`Remove “${l.title}”?`)) return; state.lenses = state.lenses.filter(x => x !== l); saveLenses(); renderLenses(); return; }
+    const f = ev.target.closest("[data-fix]"); if (f) { const l = state.lenses.find(x => x.id === f.dataset.fix); let err = null; try { runLens(l.code); } catch (e) { err = e.message; }
+      const brief = err ? null : prompt("What should change?", ""); if (!err && !brief) return;
+      f.textContent = AI() + " is working…"; f.disabled = true;
+      try { const r = await writeLens(brief || l.title, { code: l.code, error: err, change: brief }); l.code = r.code; if (r.title && !brief) l.title = l.title || r.title; saveLenses(); state.editing.add(l.id); } catch (e) { toast(sampleErr(e)); }
+      renderLenses(); return; }
+    if (ev.target.id === "lensBlank") { const l = { id: "l" + Date.now().toString(36), title: "Untitled lens", code: `// txns: your transactions. lib: sum, groupBy, month, fmt, expected, threads.\nreturn { kind: "number", value: lib.sum(txns, t => t.amount), label: "Everything on your statements" };` }; state.lenses.push(l); state.editing.add(l.id); saveLenses(); renderLenses(); return; }
+    if (ev.target.id === "lensGo") {
+      const brief = $("#lensBrief").value.trim(); if (!brief) { $("#lensBrief").focus(); return; }
+      const btn = ev.target; btn.disabled = true; $("#lensNote").textContent = AI() + " is writing it. This can take up to a minute.";
+      try { const r = await writeLens(brief); const l = { id: "l" + Date.now().toString(36), title: r.title || brief.slice(0, 40), code: r.code }; state.lenses.push(l); saveLenses(); renderLenses(); }
+      catch (e) { $("#lensNote").textContent = sampleErr(e); btn.disabled = false; }
+    }
+  });
+  const rerun = debounce(id => { const art = el.querySelector(`[data-lens="${id}"]`); const l = state.lenses.find(x => x.id === id); if (!art || !l) return;
+    let body = "", err = null; try { body = renderView(runLens(l.code)); } catch (e) { err = e.message || String(e); }
+    art.querySelectorAll(".bars,.ltable,.lnum,.lnum+.sub,.err,article>p,article>div[style]").forEach(n => { if (!n.closest("textarea")) n.remove(); });
+    art.querySelector("h3").insertAdjacentHTML("afterend", body + (err ? `<div class="err">${esc(err)}</div>` : ""));
+    const fx = art.querySelector("[data-fix]"); if (fx) fx.textContent = err ? "Fix with " + AI() : "Change with " + AI();
+  }, 250);
+  el.addEventListener("input", ev => {
+    const c = ev.target.closest("[data-code]"); if (c) { const l = state.lenses.find(x => x.id === c.dataset.code); l.code = c.value; saveLenses(); rerun(l.id); return; }
+    const t = ev.target.closest("[data-title]"); if (t) { const l = state.lenses.find(x => x.id === t.dataset.title); l.title = t.textContent.trim() || "Untitled lens"; saveLenses(); }
+  });
+  el.addEventListener("keydown", ev => { if (ev.target.matches("[data-code]") && ev.key === "Tab") { ev.preventDefault(); const ta = ev.target; const s = ta.selectionStart; ta.setRangeText("  ", s, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input", { bubbles: true })); } });
+}
+const saveLenses = () => saveSoon("lenses", () => ({ items: state.lenses }));
+const saveView = () => saveSoon("view", () => ({ parked: state.view.parked, panel: state.view.panel }), 300);
+const saveChat = () => saveSoon("chat", () => ({ turns: state.turns.filter(t => !t.pending).slice(-40).map(t => ({ role: t.role, content: t.content, shown: t.shown || "", q: t.q || "", error: t.error || "", undo: t.undo || null, changedCount: t.changedCount || 0, undone: !!t.undone, proposed: !!t.proposed, undoNames: t.undoNames || null, renamedCount: t.renamedCount || 0, namesUndone: !!t.namesUndone, periods: t.periods || null })) }), 500);
+function applyPanel() {
+  document.body.classList.toggle("nopanel", !state.view.panel);
+  $("#panelBtn").hidden = state.view.panel;
+  state.loaded && renderTimeline();
+}
+
+/* ───────────── AI providers: Claude (built in) or any OpenAI-compatible endpoint ───────────── */
+const AI_KEY = "abacus-ai-settings";
+function loadAI() { try { return JSON.parse(localStorage.getItem(AI_KEY)) || {}; } catch { return {}; } }
+function saveAI(v) { try { localStorage.setItem(AI_KEY, JSON.stringify(v)); } catch { toast("This browser wouldn't keep the settings."); } }
+function normBase(b) {
+  let u = String(b || "").trim(); if (!u) return "";
+  if (!/^https?:\/\//i.test(u)) u = (/^(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(u) ? "http://" : "https://") + u;
+  u = u.replace(/\/+$/, "").replace(/\/chat\/completions$/, "");
+  try { const url = new URL(u); if (url.pathname === "/" || url.pathname === "") u = url.origin + "/v1"; } catch {}
+  return u;
+}
+function AI() {
+  if (caps.sample && caps.sample === caps.claude) return "Claude";
+  if (caps.sample?.label) return caps.sample.label;
+  return "the assistant";
+}
+function extractJSON(text) {
+  const t = String(text || "").trim(); try { return JSON.parse(t); } catch {}
+  const f = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (f) { try { return JSON.parse(f[1]); } catch {} }
+  const a = Math.min(...["{", "["].map(c => t.indexOf(c)).filter(i => i >= 0)), z = Math.max(t.lastIndexOf("}"), t.lastIndexOf("]"));
+  if (isFinite(a) && z > a) { try { return JSON.parse(t.slice(a, z + 1)); } catch {} }
+  throw { code: "invalid_json", text: t };
+}
+function makeOpenAI(cfg) {
+  const base = normBase(cfg.base), host = (() => { try { return new URL(base).host; } catch { return base; } })();
+  const label = /openai\.com$/i.test(host) ? "ChatGPT" : host;
+  async function post(body, signal) {
+    let res;
+    try { res = await fetch(base + "/chat/completions", { method: "POST", signal, headers: { "Content-Type": "application/json", ...(cfg.key ? { Authorization: "Bearer " + cfg.key } : {}) }, body: JSON.stringify(body) }); }
+    catch (e) {
+      if (e?.name === "AbortError") throw { code: "cancelled" };
+      const inClaude = !!window.claude?.use;
+      throw { code: "network", message: inClaude ? `Couldn't reach ${host}. Inside claude.ai, Abacus can only talk to Claude. Open the downloaded abacus.html in your browser to use ${label}.`
+        : `Couldn't reach ${host}. Check the address, your connection, and that the service allows requests from a web page (for Ollama, set OLLAMA_ORIGINS=*).` };
+    }
+    if (res.status === 401 || res.status === 403) throw { code: "auth" };
+    if (res.status === 429) throw { code: "rate_limited" };
+    const j = await res.json().catch(() => null);
+    if (!res.ok) throw { code: "upstream_error", message: j?.error?.message || `${host} answered ${res.status}` };
+    return j;
+  }
+  async function call(input, opts = {}) {
+    const messages = typeof input === "string" ? [{ role: "user", content: input }] : input.map(m => ({ role: m.role, content: m.content }));
+    const tools = opts.tools?.length ? opts.tools.map(t => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.inputSchema || { type: "object", properties: {} } } })) : null;
+    for (let round = 0; round < 8; round++) {
+      const j = await post({ model: cfg.model, messages, ...(tools ? { tools } : {}) }, opts.signal);
+      const msg = j?.choices?.[0]?.message; if (!msg) throw { code: "upstream_error", message: "The reply had no message in it." };
+      if (msg.tool_calls?.length && tools) {
+        messages.push({ role: "assistant", content: msg.content || null, tool_calls: msg.tool_calls });
+        for (const tc of msg.tool_calls) {
+          const tool = opts.tools.find(t => t.name === tc.function?.name); let out;
+          try { const args = JSON.parse(tc.function?.arguments || "{}"); out = tool ? await tool.execute(args, { signal: opts.signal }) : "Error: no such tool"; }
+          catch (e) { out = "Error: " + (e?.message || e); }
+          messages.push({ role: "tool", tool_call_id: tc.id, content: typeof out === "string" ? out : JSON.stringify(out).slice(0, 32000) });
+        }
+        continue;
+      }
+      const text = String(msg.content || "").trim(); if (!text) throw { code: "empty_completion" };
+      opts.onText?.({ text, delta: text });
+      return { text, truncated: j.choices[0].finish_reason === "length" };
+    }
+    throw { code: "upstream_error", message: "It kept asking for more lookups without answering. Try a narrower question." };
+  }
+  call.json = async (input, opts = {}) => extractJSON((await call(input, opts)).text);
+  call.label = label;
+  return call;
+}
+function applyProvider() {
+  const cfg = loadAI();
+  if (cfg.provider === "openai" && cfg.base && cfg.model) { caps.sample = makeOpenAI(cfg); caps.tools = true; }
+  else { caps.sample = caps.claude; caps.tools = caps.claudeTools; }
+}
+function openAISettings() {
+  const dlg = $("#aiDlg"); const cfg = loadAI();
+  const prov = cfg.provider || (caps.claude ? "claude" : "openai");
+  dlg.querySelectorAll('[name="prov"]').forEach(r => r.checked = r.value === prov);
+  $("#aiBase").value = cfg.base || ""; $("#aiKey").value = cfg.key || ""; $("#aiModel").value = cfg.model || ""; $("#aiNote").textContent = "";
+  const sync = () => { const v = dlg.querySelector('[name="prov"]:checked')?.value; $("#aiOpenai").style.display = v === "openai" ? "" : "none"; $("#aiCsp").hidden = !(v === "openai" && window.claude?.use); };
+  dlg.querySelectorAll('[name="prov"]').forEach(r => r.onchange = sync); sync();
+  const read = () => ({ provider: dlg.querySelector('[name="prov"]:checked')?.value || "claude", base: $("#aiBase").value.trim(), key: $("#aiKey").value.trim(), model: $("#aiModel").value.trim() });
+  $("#aiTest").onclick = async () => {
+    const c = read(); const note = $("#aiNote");
+    if (c.provider === "claude") { note.textContent = caps.claude ? "Claude is available here." : "Claude isn't available in this copy. It works when Abacus is open in claude.ai."; return; }
+    if (!c.base || !c.model) { note.textContent = "Fill in the host and the model first."; return; }
+    note.textContent = "Checking…";
+    try { const r = await makeOpenAI(c)("Reply with the single word OK."); note.textContent = `Connected. It replied “${r.text.slice(0, 30)}”.`; }
+    catch (e) { note.textContent = sampleErr(e); }
+  };
+  $("#aiForget").onclick = () => { $("#aiKey").value = ""; const c = loadAI(); delete c.key; saveAI(c); $("#aiNote").textContent = "Key removed from this browser."; applyProvider(); renderAll(); };
+  $("#aiCancel").onclick = () => dlg.close();
+  $("#aiSave").onclick = () => {
+    const c = read();
+    if (c.provider === "openai" && (!c.base || !c.model)) { $("#aiNote").textContent = "Fill in the host and the model, or pick Claude."; return; }
+    saveAI(c); applyProvider(); dlg.close(); renderAll(); toast(caps.sample ? `${AI()} will handle suggestions, lenses and questions.` : "Saved. Claude isn't available in this copy, so the AI buttons stay hidden.");
+  };
+  dlg.showModal();
+}
+function sampleErr(e) {
+  switch (e?.code) {
+    case "not_granted": case "sampling_disabled": case "not_declared": case "capability_disabled": case "capability_removed":
+      if (caps.sample === caps.claude) { caps.claude = null; applyProvider(); renderAll(); } return "Claude isn't allowed in this view. Pick another assistant under More → AI assistant settings.";
+    case "rate_limited": return `${AI()} is busy or you've hit a usage limit. Try again in a little while.`;
+    case "session_expired": return "Sign in to Claude again, then retry.";
+    case "auth": return "The API key was refused. Check it under More → AI assistant settings.";
+    case "network": return e.message;
+    case "prompt_too_large": return "That's too much data to send in one go. Narrow the range or hide an account.";
+    case "invalid_json": return `${AI()}'s answer wasn't in the expected shape. Try again, or phrase it differently.`;
+    case "refused": return `${AI()} declined that one. Try rephrasing.`;
+    case "cancelled": return "Stopped.";
+    default: return e?.message ? "Something went wrong: " + e.message : `Something went wrong reaching ${AI()}. Try again.`;
+  }
+}
+function coverageText() { return D.accounts.map(a => `${a}: ${[...(D.coverage[a] || [])].sort().map(monthName).join(", ")}`).join("; "); }
+function merchantSummary(limit = 300) {
+  const g = {}; for (const t of D.allTxns) { const k = t.nameKey; (g[k] ||= { name: t.renamed ? `${t.merchant} (${t.original})` : t.merchant, n: 0, sum: 0, thread: t.thread }); g[k].n++; g[k].sum += t.amount; }
+  return Object.values(g).sort((a, b) => Math.abs(b.sum) - Math.abs(a.sum)).slice(0, limit).map(m => `${m.name} | ${m.n}× | ${m.sum.toFixed(2)} | ${m.thread}`).join("\n");
+}
+const DSL_DOC = `The rules language: a thread is a name on its own line (not indented). Under it, indented lines are patterns, one per line. A plain pattern matches if it appears inside the merchant name (case-insensitive; digits and punctuation such as quotes, dashes and dots are ignored, so write "חברת החשמל" not "חברת החשמל לישראל בע\\"מ 123"). A pattern starting with # matches that tag in the person's notes. A /pattern/ is a JavaScript regular expression tested against the merchant name. Lines starting with // are comments. The first thread (top to bottom) that matches wins.`;
+async function suggestThreads() {
+  const btn = $("#suggestBtn"); btn.disabled = true; btn.textContent = AI() + " is reading your merchants…";
+  const input = `You're helping one person organise their own card and bank transactions into "threads" (their own categories) in a personal tool called Abacus. ${DSL_DOC}
+
+Their current rules:
+<rules>
+${state.rules}
+</rules>
+
+Merchants they have (name | times seen | total ILS, positive = spent | thread it currently lands in):
+${merchantSummary()}
+
+Rewrite the rules so almost nothing is left in "${LOOSE}". Keep their existing threads, names, comments and patterns unless something is clearly wrong; add threads that reflect how this particular person actually lives (for example, if several merchants are vets, pet shops and pet insurance, a thread for the pet makes more sense than scattering them across "Insurance" and "Shopping"). Prefer 6 to 12 threads with short English names. Patterns should be short distinctive fragments of the merchant name, often in Hebrew. Order threads so specific ones come before general ones.
+
+Reply with only JSON: {"rules": "the full new rules text, with \\n line breaks and two-space indents", "summary": "one or two plain sentences on what you changed and why"}`;
+  try {
+    const r = await caps.sample.json(input, { modelTier: "default" });
+    if (typeof r?.rules !== "string" || !r.rules.trim()) throw { code: "invalid_json" };
+    state.previewRules = r.rules.replace(/\r/g, ""); state.previewSummary = String(r.summary || ""); refresh();
+    $("#rules").scrollTop = 0; syncGutter();
+  } catch (e) { toast(sampleErr(e)); }
+  btn.disabled = false; btn.textContent = "Suggest threads with " + AI();
+}
+const LENS_CONTRACT = `A lens in Abacus is the BODY of a JavaScript function (txns, lib) => view. It must return a view object. It runs in the page: no imports, no network, no DOM, no async.
+txns: array of { id, date: "YYYY-MM-DD" (purchase date), chargeDate, merchant (display name, possibly translated), original (description exactly as on the statement, often Hebrew), amount (number, ILS; positive = money out, negative = refund or money in), orig: {amount, currency} | null (original or foreign-currency amount), type, details, inst: {n, of} | null (instalment n of of), thread (the person's own category), account, note (their free text, may contain #tags), period: "YYYY-MM" (statement month), recurring (boolean: merchant seen in 2+ statements), key (merchant identity) }.
+lib: sum(array, fn), groupBy(array, fn) -> {key: array}, month("YYYY-MM-DD") -> "YYYY-MM", fmt(number) -> "₪1,234.00", today ("YYYY-MM-DD"), threads (names), accounts (names), periods ([{name, start, end, story}] stretches of time they marked; txns also carry periods: [names]), budgets ({thread: monthly ₪}), transfers (money moved between their own accounts; already left out of txns), expected (array shaped like txns: projected future charges from recurring merchants and remaining instalments).
+Views:
+{ kind: "bars", items: [{ label, value (number, ILS), ids: [txn ids] }] }   // labels "YYYY-MM" are shown as month names; ids make a bar clickable to highlight beads
+{ kind: "table", columns: [..], rows: [[cells]], rowIds: [[ids]] }
+{ kind: "number", value, label, ids }
+{ kind: "text", text }
+Write plain, readable code a person will want to edit: under 35 lines, a one-line // comment at the top saying what it shows, clear names, no clever tricks. Remember statement months may be missing; only use what's there.`;
+async function writeLens(brief, prev) {
+  const sampleRows = D.txns.slice(0, 4).map(publicTxn);
+  let input = `${LENS_CONTRACT}
+
+Threads: ${D.names.join(", ")}. Accounts and statement months: ${coverageText()}. Today is ${TODAY}.
+Example transactions: ${JSON.stringify(sampleRows)}
+
+`;
+  if (prev?.error) input += `This lens throws an error. Fix it and keep its intent.\nError: ${prev.error}\nCode:\n${prev.code}\n`;
+  else if (prev?.change) input += `Change this lens as asked: ${prev.change}\nCurrent code:\n${prev.code}\n`;
+  else input += `Write a lens for: ${brief}\n` + (prev?.context ? `It comes from this exchange in the Ask panel; use it to understand what they want to see (ids in [[ ]] are transaction ids):\n${prev.context.slice(0, 6000)}\n` : "");
+  input += `\nReply with only JSON: {"title": "short title in sentence case", "code": "the function body"}`;
+  const r = await caps.sample.json(input, { modelTier: "default" });
+  if (typeof r?.code !== "string") throw { code: "invalid_json" };
+  return { title: String(r.title || ""), code: r.code };
+}
+/* ask */
+function filterTxns(q = {}) {
+  let ts = q.include_expected ? [...D.allTxns, ...D.expected] : [...D.allTxns];
+  if (!q.include_transfers) ts = ts.filter(t => !t.transfer);
+  if (q.period) { const pn = String(q.period).toLowerCase(); ts = ts.filter(t => (t.periods || []).some(n => n.toLowerCase().includes(pn))); }
+  if (q.ids?.length) { const s = new Set(q.ids.map(String)); ts = ts.filter(t => s.has(t.id)); }
+  if (q.text) { const n = normText(q.text), l = String(q.text).toLowerCase(); ts = ts.filter(t => t.norm.includes(n) || t.raw.toLowerCase().includes(l)); }
+  if (q.thread) ts = ts.filter(t => t.thread.toLowerCase() === String(q.thread).toLowerCase());
+  if (q.account) ts = ts.filter(t => t.account.toLowerCase().includes(String(q.account).toLowerCase()));
+  if (q.from) ts = ts.filter(t => t.date >= q.from); if (q.to) ts = ts.filter(t => t.date <= q.to);
+  if (q.min != null) ts = ts.filter(t => t.amount >= +q.min); if (q.max != null) ts = ts.filter(t => t.amount <= +q.max);
+  return ts;
+}
+const compact = t => ({ periods: t.periods?.length ? t.periods : undefined, transfer: t.transfer ? true : undefined, id: t.id, date: t.date, merchant: t.merchant, original: t.original && t.original !== t.merchant ? t.original : undefined, amount: t.amount, orig: t.orig && t.orig.currency !== "ILS" ? `${t.orig.currency} ${t.orig.amount}` : undefined, thread: t.thread, account: t.account, note: t.note || undefined, inst: t.inst ? `${t.inst.n}/${t.inst.of}` : undefined, expected: t.kind === "ghost" || undefined });
+const FILTER_PROPS = { period: { type: "string", description: "Name of a period they marked" }, include_transfers: { type: "boolean", description: "Include money moved between their own accounts" }, text: { type: "string", description: "Part of a merchant name or note (Hebrew or English)" }, thread: { type: "string" }, account: { type: "string" }, from: { type: "string", description: "YYYY-MM-DD" }, to: { type: "string", description: "YYYY-MM-DD" }, min: { type: "number" }, max: { type: "number" }, ids: { type: "array", items: { type: "string" } }, include_expected: { type: "boolean", description: "Also include projected future charges" } };
+function applyNoteChanges(changes, reply) {
+  const list = Array.isArray(changes) ? changes.slice(0, 600) : [];
+  if (!list.length) throw new Error("changes must be a non-empty list");
+  reply.undo ||= {}; let changed = 0, missing = [];
+  for (const c of list) {
+    const text = String(c?.text ?? "").trim(); const mode = c?.mode === "replace" ? "replace" : "append";
+    let ids = [];
+    if (c?.id) ids = D.allTxns.some(t => t.id === String(c.id)) ? [String(c.id)] : [];
+    else if (c?.merchant) { const m = String(c.merchant).trim(); ids = D.allTxns.filter(t => t.merchant === m || t.original === m).map(t => t.id); if (!ids.length) { const n = normText(m); ids = D.allTxns.filter(t => normText(t.merchant) === n).map(t => t.id); } }
+    if (!ids.length) { missing.push(c?.id || c?.merchant || "?"); continue; }
+    for (const id of ids) {
+      const before = state.notes[id] || ""; let after;
+      if (mode === "replace") after = text;
+      else after = !text || before.includes(text) ? before : (before ? before + "\n" + text : text);
+      if (after === before) continue;
+      if (!(id in reply.undo)) reply.undo[id] = before;
+      if (after) state.notes[id] = after; else delete state.notes[id];
+      changed++;
+    }
+  }
+  if (changed) { saveSoon("notes", () => ({ map: state.notes }), 300); refreshSoon(); }
+  reply.changedCount = Object.keys(reply.undo).length;
+  return { changed, not_found: missing.slice(0, 20) };
+}
+function applyNameChanges(changes, reply) {
+  const list = Array.isArray(changes) ? changes.slice(0, 600) : [];
+  if (!list.length) throw new Error("changes must be a non-empty list");
+  reply.undoNames ||= {}; let changed = 0; const missing = [];
+  for (const c of list) {
+    const m = String(c?.merchant ?? "").trim(); const name = String(c?.name ?? "").trim(); if (!m) continue;
+    const n = normText(m);
+    const keys = [...new Set(D.allTxns.filter(t => t.original === m || t.merchant === m || t.nameKey === n || normText(t.merchant) === n).map(t => t.nameKey))];
+    if (!keys.length) { missing.push(m); continue; }
+    for (const k of keys) {
+      const before = state.names[k] || null; const orig = D.allTxns.find(t => t.nameKey === k)?.original;
+      const after = name && name !== orig ? { name, by: "ai" } : null;
+      if (JSON.stringify(before) === JSON.stringify(after)) continue;
+      if (!(k in reply.undoNames)) reply.undoNames[k] = before;
+      if (after) state.names[k] = after; else delete state.names[k];
+      changed++;
+    }
+  }
+  if (changed) { saveSoon("names", () => ({ map: state.names }), 300); refreshSoon(); }
+  reply.renamedCount = Object.keys(reply.undoNames).length;
+  return { changed, not_found: missing.slice(0, 20) };
+}
+const WRITE_TOOLS = [
+  { name: "list_merchants", description: "List every distinct merchant description: {original (exactly as on the statement), name (current display name, same as original unless renamed), count, total}. Use before renaming or translating.",
+    execute: () => { const g = {}; for (const t of D.allTxns) { (g[t.nameKey] ||= { original: t.original, name: t.merchant, count: 0, total: 0 }); g[t.nameKey].count++; g[t.nameKey].total += t.amount; }
+      return Object.values(g).sort((a, b) => b.total - a.total).slice(0, 400).map(x => ({ ...x, total: +x.total.toFixed(2) })); } },
+  { name: "rename_merchants", description: "Change the display name of merchants, e.g. to translate the description. The original statement text is always kept and still shown beside it. Applies to every transaction from that merchant, including ones in statements added later. changes: [{merchant (original or current name), name (new display name; empty string restores the original)}]. Returns {changed, not_found}. The person can undo.",
+    inputSchema: { type: "object", properties: { changes: { type: "array", items: { type: "object", properties: { merchant: { type: "string" }, name: { type: "string" } }, required: ["merchant", "name"] } } }, required: ["changes"] },
+    execute: (q, reply) => applyNameChanges(q.changes, reply) },
+  { name: "update_notes", description: "Write the person's notes on transactions: translations, #tags, reminders. Only use when they ask you to add or change notes. Each change targets one transaction by id, or every transaction with an exact merchant name via merchant. mode 'append' (default) adds the text on a new line unless it's already there; 'replace' overwrites the note. Returns {changed, not_found}. The person can undo.",
+    inputSchema: { type: "object", properties: { changes: { type: "array", items: { type: "object", properties: { id: { type: "string" }, merchant: { type: "string", description: "Exact merchant name as it appears in the data" }, text: { type: "string" }, mode: { type: "string", enum: ["append", "replace"] } }, required: ["text"] } } }, required: ["changes"] },
+    execute: (q, reply) => applyNoteChanges(q.changes, reply) },
+  { name: "propose_threads", description: "Show the person a new version of their thread rules as a preview on the timeline; they choose to keep or discard it. Pass the FULL rules text in their rules language (thread name on its own line, indented patterns; # tags match notes; /regex/; // comments). Use when they ask to create, rename, merge or change threads.",
+    inputSchema: { type: "object", properties: { rules: { type: "string" }, summary: { type: "string", description: "One sentence on what changed" } }, required: ["rules"] },
+    execute: (q, reply) => { const r = String(q.rules || "").replace(/\r/g, ""); if (!r.trim()) throw new Error("rules is empty"); state.previewRules = r; state.previewSummary = String(q.summary || ""); reply.proposed = true; refresh(); return "Shown as a preview. The person will keep or discard it in the Threads panel."; } },
+  { name: "list_periods", description: "List the periods they've marked: [{name, start, end, story}].", execute: () => state.periods.map(p => ({ name: p.name, start: p.start, end: p.end, story: p.story || "" })) },
+  { name: "save_period", description: "Create a period (a stretch of time such as a trip or a move), or update one with the same name. Dates are YYYY-MM-DD. story is optional first-person context; pass it only when they ask you to write or change it. Periods may overlap.",
+    inputSchema: { type: "object", properties: { name: { type: "string" }, start: { type: "string" }, end: { type: "string" }, story: { type: "string" }, rename_to: { type: "string" } }, required: ["name"] },
+    execute: (q, reply) => {
+      const name = String(q.name || "").trim(); if (!name) throw new Error("name is required");
+      const valid = d => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ""));
+      let p = state.periods.find(x => x.name.toLowerCase() === name.toLowerCase());
+      if (!p) { if (!valid(q.start) || !valid(q.end)) throw new Error("start and end (YYYY-MM-DD) are required for a new period"); p = { id: "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, start: q.start, end: q.end, story: "", color: PALETTE[(state.periods.length + 3) % PALETTE.length] }; state.periods.push(p); }
+      if (valid(q.start)) p.start = q.start; if (valid(q.end)) p.end = q.end; if (p.end < p.start) [p.start, p.end] = [p.end, p.start];
+      if (typeof q.story === "string") p.story = q.story; if (q.rename_to) p.name = String(q.rename_to);
+      reply.periods = [...new Set([...(reply.periods || []), p.id])]; savePeriods(); refreshSoon();
+      return { saved: { name: p.name, start: p.start, end: p.end } };
+    } },
+  { name: "get_thread_rules", description: "Read the person's current thread rules text (to edit it with propose_threads).", execute: () => state.rules }
+];
+const ASK_TOOLS = [
+  { name: "find_transactions", description: "Find transactions matching filters. Returns {count, total, rows} with rows newest first (at most `limit`, default 60). Amounts in ILS, positive = money out.", inputSchema: { type: "object", properties: { ...FILTER_PROPS, limit: { type: "number" } } },
+    execute(q) { const ts = filterTxns(q).sort((a, b) => a.date < b.date ? 1 : -1); const lim = Math.min(200, Math.max(1, +q.limit || 60)); return { count: ts.length, total: +ts.reduce((a, t) => a + t.amount, 0).toFixed(2), rows: ts.slice(0, lim).map(compact) }; } },
+  { name: "totals", description: "Sum and count transactions grouped by month, thread, merchant, account or statement period, after the same filters. Returns [{key, count, total}] sorted by key for month/period, otherwise by total.", inputSchema: { type: "object", properties: { group_by: { type: "string", enum: ["month", "thread", "merchant", "account", "period"] }, ...FILTER_PROPS }, required: ["group_by"] },
+    execute(q) { const f = { month: t => monthOf(t.date), thread: t => t.thread, merchant: t => t.merchant, account: t => t.account, period: t => t.period }[q.group_by] || (t => t.thread);
+      const g = {}; for (const t of filterTxns(q)) { const k = f(t); (g[k] ||= { key: k, count: 0, total: 0 }); g[k].count++; g[k].total += t.amount; }
+      const out = Object.values(g).map(x => ({ ...x, total: +x.total.toFixed(2) })); return /month|period/.test(q.group_by) ? out.sort((a, b) => a.key < b.key ? -1 : 1) : out.sort((a, b) => b.total - a.total); } }
+];
+let askCtl = null;
+function renderAskCtx() {
+  const n = [...state.selection].filter(id => D?.byId.has(id)).length;
+  $("#askctx").innerHTML = n ? `About the ${n} selected bead${n > 1 ? "s" : ""} <button class="linkish" id="ctxClear">(ask about everything instead)</button>` : "";
+  $("#ctxClear")?.addEventListener("click", () => { state.selection.clear(); refresh(); });
+}
+function md(text) {
+  const withCites = esc(text).replace(/\[\[([a-z0-9\-]+)\]\]/gi, (_, id) => { const t = D.byId.get(id); return t ? `<button class="cite" data-cite="${id}" title="${esc(t.merchant)}"><span dir="auto">${esc(t.merchant.slice(0, 22))}</span> ${fmt(t.amount, 0)}</button>` : ""; }).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+  const blocks = withCites.split(/\n{2,}/); return blocks.map(b => { const ls = b.split("\n"); if (ls.every(l => /^\s*[-*•] /.test(l))) return `<ul>${ls.map(l => `<li>${l.replace(/^\s*[-*•] /, "")}</li>`).join("")}</ul>`; return `<p>${ls.join("<br>")}</p>`; }).join("");
+}
+function renderAskMem() {
+  const n = state.turns.filter(t => !t.pending).length;
+  $("#askmem").innerHTML = n ? `${AI()} sees the last ${Math.min(n, 16)} messages below with each new question. <button class="linkish" id="newChat">Start a new conversation</button>` : "";
+  $("#newChat")?.addEventListener("click", () => { state.turns = []; saveChat(); renderLog(); });
+}
+function renderLog() {
+  renderAskMem();
+  const log = $("#log");
+  if (!state.turns.length) {
+    const sug = D?.allTxns?.length ? ["What's quietly costing me every month?", "What did the animals cost me this year?", "Which charges look unusual compared to the rest?", "What's already committed for the next three months?", "Translate all the merchant names into English"] : [];
+    log.innerHTML = `<p class="sub" style="margin:0 0 8px">${AI()} can look things up across all your statements and points at the beads it's talking about.</p><div class="suggestions">${sug.map(s => `<button data-sug="${esc(s)}">${esc(s)}</button>`).join("")}</div>`; return;
+  }
+  log.innerHTML = state.turns.map((t, i) => t.role === "user" ? `<div class="q" dir="auto">${esc(t.shown || t.content)}</div>` :
+    `<div class="a" dir="auto">${t.pending && !t.content ? `<p class="thinking">${esc(t.status || "Thinking…")}</p>` : md(t.content)}${t.error ? `<p class="sub">${esc(t.error)}</p>` : ""}${!t.pending && t.changedCount ? `<p class="sub" style="margin:4px 0">${t.undone ? `Undone: notes on ${t.changedCount} transaction${t.changedCount > 1 ? "s are" : " is"} back as they were.` : `Changed notes on ${t.changedCount} transaction${t.changedCount > 1 ? "s" : ""}. <button class="linkish" data-undo="${i}">Undo</button> · <button class="linkish" data-shownoted="${i}">Show them</button>`}</p>` : ""}${!t.pending && t.renamedCount ? `<p class="sub" style="margin:4px 0">${t.namesUndone ? `Undone: ${t.renamedCount} merchant name${t.renamedCount > 1 ? "s are" : " is"} back as before.` : `Renamed ${t.renamedCount} merchant${t.renamedCount > 1 ? "s" : ""}. The originals are kept. <button class="linkish" data-undonames="${i}">Undo</button>`}</p>` : ""}${!t.pending && t.proposed ? `<p class="sub" style="margin:4px 0"><button class="linkish" data-review>Review the suggested threads</button></p>` : ""}${!t.pending && t.periods?.length ? `<p class="sub" style="margin:4px 0">${t.periods.map(id => { const p = state.periods.find(x => x.id === id); return p ? `<button class="linkish" data-openperiod="${id}">Open “${esc(p.name)}”</button>` : ""; }).join(" · ")}</p>` : ""}${!t.pending && t.content && t.q ? `<div class="a-actions"><button class="linkish" data-lensfrom="${i}">Turn this into a lens</button><button class="linkish" data-savereport="${i}">Save as a report</button></div>` : ""}</div>`).join("");
+  log.scrollTop = log.scrollHeight;
+}
+function buildIntro(write = true) {
+  const pers = state.periods.slice().sort((a, b) => a.start < b.start ? -1 : 1);
+  const budgets = D.R.threads.filter(t => t.budget != null).map(t => `${t.name} ₪${t.budget}/month`);
+  let intro = `You're the question-answering part of Abacus, a personal tool one person uses to explore their own card and bank statements. Today is ${TODAY}.
+Money is in ILS (₪). A positive amount is money out; negative is a refund or money in. "Threads" are the person's own groupings, from rules they edit: ${D.names.join(", ")}. Accounts and the statement months present: ${coverageText()}. Any other months are missing, so say so when an answer depends on them.
+Transfers between their own accounts (such as the bank paying the card bill) are not spending: the tools leave them out unless you pass include_transfers.
+${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}${pers.length ? `Periods they've marked as context for what was going on (they can overlap, and not every charge in the dates belongs):\n${pers.map(p => `- "${p.name}" ${p.start} to ${p.end}${p.story ? `: ${p.story.replace(/\s+/g, " ").slice(0, 300)}` : ""}`).join("\n")}\n` : ""}Answer briefly (a few sentences or a short list) in the language the person writes in. Don't guess figures. When you refer to specific transactions, cite them inline as [[id]] using ids from the data (at most 8 citations; no other link syntax).`;
+  if (caps.tools) {
+    intro += `\nUse the tools to look things up.`;
+    if (write) intro += ` When the person asks to translate or rename descriptions, use list_merchants then rename_merchants (short, natural names like "Israel Electric Corp", "Shufersal Deal, Yakhin"; keep brand names; the original is kept automatically). When they ask to annotate or tag transactions, write it into their notes with update_notes (prefer the merchant form for anything that applies to every visit to a merchant). When they ask to change threads, read them with get_thread_rules and show a new version with propose_threads. When they describe a stretch of time (a trip, a move, a busy season), create or update it with save_period, and you can write its story. Only change things they asked for, then say briefly what you changed.`;
+    else intro += ` In this mode you only read; don't try to change anything.`;
+  } else intro += `\nAll transactions (id | date | merchant | amount | thread | account | note | instalment | transfer):\n` + D.allTxns.slice(0, 1800).map(t => [t.id, t.date, t.merchant, t.amount, t.thread, t.account, t.note, t.inst ? t.inst.n + "/" + t.inst.of : "", t.transfer ? "transfer" : ""].join(" | ")).join("\n") + `\nExpected future charges:\n` + D.expected.map(t => [t.id, t.date, t.merchant, t.amount].join(" | ")).join("\n") + `\nYou can't change anything in this setup, only read. If they ask for changes, say so and suggest picking an assistant that supports tools.`;
+  return intro;
+}
+async function callAssistant(messages, reply, { write = true, onText, signal } = {}) {
+  const opts = { signal, onText: ({ text }) => { reply.content = text; onText?.(text); } };
+  if (caps.tools) {
+    const tools = write ? [...ASK_TOOLS, ...WRITE_TOOLS] : ASK_TOOLS;
+    opts.tools = tools.map(t => ({ ...t, execute: inp => { reply.status = WRITE_TOOLS.includes(t) ? "Making the changes…" : "Looking through your statements…"; onText?.(reply.content); return t.execute(inp || {}, reply); } }));
+  } else opts.cache = false;
+  const r = await caps.sample(messages, opts);
+  return r.text.replace(/^\s+/, "");
+}
+async function ask(question) {
+  if (!caps.sample || !question.trim()) return;
+  const sel = [...state.selection].filter(id => D.byId.has(id));
+  const shown = question.trim();
+  const content = shown + (sel.length ? `\n\n(They've selected these on the timeline: ${sel.slice(0, 60).map(id => `[[${id}]]`).join(" ")} — ids you can pass to find_transactions.)` : "");
+  state.turns.push({ role: "user", content, shown });
+  const reply = { role: "assistant", content: "", pending: true, q: shown }; state.turns.push(reply); renderLog();
+  const turns = state.turns.filter(t => t !== reply && !t.pending).slice(-16).map(t => ({ role: t.role, content: t.content || "(no answer)" }));
+  while (turns.length && turns[0].role !== "user") turns.shift();
+  askCtl = new AbortController(); $("#stopBtn").hidden = false; $("#sendBtn").disabled = true;
+  try {
+    reply.content = await callAssistant([{ role: "user", content: buildIntro(true) }, ...turns], reply, { write: true, signal: askCtl.signal, onText: () => renderLog() });
+    const cited = [...reply.content.matchAll(/\[\[([a-z0-9\-]+)\]\]/gi)].map(m => m[1]).filter(id => D.byId.has(id));
+    if (cited.length) { state.highlight = new Set(cited); renderTimeline(); }
+  } catch (e) { reply.content = e.text || ""; if (e.code !== "cancelled") reply.error = sampleErr(e); }
+  reply.pending = false; $("#stopBtn").hidden = true; $("#sendBtn").disabled = false; renderLog(); saveChat();
+}
+function wireAsk() {
+  $("#sendBtn").onclick = () => { const v = $("#askInput").value; $("#askInput").value = ""; ask(v); };
+  $("#askInput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#sendBtn").click(); } });
+  $("#stopBtn").onclick = () => askCtl?.abort();
+  $("#log").addEventListener("click", async e => {
+    const s = e.target.closest("[data-sug]"); if (s) { ask(s.dataset.sug); return; }
+    const unn = e.target.closest("[data-undonames]"); if (unn) { const t = state.turns[+unn.dataset.undonames];
+      for (const [k, before] of Object.entries(t.undoNames || {})) { if (state.names[k] && state.names[k].by !== "ai") continue; if (before) state.names[k] = before; else delete state.names[k]; }
+      t.namesUndone = true; saveSoon("names", () => ({ map: state.names }), 200); saveChat(); refresh(); renderLog(); return; }
+    const un = e.target.closest("[data-undo]"); if (un) { const t = state.turns[+un.dataset.undo];
+      for (const [id, before] of Object.entries(t.undo || {})) { if (before) state.notes[id] = before; else delete state.notes[id]; }
+      t.undone = true; saveSoon("notes", () => ({ map: state.notes }), 200); saveChat(); refresh(); renderLog(); return; }
+    const sn = e.target.closest("[data-shownoted]"); if (sn) { const t = state.turns[+sn.dataset.shownoted]; state.highlight = new Set(Object.keys(t.undo || {})); state.selection.clear(); renderTimeline(); $("#tlwrap").scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
+    if (e.target.closest("[data-review]")) { openTab("threads"); return; }
+    const op = e.target.closest("[data-openperiod]"); if (op) { state.periodSel = op.dataset.openperiod; state.selection.clear(); state.statement = null; refresh(); $("#insp").scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
+    const sr = e.target.closest("[data-savereport]"); if (sr) { const t = state.turns[+sr.dataset.savereport]; addReport(t.q, t.content); return; }
+    const c = e.target.closest("[data-cite]"); if (c) { state.selection = new Set([c.dataset.cite]); state.highlight = new Set([c.dataset.cite]); refresh(); $("#tlwrap").scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
+    const l = e.target.closest("[data-lensfrom]"); if (l) { const turn = state.turns[+l.dataset.lensfrom]; l.textContent = AI() + " is writing the lens…"; l.disabled = true;
+      try { const r = await writeLens(turn.q, { context: `Question: ${turn.q}\nAnswer: ${turn.content}` }); state.lenses.push({ id: "l" + Date.now().toString(36), title: r.title || turn.q.slice(0, 40), code: r.code }); saveLenses(); renderLenses(); l.textContent = "Added to Lenses"; $("#lenses").lastElementChild?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+      catch (err) { l.textContent = sampleErr(err); } }
+  });
+}
+
+/* ───────────── import flow ───────────── */
+async function importFiles(files) {
+  let added = 0, dup = 0; const names = [];
+  for (const f of files) {
+    try {
+      const r = await readMatrix(f);
+      let batch = r.batch;
+      if (!batch) {
+        const m = r.matrix; if (!m?.length) { toast(`${f.name} has no rows Abacus can read.`); continue; }
+        let adapter = null, hr = null;
+        for (let i = 0; i < Math.min(30, m.length); i++) { const a = state.adapters[fnv(sigOf(m[i]))]; if (a) { adapter = a; hr = i; break; } }
+        const map = await askMapping(m, f.name, adapter ? { ...adapter, headerRow: hr } : null);
+        if (!map) continue;
+        batch = applyMapping(m, map, f.name);
+        state.adapters[fnv(sigOf(m[map.headerRow]))] = { ...map }; saveSoon("adapters", () => ({ items: state.adapters }), 100);
+      }
+      if (!batch.rows.length) { toast(`Nothing to import from ${f.name}.`); continue; }
+      const existing = new Set(Object.values(state.batches).flatMap(b => b.rows.map(r => r.id)));
+      const fresh = batch.rows.filter(r => !existing.has(r.id)).length; dup += batch.rows.length - fresh; added += fresh;
+      batch.id = fnv(batch.kind + batch.account + batch.periods.join() + batch.rows.map(r => r.id).join());
+      batch.added = new Date().toISOString();
+      if (!state.batches[batch.id]) { state.batches[batch.id] = batch; saveBatch(batch); }
+      names.push(`${batch.account} (${batch.periods.length === 1 ? monthName(batch.periods[0]) : batch.periods.length + " months"})`);
+    } catch (e) { toast(`Couldn't read ${f.name}: ${e.message || e}`); }
+  }
+  refresh();
+  if (names.length) {
+    const stale = caps.sample ? staleReports().length : 0;
+    toast(`Added ${added} transaction${added === 1 ? "" : "s"} from ${names.join(", ")}${dup ? `. ${dup} were already here.` : "."}${stale ? ` ${stale} saved report${stale > 1 ? "s have" : " has"} new data.` : ""}`, 8000,
+      stale ? { label: "Run reports", fn: () => { openTab("reports"); runStale(); } } : undefined);
+  }
+}
+function askMapping(matrix, fileName, preset) {
+  return new Promise(resolve => {
+    const dlg = $("#mapDlg"); const hdr = guessHeaderRow(matrix);
+    const ncol = Math.max(...matrix.slice(0, 40).map(r => r.length));
+    const map = { headerRow: hdr, date: null, merchant: null, amount: null, debit: null, credit: null, orig: null, type: null, details: null, dateFormat: "DMY", expenseSign: "positive", account: fileName.replace(/\.[^.]+$/, "") };
+    const H = matrix[hdr] || []; const find = re => { const i = H.findIndex(c => re.test(String(c))); return i < 0 ? null : i; };
+    map.date = find(/date|תאריך/i); map.merchant = find(/descr|payee|merchant|name|תיאור|שם|בית העסק|פרטים/i);
+    map.debit = find(/debit|withdraw|חובה/i); map.credit = find(/credit|deposit|זכות/i); map.amount = map.debit == null && map.credit == null ? find(/amount|סכום/i) : null;
+    if (preset) Object.assign(map, preset);
+    $("#mapTitle").textContent = preset ? "Which account is this?" : "Teach Abacus this file";
+    $("#mapIntro").innerHTML = preset ? `Abacus knows the format of <b dir="auto">${esc(fileName)}</b> and has filled in the columns. Check the account name at the bottom, since several accounts can share a format.`
+      : `<b dir="auto">${esc(fileName)}</b> isn't a format Abacus knows yet. Point out which columns hold what. Abacus keeps this mapping and reads the next file with the same headings on its own.`;
+    const colOpts = sel => `<option value="">—</option>` + Array.from({ length: ncol }, (_, i) => `<option value="${i}"${sel === i ? " selected" : ""}>${i + 1}: ${esc(String((matrix[map.headerRow] || [])[i] ?? "").slice(0, 24))}</option>`).join("");
+    const draw = () => {
+      $("#mapTable").innerHTML = `<tr><th></th>${Array.from({ length: ncol }, (_, i) => `<th>${i + 1}</th>`).join("")}</tr>` + matrix.slice(0, Math.max(12, map.headerRow + 6)).map((r, i) => `<tr class="${i === map.headerRow ? "hdr" : i < map.headerRow ? "skip" : ""}"><th>${i}</th>${Array.from({ length: ncol }, (_, j) => `<td dir="auto">${esc(String(r[j] ?? "").slice(0, 40))}</td>`).join("")}</tr>`).join("");
+      const f = (k, label) => `<label>${label}<select data-k="${k}">${colOpts(map[k])}</select></label>`;
+      $("#mapGrid").innerHTML = `<label>Heading row<input type="number" min="0" data-k="headerRow" value="${map.headerRow}"></label>${f("date", "Date")}${f("merchant", "Merchant or description")}${f("amount", "Amount (one signed column)")}
+        <label>In that column, spending is<select data-k="expenseSign"><option value="positive"${map.expenseSign === "positive" ? " selected" : ""}>positive</option><option value="negative"${map.expenseSign === "negative" ? " selected" : ""}>negative</option></select></label>
+        ${f("debit", "…or money out column")}${f("credit", "…and money in column")}${f("orig", "Original amount (optional)")}${f("type", "Type (optional)")}${f("details", "Details (optional)")}
+        <label>Dates are written<select data-k="dateFormat">${[["DMY", "day/month/year"], ["MDY", "month/day/year"], ["YMD", "year-month-day"]].map(([v, l]) => `<option value="${v}"${map.dateFormat === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label>Account name<input data-k="account" value="${esc(map.account)}"></label>`;
+      const b = applyMapping(matrix, map, fileName);
+      $("#mapPreview").innerHTML = b.rows.length ? `<tr><th>Date</th><th>Merchant</th><th>Amount</th></tr>` + b.rows.slice(0, 6).map(r => `<tr><td>${r.date}</td><td dir="auto">${esc(r.merchant)}</td><td>${fmt(r.amount)}</td></tr>`).join("") + `<tr><td colspan="3" class="sub">${b.rows.length} rows in total</td></tr>`
+        : `<tr><td class="sub">No rows read yet. Choose at least a date column and an amount (or money out/in) column.</td></tr>`;
+      $("#mapOk").disabled = !b.rows.length;
+    };
+    $("#mapGrid").oninput = e => { const k = e.target.dataset.k; if (!k) return; let v = e.target.value; if (["headerRow"].includes(k)) v = Math.max(0, +v || 0); else if (!["expenseSign", "dateFormat", "account"].includes(k)) v = v === "" ? null : +v;
+      map[k] = v; if (k === "amount" && v != null) { map.debit = map.credit = null; } if ((k === "debit" || k === "credit") && v != null) map.amount = null; draw(); };
+    const done = v => { dlg.close(); resolve(v); };
+    $("#mapOk").onclick = () => done({ ...map }); $("#mapCancel").onclick = () => done(null); dlg.oncancel = e => { e.preventDefault(); done(null); };
+    $("#mapAsk").hidden = !caps.sample; $("#mapAskNote").textContent = "";
+    $("#mapAsk").onclick = async () => {
+      $("#mapAsk").disabled = true; $("#mapAskNote").textContent = AI() + " is reading the first rows…";
+      try {
+        const r = await caps.sample.json(`These are the first rows of a bank or credit card statement export, as a JSON array of rows (each an array of cells; columns are 0-indexed). Work out how to read it.
+Reply with only JSON: {"headerRow": number, "date": col, "merchant": col, "amount": col or null, "debit": col or null, "credit": col or null, "orig": col or null, "type": col or null, "details": col or null, "dateFormat": "DMY" | "MDY" | "YMD", "expenseSign": "positive" | "negative", "account": "short account name, like the bank and at most the last 4 digits of the card or account; never a full account number"}
+Use either "amount" (a single signed column) or "debit" + "credit" (separate money-out and money-in columns). "merchant" is the payee or description column. "orig" is the original or foreign-currency amount if there's a separate one. "expenseSign" says whether spending appears as positive or negative numbers in "amount". "date" should be the transaction date rather than a value/charge date when both exist.
+File name: ${fileName}
+Rows:
+${JSON.stringify(matrix.slice(0, 18).map(r => r.map(c => String(c ?? "").slice(0, 60))))}`, { modelTier: "quick" });
+        for (const k of ["headerRow", "date", "merchant", "amount", "debit", "credit", "orig", "type", "details"]) if (k in r) map[k] = r[k] == null || r[k] === "" ? null : +r[k];
+        if (/^(DMY|MDY|YMD)$/.test(r.dateFormat)) map.dateFormat = r.dateFormat; if (/^(positive|negative)$/.test(r.expenseSign)) map.expenseSign = r.expenseSign;
+        if (r.account) map.account = String(r.account).slice(0, 40);
+        $("#mapAskNote").textContent = "Filled in. Check the preview before importing."; draw();
+      } catch (e) { $("#mapAskNote").textContent = sampleErr(e); }
+      $("#mapAsk").disabled = false;
+    };
+    draw(); dlg.showModal();
+    if (caps.sample && !preset) $("#mapAsk").click();
+    if (preset) setTimeout(() => { const a = $('#mapGrid [data-k="account"]'); a?.focus(); a?.select(); }, 50);
+  });
+}
+
+/* ───────────── chrome ───────────── */
+function renderChrome() {
+  $("#accts").innerHTML = (D?.accounts || []).map(a => `<button class="chip acct" aria-pressed="${!state.hiddenAccounts.has(a)}" data-acct="${esc(a)}" dir="auto">${esc(a)}</button>`).join("");
+  $("#ranges").innerHTML = [["all", "All"], ["12", "12 months"], ["6", "6 months"], ["3", "3 months"]].map(([v, l]) => `<button class="chip" aria-pressed="${state.range === v}" data-range="${v}">${l}</button>`).join("");
+  $("#suggestBtn").hidden = !caps.sample || !D?.allTxns.length; $("#suggestBtn").textContent = "Suggest threads with " + AI();
+  $("#mapAsk").textContent = `Ask ${AI()} to fill this in`;
+  $("#askNote").textContent = caps.sample ? `Answers by ${AI()}` : "No AI assistant here yet. Set one up under More.";
+  $("#sendBtn").disabled = !caps.sample || !D?.allTxns.length; $("#askInput").disabled = !caps.sample;
+  setStatus();
+}
+function openTab(which) {
+  if (!state.view.panel) { state.view.panel = true; saveView(); applyPanel(); }
+  ["threads", "ask", "reports"].forEach(w => { $("#tab-" + w).setAttribute("aria-selected", w === which); $("#pane-" + w).classList.toggle("on", w === which); });
+  if (which === "ask") { renderAskCtx(); renderLog(); }
+  if (which === "reports") renderReports();
+}
+function renderAll() { if (!state.loaded) { renderTimeline(); return; } derive(); renderChrome(); renderFilterBar(); renderParkbar(); renderChanges(); if ($("#pane-reports").classList.contains("on")) renderReports(); renderTimeline(); renderEditor(); renderInspector(); renderLenses(); renderAskCtx(); if ($("#pane-ask").classList.contains("on")) renderLog(); }
+const refresh = renderAll;
+const refreshSoon = debounce(() => { derive(); renderChanges(); renderFilterBar(); renderTimeline(); renderEditor(); renderLenses(); }, 250);
+
+function wireChrome() {
+  $("#addBtn").onclick = () => $("#file").click();
+  $("#file").onchange = e => { importFiles([...e.target.files]); e.target.value = ""; };
+  let depth = 0;
+  addEventListener("dragenter", e => { if (e.dataTransfer?.types?.includes("Files")) { depth++; document.body.classList.add("dragging"); } });
+  addEventListener("dragleave", () => { depth = Math.max(0, depth - 1); if (!depth) document.body.classList.remove("dragging"); });
+  addEventListener("dragover", e => e.preventDefault());
+  addEventListener("drop", e => { e.preventDefault(); depth = 0; document.body.classList.remove("dragging"); const fs = [...(e.dataTransfer?.files || [])]; if (fs.length) importFiles(fs); });
+  $("#accts").onclick = e => { const b = e.target.closest("[data-acct]"); if (!b) return; const a = b.dataset.acct; state.hiddenAccounts.has(a) ? state.hiddenAccounts.delete(a) : state.hiddenAccounts.add(a); refresh(); };
+  $("#ranges").onclick = e => { const b = e.target.closest("[data-range]"); if (!b) return; state.range = b.dataset.range; refresh(); };
+  $("#hidePanel").onclick = () => { state.view.panel = false; saveView(); applyPanel(); };
+  $("#panelBtn").onclick = () => { state.view.panel = true; saveView(); applyPanel(); };
+  $("#tab-threads").onclick = () => openTab("threads"); $("#tab-reports").onclick = () => openTab("reports"); $("#tab-ask").onclick = () => openTab("ask");
+  const ta = $("#rules");
+  ta.addEventListener("input", () => { if (state.previewRules != null) return; state.rules = ta.value; saveSoon("rules", () => ({ text: state.rules })); derive(); renderTimeline(); renderEditor(); renderInspector(); renderLensesSoon(); caretHighlight(); });
+  ta.addEventListener("scroll", syncGutter);
+  ["keyup", "click", "select", "focus"].forEach(ev => ta.addEventListener(ev, caretHighlight));
+  ta.addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== ta && state.highlight.size) { state.highlight.clear(); renderTimeline(); } }, 150));
+  ta.addEventListener("keydown", e => { if (e.key === "Tab" && !ta.readOnly) { e.preventDefault(); ta.setRangeText("  ", ta.selectionStart, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input")); } });
+  $("#suggestBtn").onclick = suggestThreads;
+  $("#keepPreview").onclick = () => { state.rules = state.previewRules; state.previewRules = null; saveSoon("rules", () => ({ text: state.rules }), 100); refresh(); toast("Threads updated. Edit them any time."); };
+  $("#dropPreview").onclick = () => { state.previewRules = null; refresh(); };
+  const menu = $("#moreMenu");
+  $("#moreBtn").onclick = e => { e.stopPropagation(); const o = !menu.classList.contains("open"); menu.classList.toggle("open", o); $("#moreBtn").setAttribute("aria-expanded", o); };
+  addEventListener("click", () => { menu.classList.remove("open"); $("#moreBtn").setAttribute("aria-expanded", false); });
+  menu.querySelector("div").onclick = async e => {
+    const act = e.target.dataset.act; if (!act) return;
+    if (act === "ai") { openAISettings(); return; }
+    if (act === "reset-lenses") { const have = new Set(state.lenses.map(l => l.id)); STARTER_LENSES.forEach(l => { if (!have.has(l.id)) state.lenses.push({ ...l }); }); saveLenses(); renderLenses(); return; }
+    if (!caps.downloads) { toast("Downloads aren't available in this view."); return; }
+    const data = act === "dl-rules" ? { filename: "abacus-threads.txt", data: state.rules } : { filename: `abacus-${TODAY}.json`, data: JSON.stringify({ exported: TODAY, rules: state.rules, notes: state.notes, names: state.names, periods: state.periods, reports: state.reports, transfers: state.transferOv, lenses: state.lenses, adapters: state.adapters, batches: Object.values(state.batches) }, null, 1) };
+    try { await caps.downloads.save(data); } catch (err) { if (err?.code === "unavailable") toast("Downloads aren't available in this view."); }
+  };
+  addEventListener("keydown", e => { if (e.key === "Escape" && !$("#mapDlg").open) { state.selection.clear(); state.highlight.clear(); state.statement = null; state.periodSel = null; refresh(); } });
+  new ResizeObserver(debounce(() => state.loaded && renderTimeline(), 60)).observe($("#tl"));
+}
+const renderLensesSoon = debounce(() => renderLenses(), 300);
+
+// Standalone browsers do not provide Claude's downloads capability.
+async function saveBrowserDownload({ filename, data }) {
+  const type = filename.endsWith(".json")
+    ? "application/json;charset=utf-8"
+    : "text/plain;charset=utf-8";
+  const url = URL.createObjectURL(new Blob([data], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.hidden = true;
+  try {
+    document.body.append(link);
+    link.click();
+  } finally {
+    link.remove();
+    // Keep the URL alive long enough for the browser to start the download.
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+}
+
+/* ───────────── boot ───────────── */
+async function useCap(name) { try { return window.claude?.use ? await window.claude.use(name) : null; } catch { return null; } }
+async function boot() {
+  wireChrome(); wireTimeline(); wireLenses(); wireAsk(); wireFilter(); wireParkbar(); wireChanges(); wireInspector(); wireReports(); renderTimeline();
+  const [db, user, sample, downloads] = await Promise.all(["db", "user", "sample", "downloads"].map(useCap));
+  caps.claude = sample; caps.downloads = downloads || (!window.claude?.use ? { save: saveBrowserDownload } : null); caps.claudeTools = false;
+  if (sample) { try { const lim = await sample.limits(); caps.claudeTools = !!lim?.tools; } catch {} }
+  applyProvider();
+  let uid = null; if (db && user) { try { uid = await user.id(); } catch {} }
+  let docs = {};
+  if (db && uid) { try { const b = dbBackend(db, uid); docs = await b.all(); Store.backend = b; } catch { Store.backend = localBackend(); docs = await Store.backend.all(); toast("Couldn't reach your saved data, so this session saves in the browser."); } }
+  else docs = await Store.backend.all();
+  if (docs.rules?.text != null) state.rules = docs.rules.text;
+  if (docs.notes?.map) state.notes = docs.notes.map;
+  if (Array.isArray(docs.lenses?.items)) state.lenses = docs.lenses.items;
+  if (docs.adapters?.items) state.adapters = docs.adapters.items;
+  if (docs.names?.map) state.names = docs.names.map;
+  if (docs.transfers?.map) state.transferOv = docs.transfers.map;
+  if (docs.dismissed?.map) state.dismissed = docs.dismissed.map;
+  if (Array.isArray(docs.periods?.items)) state.periods = docs.periods.items;
+  if (Array.isArray(docs.reports?.items)) state.reports = docs.reports.items;
+  if (docs.view) { state.view.parked = Array.isArray(docs.view.parked) ? docs.view.parked : []; state.view.panel = docs.view.panel !== false; }
+  if (Array.isArray(docs.chat?.turns)) state.turns = docs.chat.turns;
+  applyPanel();
+  const parts = Object.entries(docs).filter(([k]) => k.startsWith("batch_")).map(([, v]) => v).sort((a, b) => a.part - b.part);
+  for (const p of parts) { const b = (state.batches[p.batchId] ||= { id: p.batchId, kind: p.kind, account: p.account, periods: p.periods, file: p.file, added: p.added, parts: p.parts, rows: [] }); b.rows.push(...(p.rows || [])); }
+  state.loaded = true; renderAll();
+}
+boot();
+</script>
+</body>
+</html>

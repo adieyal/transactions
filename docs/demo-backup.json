@@ -1,0 +1,776 @@
+{
+ "format": "transactions-backup",
+ "version": 1,
+ "exported": "2026-09-30",
+ "demo": true,
+ "rules": "// A thread: a name on its own line,\n// then indented patterns. A pattern is\n// part of a merchant name, a #tag\n// from your notes, or a /regex/.\n// First matching thread wins.\n\nBills [budget 300/month]\n  brightwell energy\n  willow water\n  cloudfern internet\n\nGroceries [budget 300/month]\n  harbor pantry\n\nDining out [budget 100/month]\n  paper kite cafe\n\nGetting around [budget 100/month]\n  loopway transit\n\nSubscriptions [budget 50/month]\n  lantern stream\n\nPets [budget 120/month]\n  meadow paws\n  #pets\n\nHome\n  oak & loom\n  #home\n\nTrips\n  lantern bay\n  #trip\n",
+ "notes": {
+  "demo-2026-06-demo-everyday-4": "Supplies for Pixel, our fictional demo cat. #pets",
+  "demo-2026-07-demo-everyday-4": "Supplies for Pixel, our fictional demo cat. #pets",
+  "demo-2026-08-demo-everyday-4": "Supplies for Pixel, our fictional demo cat. #pets",
+  "demo-2026-08-demo-card-6": "A made-up desk for the reading corner. #home",
+  "demo-2026-08-demo-card-7": "Fictional weekend away. #trip"
+ },
+ "names": {},
+ "periods": [
+  {
+   "id": "demo-trip",
+   "name": "Weekend in Lantern Bay",
+   "start": "2026-08-15",
+   "end": "2026-08-18",
+   "color": "#2F6B8F",
+   "story": "This is a fictional weekend in Lantern Bay. We stayed at the guesthouse and took the ferry. Routine bills and pet supplies happened during the same dates but were not part of the trip."
+  }
+ ],
+ "reports": [],
+ "transfers": {},
+ "lenses": [
+  {
+   "id": "l-where",
+   "title": "Where it went, by thread",
+   "code": "// Money out per thread, largest first. Click a bar to light up its beads.\nconst out = txns.filter(t => t.amount > 0);\nconst g = lib.groupBy(out, t => t.thread);\nreturn {\n  kind: \"bars\",\n  items: Object.entries(g)\n    .map(([name, ts]) => ({ label: name, value: lib.sum(ts, t => t.amount), ids: ts.map(t => t.id) }))\n    .sort((a, b) => b.value - a.value)\n};"
+  },
+  {
+   "id": "l-spoken",
+   "title": "Already spoken for",
+   "code": "// What's expected in the coming months: recurring charges\n// that showed up in your latest statement, plus instalments still to run.\nconst g = lib.groupBy(lib.expected, t => lib.month(t.date));\nreturn {\n  kind: \"bars\",\n  items: Object.keys(g).sort().map(m => ({\n    label: m,\n    value: lib.sum(g[m], t => t.amount),\n    ids: g[m].map(t => t.id)\n  }))\n};"
+  },
+  {
+   "id": "l-recurring",
+   "title": "Things that keep coming back",
+   "code": "// Merchants seen in more than one statement, with their latest charge.\nconst rec = txns.filter(t => t.recurring);\nconst g = lib.groupBy(rec, t => t.key);\nconst rows = Object.values(g)\n  .map(ts => ts.sort((a, b) => a.date < b.date ? -1 : 1))\n  .sort((a, b) => b.at(-1).amount - a.at(-1).amount);\nreturn {\n  kind: \"table\",\n  columns: [\"Merchant\", \"Seen\", \"Latest\"],\n  rows: rows.map(ts => [ts.at(-1).merchant, ts.length + \"×\", lib.fmt(ts.at(-1).amount)]),\n  rowIds: rows.map(ts => ts.map(t => t.id))\n};"
+  }
+ ],
+ "adapters": {},
+ "dismissed": {},
+ "view": {
+  "parked": [],
+  "panel": true,
+  "showParked": false
+ },
+ "batches": [
+  {
+   "id": "demo-demo-card-2026-06",
+   "kind": "generic",
+   "card": true,
+   "account": "Demo Card",
+   "periods": [
+    "2026-06"
+   ],
+   "file": "fictional-2026-06.csv",
+   "added": "2026-09-30",
+   "rows": [
+    {
+     "id": "demo-2026-06-demo-card-1",
+     "account": "Demo Card",
+     "period": "2026-06",
+     "date": "2026-06-04",
+     "chargeDate": "2026-06-04",
+     "merchant": "Harbor Pantry",
+     "amount": 125,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    },
+    {
+     "id": "demo-2026-06-demo-card-2",
+     "account": "Demo Card",
+     "period": "2026-06",
+     "date": "2026-06-20",
+     "chargeDate": "2026-06-20",
+     "merchant": "Harbor Pantry",
+     "amount": 92,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    },
+    {
+     "id": "demo-2026-06-demo-card-3",
+     "account": "Demo Card",
+     "period": "2026-06",
+     "date": "2026-06-09",
+     "chargeDate": "2026-06-09",
+     "merchant": "Paper Kite Cafe",
+     "amount": 24,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    },
+    {
+     "id": "demo-2026-06-demo-card-4",
+     "account": "Demo Card",
+     "period": "2026-06",
+     "date": "2026-06-12",
+     "chargeDate": "2026-06-12",
+     "merchant": "Loopway Transit",
+     "amount": 38,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    },
+    {
+     "id": "demo-2026-06-demo-card-5",
+     "account": "Demo Card",
+     "period": "2026-06",
+     "date": "2026-06-15",
+     "chargeDate": "2026-06-15",
+     "merchant": "Lantern Stream",
+     "amount": 29,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    }
+   ]
+  },
+  {
+   "id": "demo-demo-card-2026-07",
+   "kind": "generic",
+   "card": true,
+   "account": "Demo Card",
+   "periods": [
+    "2026-07"
+   ],
+   "file": "fictional-2026-07.csv",
+   "added": "2026-09-30",
+   "rows": [
+    {
+     "id": "demo-2026-07-demo-card-1",
+     "account": "Demo Card",
+     "period": "2026-07",
+     "date": "2026-07-04",
+     "chargeDate": "2026-07-04",
+     "merchant": "Harbor Pantry",
+     "amount": 133,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    },
+    {
+     "id": "demo-2026-07-demo-card-2",
+     "account": "Demo Card",
+     "period": "2026-07",
+     "date": "2026-07-20",
+     "chargeDate": "2026-07-20",
+     "merchant": "Harbor Pantry",
+     "amount": 97,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    },
+    {
+     "id": "demo-2026-07-demo-card-3",
+     "account": "Demo Card",
+     "period": "2026-07",
+     "date": "2026-07-09",
+     "chargeDate": "2026-07-09",
+     "merchant": "Paper Kite Cafe",
+     "amount": 27,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    },
+    {
+     "id": "demo-2026-07-demo-card-4",
+     "account": "Demo Card",
+     "period": "2026-07",
+     "date": "2026-07-12",
+     "chargeDate": "2026-07-12",
+     "merchant": "Loopway Transit",
+     "amount": 38,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    },
+    {
+     "id": "demo-2026-07-demo-card-5",
+     "account": "Demo Card",
+     "period": "2026-07",
+     "date": "2026-07-15",
+     "chargeDate": "2026-07-15",
+     "merchant": "Lantern Stream",
+     "amount": 29,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    }
+   ]
+  },
+  {
+   "id": "demo-demo-card-2026-08",
+   "kind": "generic",
+   "card": true,
+   "account": "Demo Card",
+   "periods": [
+    "2026-08"
+   ],
+   "file": "fictional-2026-08.csv",
+   "added": "2026-09-30",
+   "rows": [
+    {
+     "id": "demo-2026-08-demo-card-1",
+     "account": "Demo Card",
+     "period": "2026-08",
+     "date": "2026-08-04",
+     "chargeDate": "2026-08-04",
+     "merchant": "Harbor Pantry",
+     "amount": 141,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-card-2",
+     "account": "Demo Card",
+     "period": "2026-08",
+     "date": "2026-08-20",
+     "chargeDate": "2026-08-20",
+     "merchant": "Harbor Pantry",
+     "amount": 102,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-card-3",
+     "account": "Demo Card",
+     "period": "2026-08",
+     "date": "2026-08-09",
+     "chargeDate": "2026-08-09",
+     "merchant": "Paper Kite Cafe",
+     "amount": 30,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-card-4",
+     "account": "Demo Card",
+     "period": "2026-08",
+     "date": "2026-08-12",
+     "chargeDate": "2026-08-12",
+     "merchant": "Loopway Transit",
+     "amount": 38,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-card-5",
+     "account": "Demo Card",
+     "period": "2026-08",
+     "date": "2026-08-15",
+     "chargeDate": "2026-08-15",
+     "merchant": "Lantern Stream",
+     "amount": 35,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-card-6",
+     "account": "Demo Card",
+     "period": "2026-08",
+     "date": "2026-06-14",
+     "chargeDate": "2026-08-14",
+     "merchant": "Oak & Loom",
+     "amount": 60,
+     "orig": {
+      "amount": 360,
+      "currency": "ILS"
+     },
+     "type": "Demo purchase",
+     "details": "Demo desk, payment 2 of 6",
+     "inst": {
+      "n": 2,
+      "of": 6
+     },
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-card-7",
+     "account": "Demo Card",
+     "period": "2026-08",
+     "date": "2026-08-16",
+     "chargeDate": "2026-08-16",
+     "merchant": "Lantern Bay Guesthouse",
+     "amount": 230,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-card-8",
+     "account": "Demo Card",
+     "period": "2026-08",
+     "date": "2026-08-17",
+     "chargeDate": "2026-08-17",
+     "merchant": "Lantern Bay Ferry",
+     "amount": 48,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-card-9",
+     "account": "Demo Card",
+     "period": "2026-08",
+     "date": "2026-08-23",
+     "chargeDate": "2026-08-23",
+     "merchant": "Harbor Pantry",
+     "amount": -18,
+     "orig": null,
+     "type": "Demo refund",
+     "details": "Returned an unopened item",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    }
+   ]
+  },
+  {
+   "id": "demo-demo-everyday-2026-06",
+   "kind": "generic",
+   "card": false,
+   "account": "Demo Everyday",
+   "periods": [
+    "2026-06"
+   ],
+   "file": "fictional-2026-06.csv",
+   "added": "2026-09-30",
+   "rows": [
+    {
+     "id": "demo-2026-06-demo-everyday-1",
+     "account": "Demo Everyday",
+     "period": "2026-06",
+     "date": "2026-06-03",
+     "chargeDate": "2026-06-03",
+     "merchant": "Brightwell Energy",
+     "amount": 145,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    },
+    {
+     "id": "demo-2026-06-demo-everyday-2",
+     "account": "Demo Everyday",
+     "period": "2026-06",
+     "date": "2026-06-05",
+     "chargeDate": "2026-06-05",
+     "merchant": "Willow Water",
+     "amount": 42,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    },
+    {
+     "id": "demo-2026-06-demo-everyday-3",
+     "account": "Demo Everyday",
+     "period": "2026-06",
+     "date": "2026-06-07",
+     "chargeDate": "2026-06-07",
+     "merchant": "Cloudfern Internet",
+     "amount": 65,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    },
+    {
+     "id": "demo-2026-06-demo-everyday-4",
+     "account": "Demo Everyday",
+     "period": "2026-06",
+     "date": "2026-06-18",
+     "chargeDate": "2026-06-18",
+     "merchant": "Meadow Paws",
+     "amount": 55,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    },
+    {
+     "id": "demo-2026-06-demo-everyday-5",
+     "account": "Demo Everyday",
+     "period": "2026-06",
+     "date": "2026-06-28",
+     "chargeDate": "2026-06-28",
+     "merchant": "Demo Card payment",
+     "amount": 308,
+     "orig": null,
+     "type": "Demo transfer",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    },
+    {
+     "id": "demo-2026-06-demo-everyday-6",
+     "account": "Demo Everyday",
+     "period": "2026-06",
+     "date": "2026-06-24",
+     "chargeDate": "2026-06-24",
+     "merchant": "Demo savings transfer",
+     "amount": 350,
+     "orig": null,
+     "type": "Demo transfer",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    }
+   ]
+  },
+  {
+   "id": "demo-demo-everyday-2026-07",
+   "kind": "generic",
+   "card": false,
+   "account": "Demo Everyday",
+   "periods": [
+    "2026-07"
+   ],
+   "file": "fictional-2026-07.csv",
+   "added": "2026-09-30",
+   "rows": [
+    {
+     "id": "demo-2026-07-demo-everyday-1",
+     "account": "Demo Everyday",
+     "period": "2026-07",
+     "date": "2026-07-03",
+     "chargeDate": "2026-07-03",
+     "merchant": "Brightwell Energy",
+     "amount": 155,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    },
+    {
+     "id": "demo-2026-07-demo-everyday-2",
+     "account": "Demo Everyday",
+     "period": "2026-07",
+     "date": "2026-07-05",
+     "chargeDate": "2026-07-05",
+     "merchant": "Willow Water",
+     "amount": 42,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    },
+    {
+     "id": "demo-2026-07-demo-everyday-3",
+     "account": "Demo Everyday",
+     "period": "2026-07",
+     "date": "2026-07-07",
+     "chargeDate": "2026-07-07",
+     "merchant": "Cloudfern Internet",
+     "amount": 65,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    },
+    {
+     "id": "demo-2026-07-demo-everyday-4",
+     "account": "Demo Everyday",
+     "period": "2026-07",
+     "date": "2026-07-18",
+     "chargeDate": "2026-07-18",
+     "merchant": "Meadow Paws",
+     "amount": 55,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    },
+    {
+     "id": "demo-2026-07-demo-everyday-5",
+     "account": "Demo Everyday",
+     "period": "2026-07",
+     "date": "2026-07-28",
+     "chargeDate": "2026-07-28",
+     "merchant": "Demo Card payment",
+     "amount": 324,
+     "orig": null,
+     "type": "Demo transfer",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    },
+    {
+     "id": "demo-2026-07-demo-everyday-6",
+     "account": "Demo Everyday",
+     "period": "2026-07",
+     "date": "2026-07-24",
+     "chargeDate": "2026-07-24",
+     "merchant": "Demo savings transfer",
+     "amount": 350,
+     "orig": null,
+     "type": "Demo transfer",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    }
+   ]
+  },
+  {
+   "id": "demo-demo-everyday-2026-08",
+   "kind": "generic",
+   "card": false,
+   "account": "Demo Everyday",
+   "periods": [
+    "2026-08"
+   ],
+   "file": "fictional-2026-08.csv",
+   "added": "2026-09-30",
+   "rows": [
+    {
+     "id": "demo-2026-08-demo-everyday-1",
+     "account": "Demo Everyday",
+     "period": "2026-08",
+     "date": "2026-08-03",
+     "chargeDate": "2026-08-03",
+     "merchant": "Brightwell Energy",
+     "amount": 165,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-everyday-2",
+     "account": "Demo Everyday",
+     "period": "2026-08",
+     "date": "2026-08-05",
+     "chargeDate": "2026-08-05",
+     "merchant": "Willow Water",
+     "amount": 42,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-everyday-3",
+     "account": "Demo Everyday",
+     "period": "2026-08",
+     "date": "2026-08-07",
+     "chargeDate": "2026-08-07",
+     "merchant": "Cloudfern Internet",
+     "amount": 65,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-everyday-4",
+     "account": "Demo Everyday",
+     "period": "2026-08",
+     "date": "2026-08-18",
+     "chargeDate": "2026-08-18",
+     "merchant": "Meadow Paws",
+     "amount": 95,
+     "orig": null,
+     "type": "Demo purchase",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-everyday-5",
+     "account": "Demo Everyday",
+     "period": "2026-08",
+     "date": "2026-08-28",
+     "chargeDate": "2026-08-28",
+     "merchant": "Demo Card payment",
+     "amount": 666,
+     "orig": null,
+     "type": "Demo transfer",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    },
+    {
+     "id": "demo-2026-08-demo-everyday-6",
+     "account": "Demo Everyday",
+     "period": "2026-08",
+     "date": "2026-08-24",
+     "chargeDate": "2026-08-24",
+     "merchant": "Demo savings transfer",
+     "amount": 350,
+     "orig": null,
+     "type": "Demo transfer",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    }
+   ]
+  },
+  {
+   "id": "demo-demo-savings-2026-06",
+   "kind": "generic",
+   "card": false,
+   "account": "Demo Savings",
+   "periods": [
+    "2026-06"
+   ],
+   "file": "fictional-2026-06.csv",
+   "added": "2026-09-30",
+   "rows": [
+    {
+     "id": "demo-2026-06-demo-savings-1",
+     "account": "Demo Savings",
+     "period": "2026-06",
+     "date": "2026-06-25",
+     "chargeDate": "2026-06-25",
+     "merchant": "Demo savings received",
+     "amount": -350,
+     "orig": null,
+     "type": "Demo transfer",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-06.csv"
+    }
+   ]
+  },
+  {
+   "id": "demo-demo-savings-2026-07",
+   "kind": "generic",
+   "card": false,
+   "account": "Demo Savings",
+   "periods": [
+    "2026-07"
+   ],
+   "file": "fictional-2026-07.csv",
+   "added": "2026-09-30",
+   "rows": [
+    {
+     "id": "demo-2026-07-demo-savings-1",
+     "account": "Demo Savings",
+     "period": "2026-07",
+     "date": "2026-07-25",
+     "chargeDate": "2026-07-25",
+     "merchant": "Demo savings received",
+     "amount": -350,
+     "orig": null,
+     "type": "Demo transfer",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-07.csv"
+    }
+   ]
+  },
+  {
+   "id": "demo-demo-savings-2026-08",
+   "kind": "generic",
+   "card": false,
+   "account": "Demo Savings",
+   "periods": [
+    "2026-08"
+   ],
+   "file": "fictional-2026-08.csv",
+   "added": "2026-09-30",
+   "rows": [
+    {
+     "id": "demo-2026-08-demo-savings-1",
+     "account": "Demo Savings",
+     "period": "2026-08",
+     "date": "2026-08-25",
+     "chargeDate": "2026-08-25",
+     "merchant": "Demo savings received",
+     "amount": -350,
+     "orig": null,
+     "type": "Demo transfer",
+     "details": "",
+     "inst": null,
+     "section": "",
+     "file": "fictional-2026-08.csv"
+    }
+   ]
+  }
+ ]
+}
