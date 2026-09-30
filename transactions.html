@@ -4121,20 +4121,30 @@ Reply with only JSON: {"title": "short title in sentence case", "code": "the fun
       if (q.max != null) ts = ts.filter((t) => t.amount <= +q.max);
       return ts;
     }
+    const ruleText = (t) => t.matchLine != null ? `line ${t.matchLine + 1}: ${(state.previewRules ?? state.rules).split("\n")[t.matchLine].trim()}` : void 0;
+    const sourceText = (t) => t.derivedFrom ? `worked out from the ${t.account} ${t.derivedFrom.period || ""} statement` : [t.account, t.period && `${t.period} statement`, t.file].filter(Boolean).join(", ");
     const compact = (t) => ({
       periods: t.periods?.length ? t.periods : void 0,
-      transfer: t.transfer ? true : void 0,
+      transfer: t.transfer ? actions2.transferText(t) : void 0,
+      transfer_other: t.transfer?.kind === "pair" ? t.transfer.other : void 0,
       id: t.id,
+      kind: t.kind === "actual" ? void 0 : t.kind,
       date: t.date,
+      charge_date: t.chargeDate && t.chargeDate !== t.date ? t.chargeDate : void 0,
       merchant: t.merchant,
       original: t.original && t.original !== t.merchant ? t.original : void 0,
       amount: t.amount,
-      orig: t.orig && t.orig.currency !== "ILS" ? `${t.orig.currency} ${t.orig.amount}` : void 0,
+      orig: t.orig ? `${t.orig.currency} ${t.orig.amount}` : void 0,
+      type: t.type || void 0,
+      details: t.details || void 0,
       thread: t.thread,
+      rule: ruleText(t),
       account: t.account,
+      source: sourceText(t),
       note: t.note || void 0,
       inst: t.inst ? `${t.inst.n}/${t.inst.of}` : void 0,
-      expected: t.kind === "ghost" || void 0
+      expected: t.kind === "ghost" || void 0,
+      why: t.why || void 0
     });
     const FILTER_PROPS = {
       period: { type: "string", description: "Name of a period they marked" },
@@ -4514,6 +4524,7 @@ Reply with only JSON: {"title": "short title in sentence case", "code": "the fun
       let intro = `You're the question-answering part of Transactions, a personal tool one person uses to explore their own card and bank statements. Today is ${TODAY}.
 Money is in ILS (\u20AA). A positive amount is money out; negative is a refund or money in. "Threads" are the person's own groupings, from rules they edit: ${runtime2.derived.names.join(", ")}. Accounts and the statement months present: ${actions2.coverageText()}. Any other months are missing, so say so when an answer depends on them.
 Transfers between their own accounts (such as the bank paying the card bill) are not spending: the tools leave them out unless you pass include_transfers.
+Transaction fields: date is when it was bought and charge_date when it was billed, if different; amount is in ILS and orig is the amount in the currency it was charged in; type and details are copied from the statement; rule is the line of their thread rules that put it in its thread; source is the account, statement month and file it came from; kind is set for things worked out rather than read from a statement, with why explaining it.
 ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.
 ` : ""}${pers.length ? `Periods they've marked as context for what was going on (they can overlap, and not every charge in the dates belongs):
 ${pers.map((p) => `- "${p.name}" ${p.start} to ${p.end}${p.story ? `: ${p.story.replace(/\s+/g, " ").slice(0, 300)}` : ""}`).join("\n")}
@@ -4527,22 +4538,10 @@ Use the tools to look things up.`;
           intro += ` In this mode you only read; don't try to change anything.`;
       } else
         intro += `
-All transactions (id | date | merchant | amount | thread | account | note | instalment | transfer):
-` + runtime2.derived.allTxns.slice(0, 1800).map(
-          (t) => [
-            t.id,
-            t.date,
-            t.merchant,
-            t.amount,
-            t.thread,
-            t.account,
-            t.note,
-            t.inst ? t.inst.n + "/" + t.inst.of : "",
-            t.transfer ? "transfer" : ""
-          ].join(" | ")
-        ).join("\n") + `
+All transactions, one JSON object per line:
+` + runtime2.derived.allTxns.slice(0, 1800).map((t) => JSON.stringify(compact(t))).join("\n") + `
 Expected future charges:
-` + runtime2.derived.expected.map((t) => [t.id, t.date, t.merchant, t.amount].join(" | ")).join("\n") + `
+` + runtime2.derived.expected.map((t) => JSON.stringify(compact(t))).join("\n") + `
 You can't change anything in this setup, only read. If they ask for changes, say so and suggest picking an assistant that supports tools.`;
       return intro;
     }
