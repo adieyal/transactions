@@ -4,6 +4,7 @@ import { createDemoData } from "../demo.js";
 import { createRuntime } from "../state.js";
 import { deriveTransactions } from "../transactions/derive.js";
 import { coveredMonths } from "../story/moment-kit.js";
+import { detectMoments } from "../story/moments.js";
 import { largestSentence } from "../story/year-quiet.js";
 import { withCurrency } from "../helpers.js";
 import { fiveMonths } from "./fixtures/five-months.js";
@@ -344,4 +345,28 @@ test("with three months the lead says 'a typical month', not 'most months'", () 
   const lead = words(yearStory(d3, three, today).lead);
   assert.doesNotMatch(lead, /Most months/);
   assert.match(lead, /A typical month came to about/);
+});
+
+// UX review m2: when the largest payment is steady rent, the largest
+// one-off (the garage) is still told, as Copy rules s4 puts the departure
+// first.
+test("a one-off is told even when steady rent is the largest payment", () => {
+  const withRent = structuredClone(demo);
+  withRent.notes = {};
+  for (const b of Object.values(withRent.batches))
+    if (b.account === "Demo Everyday")
+      b.rows.push({
+        ...b.rows[0],
+        id: `${b.rows[0].id}-rent`,
+        date: `${b.periods[0]}-01`,
+        chargeDate: `${b.periods[0]}-01`,
+        merchant: "Harbour Rentals",
+        amount: 4000,
+      });
+  const d = deriveTransactions(withRent, { today });
+  const big = detectMoments(d, withRent).filter((m) => m.kind === "large");
+  const garage = big.find((m) => m.facts.merchant === "Cobble Lane Garage");
+  assert.ok(garage, big.map((m) => m.facts.merchant).join());
+  assert.equal(garage.facts.oneOff, true);
+  assert.equal(garage.facts.largestOfYear, false);
 });

@@ -122,6 +122,22 @@ export function large(ctx) {
     top.amount <= 1.5 * medianWithout(topList, top.amount);
   if (top && !steady && (ctx.typical == null || top.amount >= ctx.typical / 2))
     anchors.set(top, { ...anchors.get(top), largestOfYear: true });
+  // The largest one-off of the year, from three months (Copy rules s4 and
+  // rule 6, "Large one-off"; UX review m2): a merchant whose payments all
+  // fall within a week, worth at least a fifth of a typical month. When the
+  // largest payment is a steady one, such as rent, this is the departure.
+  if (ctx.typical != null) {
+    const oneOff = inYear
+      .filter((t) => {
+        const ts = ctx.spend.filter((o) => o.key === t.key);
+        return (
+          t.amount >= ctx.typical / 5 &&
+          ts.every((o) => Math.abs(daysBetween(t.date, o.date)) <= 6)
+        );
+      })
+      .reduce((a, t) => (!a || t.amount > a.amount ? t : a), null);
+    if (oneOff && !anchors.has(oneOff)) anchors.set(oneOff, { oneOff: true });
+  }
   const out = [];
   const used = new Set();
   for (const [t, why] of [...anchors].sort(
@@ -149,6 +165,7 @@ export function large(ctx) {
           usual: why.usual ?? null,
           usualFor: why.usualFor ?? null,
           largestOfYear: !!why.largestOfYear,
+          oneOff: !!why.oneOff,
         },
         total,
       ),

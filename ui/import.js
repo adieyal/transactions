@@ -9,6 +9,7 @@ import {
   readMapping,
   sigOf,
 } from "../transactions/import.js";
+import { importedText } from "../story/copy.js";
 import { readMatrix } from "../files.js";
 import { answerCurrencies, needsCurrency } from "../documents.js";
 
@@ -124,7 +125,8 @@ export function createImport(runtime, actions) {
         const existing = new Set(
           Object.values(state.batches).flatMap((b) => b.rows.map((r) => r.id)),
         );
-        const fresh = batch.rows.filter((r) => !existing.has(r.id)).length;
+        const freshRows = batch.rows.filter((r) => !existing.has(r.id));
+        const fresh = freshRows.length;
         dup += batch.rows.length - fresh;
         added += fresh;
         batch.id = fnv(
@@ -139,7 +141,11 @@ export function createImport(runtime, actions) {
           actions.saveBatch(batch);
         }
         names.push(
-          `${batch.account} (${batch.periods.length === 1 ? monthName(batch.periods[0]) : batch.periods.length + " months"})`,
+          importedText(
+            batch.account,
+            [...batch.periods].sort(),
+            freshRows.filter((r) => r.amount > 0).length,
+          ),
         );
       } catch (e) {
         // The spreadsheet reader's message stays up long enough to read.
@@ -153,7 +159,7 @@ export function createImport(runtime, actions) {
     if (names.length) {
       const stale = caps.sample ? actions.staleReports().length : 0;
       toast(
-        `Added ${added} transaction${added === 1 ? "" : "s"} from ${names.join(", ")}${dup ? `. ${dup} were already here.` : "."}${skipped.length ? ` ${skipped.join(" ")}` : ""}${stale ? ` ${stale} saved report${stale > 1 ? "s have" : " has"} new data.` : ""}`,
+        `${names.join(" ")}${dup ? ` ${dup} were already here.` : ""}${skipped.length ? ` ${skipped.join(" ")}` : ""}${stale ? ` ${stale} saved report${stale > 1 ? "s have" : " has"} new data.` : ""}`,
         8000,
         stale
           ? {

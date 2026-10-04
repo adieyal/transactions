@@ -166,6 +166,8 @@ function factOf(m) {
     case "large":
       if (f.count > 1)
         return `You made ${plural(f.count, "payment")} to ${who}, ${money(f.total)} in all.`;
+      if (f.oneOff)
+        return `You paid ${who} ${money(f.total)}, the only payment to them in your statements.`;
       return f.largestOfYear
         ? `You paid ${who} ${money(f.total)}, your largest single payment of the year.`
         : `You paid ${who} ${money(f.total)}, more than three times the usual ${money(f.usual)} for ${name(f.usualFor)}.`;
@@ -207,6 +209,18 @@ export const privacyLabel = (backendKind) =>
   backendKind === "account"
     ? "Saved privately to your Claude account"
     : "Private to this device";
+
+// Copy rule 7's import message, one statement at a time: "Added September
+// 2026 from card ending 1949: 13 payments." Payments are the money that
+// went out, so a salary isn't counted.
+export function importedText(account, periods, payments) {
+  const [first, last] = [periods[0], periods.at(-1)];
+  const when =
+    first === last
+      ? monthLong(first)
+      : `${monthLong(first)} to ${monthLong(last)}`;
+  return `Added ${when} from ${account}: ${payments} payment${payments === 1 ? "" : "s"}.`;
+}
 
 // Where an answer to a question is kept, for the line under the question:
 // "your answer stays on this device" is false when saving to the account.

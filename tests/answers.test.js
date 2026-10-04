@@ -8,6 +8,7 @@ import { answerMoment, noteTargets } from "../story/answers.js";
 import {
   PRIVACY_NOTE,
   answerKept,
+  importedText,
   privacyLabel,
   privacyText,
 } from "../story/copy.js";
@@ -157,4 +158,24 @@ test("where an answer is kept follows the storage backend", async () => {
       const src = await readFile(new URL(`../${dir}/${f}`, import.meta.url));
       assert.doesNotMatch(String(src), /stays on this device/, `${dir}/${f}`);
     }
+});
+
+// UX review m6: Copy rule 7's import message counts payments, not every row.
+test("the import message follows Copy rule 7", () => {
+  assert.equal(
+    importedText("card ending 1949", ["2026-09"], 13),
+    "Added September 2026 from card ending 1949: 13 payments.",
+  );
+  assert.equal(
+    importedText("one.csv", ["2026-08", "2026-09"], 1),
+    "Added August 2026 to September 2026 from one.csv: 1 payment.",
+  );
+});
+
+// UX review m4: the thread colours that differed from Main.dc.html's TH.
+test("thread colours are the drawn ones", () => {
+  const demo = { ...createRuntime().state, ...createDemoData("2026-09-30") };
+  const d = deriveTransactions(demo, { today: "2026-09-30" });
+  assert.equal(d.colorOf.Subscriptions, "#8A6C12");
+  assert.equal(d.colorOf["Loose ends"], "#6F787B");
 });
