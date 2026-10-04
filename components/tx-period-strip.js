@@ -112,13 +112,13 @@ export function createPeriodStrip(runtime, actions) {
               (p) =>
                 `<button class="${L.chip}${p.id === state.periodSel ? " on" : ""}" data-period="${esc(p.id)}" data-ref data-period-ref="${esc(p.id)}" data-tip="${esc(`${p.name}: a period you named. Click to select it, drag to move it, drag an end to change its dates, or double-click to rename it.`)}" style="left: ${pct(sc.at(p.start))}%; min-width: ${pct(Math.max(sc.end(p.end) - sc.at(p.start), 0.008))}%">${esc(p.name)}</button>`,
             ),
-            // The selected period's end handles and remove button (the old
-            // timeline's rect.pedge and g.xbtn[data-pdel]).
+            // The selected period's remove button (the old timeline's
+            // g.xbtn[data-pdel]); its end handles run down its tint, below.
             ...named
               .filter((p) => p.id === state.periodSel)
               .map(
                 (p) =>
-                  `<span class="ps-edge" data-pedge="${esc(p.id)}" data-edge="start" aria-hidden="true" style="left: calc(${pct(sc.at(p.start))}% - 3px)"></span><span class="ps-edge" data-pedge="${esc(p.id)}" data-edge="end" aria-hidden="true" style="left: calc(${pct(sc.end(p.end))}% - 4px)"></span><button class="ps-del" data-pdel="${esc(p.id)}" aria-label="${esc(`Remove ${p.name}`)}" data-tip="Remove this period (Delete)" style="left: calc(${pct(sc.end(p.end))}% + 6px)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7"/><path d="M5,5l6,6m0,-6l-6,6"/></svg></button>`,
+                  `<button class="ps-del" data-pdel="${esc(p.id)}" aria-label="${esc(`Remove ${p.name}`)}" data-tip="Remove this period (Delete)" style="left: calc(${pct(sc.end(p.end))}% + 6px)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7"/><path d="M5,5l6,6m0,-6l-6,6"/></svg></button>`,
               ),
             ...stretches.map(
               (s) =>
@@ -140,6 +140,15 @@ export function createPeriodStrip(runtime, actions) {
                 (p) =>
                   `<div class="${L.band}" data-pid="${esc(p.id)}" style="${span(p.start, p.end)}"></div>`,
               ),
+              // The selected period's end handles (the old timeline's
+              // rect.pedge), the full height of its tint, so it can be
+              // resized anywhere along its length.
+              ...named
+                .filter((p) => p.id === state.periodSel)
+                .map(
+                  (p) =>
+                    `<span class="ps-edge" data-pedge="${esc(p.id)}" data-edge="start" style="left: calc(${pct(sc.at(p.start))}% - 3px)"></span><span class="ps-edge" data-pedge="${esc(p.id)}" data-edge="end" style="left: calc(${pct(sc.end(p.end))}% - 4px)"></span>`,
+                ),
               ...stretches.map(
                 (s) =>
                   `<div class="${L.sband}" style="${span(s.from, s.to)}"></div>`,
@@ -179,8 +188,8 @@ export function createPeriodStrip(runtime, actions) {
             });
           }
           // The handles and the remove button ride on their name's row.
-          s.querySelectorAll("[data-pedge], [data-pdel]").forEach((x) => {
-            const c = this.chip(x.dataset.pedge || x.dataset.pdel);
+          s.querySelectorAll("[data-pdel]").forEach((x) => {
+            const c = this.chip(x.dataset.pdel);
             if (!c) return;
             x.style.bottom = c.style.bottom || "";
             // The cross goes after the name when the name runs past the end.
@@ -218,7 +227,7 @@ export function createPeriodStrip(runtime, actions) {
         // unless it lands on a bead or another control. Shift-drag is left
         // to the view (it gathers).
         hitAt(e) {
-          const edge = e.target.closest?.(".ps-strip [data-pedge]");
+          const edge = e.target.closest?.(".ps-bands [data-pedge]");
           if (edge && edge.closest("tx-period-strip") === this)
             return { id: edge.dataset.pedge, edge: edge.dataset.edge };
           const chip = e.target.closest?.(".ps-strip [data-period]");
