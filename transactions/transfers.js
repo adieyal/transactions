@@ -42,6 +42,7 @@ function detectTransfers(rows, { batches, transferOv }) {
       (c) =>
         !info[c.id] &&
         c.account !== r.account &&
+        c.currency === r.currency &&
         Math.abs(ms(c.date) - ms(r.date)) <= 4 * 864e5,
     );
     if (m) {
