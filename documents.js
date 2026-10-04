@@ -318,6 +318,11 @@ export function loadDocuments(docs, state) {
 // their recognised format; any other is left without one, for the app to ask
 // once (see needsCurrency). Rows take their statement's currency.
 export function withCurrencies(batch) {
+  // Before then, an original amount in a file that named no currency was
+  // saved as ILS, so outside a format known to be in ILS that says nothing.
+  if (FORMAT_CURRENCY[batch.kind] !== "ILS")
+    for (const r of batch.rows)
+      if (!r.currency && r.orig?.currency === "ILS") r.orig = null;
   batch.currency ??= FORMAT_CURRENCY[batch.kind] ?? null;
   if (batch.currency) for (const r of batch.rows) r.currency ??= batch.currency;
   return batch;

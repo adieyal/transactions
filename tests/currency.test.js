@@ -259,6 +259,53 @@ test("old statements take their format's currency, and others wait to be asked",
   assert.equal(derive(state).byId.get("rb").currency, "NZD");
 });
 
+test("an old statement's default ILS original amount is dropped, a named one kept", () => {
+  const row = (id, orig) => ({
+    id,
+    account: "Fictional",
+    period: "2026-09",
+    date: "2026-09-02",
+    chargeDate: "2026-09-02",
+    merchant: "Fictional Shop",
+    amount: 41.2,
+    orig,
+  });
+  const generic = {
+    id: "g",
+    kind: "generic",
+    account: "Bank",
+    periods: ["2026-09"],
+    file: "g.csv",
+    added: TODAY,
+    rows: [
+      row("r1", { amount: 41.2, currency: "ILS" }),
+      row("r2", { amount: 38, currency: "GBP" }),
+    ],
+  };
+  const leumi = {
+    ...generic,
+    id: "l",
+    kind: "leumi",
+    file: "l.html",
+    rows: [row("r3", { amount: 41.2, currency: "ILS" })],
+  };
+  const docs = structuredClone({
+    ...batchDocuments(generic),
+    ...batchDocuments(leumi),
+  });
+  const { state } = createRuntime();
+  loadDocuments(docs, state);
+  const g = state.batches.g.rows;
+  assert.equal(g[0].orig, null, "main's default says nothing");
+  assert.deepEqual(g[1].orig, { amount: 38, currency: "GBP" });
+  assert.deepEqual(state.batches.l.rows[0].orig, {
+    amount: 41.2,
+    currency: "ILS",
+  });
+  setCurrency(state.batches.g, "USD");
+  assert.equal(state.batches.g.rows[0].orig, null);
+});
+
 test("backups keep each statement's currency and reject an unknown code", () => {
   const state = workspace(eurGbpWorkspace());
   const backup = createBackup(state, TODAY);
