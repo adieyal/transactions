@@ -83,14 +83,17 @@ export function askClick(host, d, { ui, state, actions, picked }) {
         detail: { thread: d.addBudget },
       }),
     );
-  else if (d.runQuestion)
+  else if (d.runQuestion) ((ui.rerun = d.runQuestion), host.render());
+  else if ("rerunCancel" in d) ((ui.rerun = null), host.render());
+  else if (d.rerunSend) {
+    ui.rerun = null;
     host.dispatchEvent(
       new CustomEvent("tx-run-question", {
         bubbles: true,
-        detail: { id: d.runQuestion },
+        detail: { id: d.rerunSend },
       }),
     );
-  else if (d.removeQuestion) {
+  } else if (d.removeQuestion) {
     state.reports = state.reports.filter((r) => r.id !== d.removeQuestion);
     actions.save("reports");
     host.go("year");

@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { createDemoData } from "../demo.js";
 import { createRuntime } from "../state.js";
 import { deriveTransactions } from "../transactions/derive.js";
-import { answerStory } from "../story/saved-question.js";
+import { answerStory, suggestionWhat } from "../story/saved-question.js";
+import { rerunGoes } from "../assistant/prompts.js";
+import { savedHTML } from "../components/tx-year-saved.js";
 
 const today = "2026-09-30";
 const demo = { ...createRuntime().state, ...createDemoData(today) };
@@ -86,4 +88,39 @@ test("an answer is checked only when every figure in it was compared and matched
   );
   // An unknown code is never matched.
   assert.equal(checked("Cobble Lane Garage came to USD 1,600."), false);
+});
+
+// Privacy review 5: a suggestion over several merchants names each payment
+// before Apply, rather than "these three payments".
+test("a suggested change across merchants names each payment", () => {
+  const ts = derived.txns.filter((t) => t.amount > 0).slice(0, 40);
+  const a = ts[0];
+  const b = ts.find((t) => t.merchant !== a.merchant);
+  const what = plain(
+    suggestionWhat({ tags: ["#x"], txnIds: [a.id, b.id] }, derived.byId),
+  );
+  assert.match(what, /^these two payments: /);
+  for (const t of [a, b]) assert.ok(what.includes(t.merchant), what);
+});
+
+// Privacy review 4: Run again shows what goes, including the earlier answer,
+// and sends only from that card's Send.
+test("Run again shows what goes before anything is sent", () => {
+  const goes = rerunGoes({
+    question: "What did taxis cost?",
+    ai: "ChatGPT",
+    tools: true,
+    ranAt: "2026-10-04",
+  });
+  assert.match(goes.goes.at(-1), /answer from the last run, on 2026-10-04/);
+  const r = { id: "r1", q: "What did taxis cost?", answer: "", by: "" };
+  const story = answerStory("", derived.byId);
+  const opts = { canRun: true, byId: derived.byId, ai: "ChatGPT" };
+  const idle = savedHTML(r, story, opts);
+  assert.match(idle, /data-run-question="r1"/);
+  assert.doesNotMatch(idle, /data-rerun-send/);
+  const shown = savedHTML(r, story, { ...opts, rerun: { id: "r1", ...goes } });
+  assert.match(shown, /Ready to send to ChatGPT/);
+  assert.match(shown, /data-rerun-send="r1"/);
+  assert.ok(shown.includes("answer from the last run"));
 });

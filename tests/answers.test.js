@@ -5,7 +5,12 @@ import { createRuntime } from "../state.js";
 import { deriveTransactions } from "../transactions/derive.js";
 import { detectMoments, findMoments } from "../story/moments.js";
 import { answerMoment, noteTargets } from "../story/answers.js";
-import { PRIVACY_NOTE, privacyLabel, privacyText } from "../story/copy.js";
+import {
+  PRIVACY_NOTE,
+  answerKept,
+  privacyLabel,
+  privacyText,
+} from "../story/copy.js";
 
 const TODAY = "2026-09-30";
 function demo({ explained = false } = {}) {
@@ -41,7 +46,7 @@ test("naming a period answers the move and remembers the merchants", () => {
   });
   assert.equal(
     result.message,
-    "Saved a period, “Moving house”, 9–16 April 2026.",
+    "Saved a period, “Moving house”, 9–15 April 2026.",
   );
   assert.deepEqual(result.created, { periodId: "p-move" });
   assert.equal(result.answers[move.id].status, "answered");
@@ -137,4 +142,19 @@ test("privacy wording follows where the data is stored", () => {
       /Nothing goes to an assistant unless you press a button/,
     );
   assert.equal(PRIVACY_NOTE, "Optional. Only you can see your answer.");
+});
+
+// Privacy review 2: "stays on this device" is false when the workspace
+// saves to the Claude account, so the line under a question follows the
+// storage backend, as the header pill does; no component hard-codes it.
+test("where an answer is kept follows the storage backend", async () => {
+  assert.equal(answerKept("local"), "your answer stays on this device");
+  assert.doesNotMatch(answerKept("account"), /device/);
+  assert.match(answerKept("account"), /Claude account/);
+  const { readdir, readFile } = await import("node:fs/promises");
+  for (const dir of ["components", "ui"])
+    for (const f of await readdir(new URL(`../${dir}/`, import.meta.url))) {
+      const src = await readFile(new URL(`../${dir}/${f}`, import.meta.url));
+      assert.doesNotMatch(String(src), /stays on this device/, `${dir}/${f}`);
+    }
 });

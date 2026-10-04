@@ -371,7 +371,9 @@ export function createChat(runtime, actions) {
     return r.text.replace(/^\s+/, "");
   }
 
-  async function ask(question) {
+  // write: false for the year's Ask section, which shows no change and no
+  // Undo, so its assistant gets only the read-only tools (privacy review 1).
+  async function ask(question, { write = true } = {}) {
     if (!caps.sample || !question.trim()) return;
     const sel = [...state.selection].filter((id) =>
       runtime.derived.byId.has(id),
@@ -399,9 +401,9 @@ export function createChat(runtime, actions) {
     $("#sendBtn").disabled = true;
     try {
       reply.content = await callAssistant(
-        [{ role: "user", content: buildIntro(true) }, ...turns],
+        [{ role: "user", content: buildIntro(write) }, ...turns],
         reply,
-        { write: true, signal: askCtl.signal, onText: () => renderLog() },
+        { write, signal: askCtl.signal, onText: () => renderLog() },
       );
       const cited = [...reply.content.matchAll(/\[\[([a-z0-9\-]+)\]\]/gi)]
         .map((m) => m[1])

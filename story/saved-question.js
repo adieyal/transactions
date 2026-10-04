@@ -49,7 +49,8 @@ function suggestion(answer, byId) {
 export function suggestionWhat(sg, byId) {
   const ts = sg.txnIds.map((id) => byId.get(id));
   const ms = new Set(ts.map((t) => t.merchant));
-  if (ms.size > 1) return `these ${count(ts.length)} payments`;
+  if (ms.size > 1)
+    return `these ${count(ts.length)} payments: ${list(ts.map((t) => `${name(t.merchant)} on ${dayShort(t.date)}`))}`;
   return ts.length === 1
     ? `the ${name(ts[0].merchant)} payment on ${dayShort(ts[0].date)}`
     : `the ${count(ts.length)} ${name(ts[0].merchant)} payments`;

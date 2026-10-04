@@ -1,6 +1,6 @@
 import { esc } from "../helpers.js";
 import { coveredMonths } from "../story/moments.js";
-import { dayShort, monthLong } from "../story/copy.js";
+import { answerKept, dayShort, monthLong } from "../story/copy.js";
 import {
   oneMonthStory,
   periodStrip,
@@ -121,7 +121,7 @@ export function createOneMonthComponent(runtime, actions) {
         <button class="om-chip" data-answer="not">Not regular</button>
         <button class="om-chip quiet" data-answer="skip">Skip</button>
       </div>
-      <p class="om-qnote">Not sure? Your next statement will show it either way. Only you see this, and your answer stays on this device.</p>
+      <p class="om-qnote">Not sure? Your next statement will show it either way. ${esc(`Only you see this, and ${answerKept(actions.Store.backend.kind)}.`)}</p>
     </div>`;
   }
 
@@ -325,7 +325,7 @@ export const contract = {
   name: "tx-one-month",
   create: createOneMonthComponent,
   provides: ["defineOneMonth"],
-  requires: ["save"],
+  requires: ["Store", "save"],
   renders: [],
   wires: ["defineOneMonth"],
 };

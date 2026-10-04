@@ -1,11 +1,11 @@
 import { esc } from "../helpers.js";
-import { dayShort, monthLong } from "../story/copy.js";
+import { answerKept, dayShort, monthLong } from "../story/copy.js";
+
+const capital = (s) => s[0].toUpperCase() + s.slice(1);
 
 // The story column's pieces for <tx-year> (tx-year.js): sentences whose
 // figures light up their payments, the year's sections with their unnamed
 // stretches, the lenses added to the story, and one month told on its own.
-
-const PRIVATE = "Only you see this. Your answer stays on this device.";
 
 const parts = (ps) =>
   ps
@@ -20,7 +20,7 @@ const parts = (ps) =>
 export const para = (ps, cls = "") =>
   `<p${cls ? ` class="${cls}"` : ""} dir="auto">${parts(ps)}</p>`;
 
-function stretchAsk(s, ui) {
+function stretchAsk(s, ui, backendKind) {
   const st = s.stretch;
   if (ui.naming === st.id)
     return `<div class="yr-card">
@@ -42,11 +42,11 @@ function stretchAsk(s, ui) {
       <button class="yr-chipbtn" data-name-stretch="${esc(st.id)}">Write a note</button>
       <button class="yr-chipbtn quiet" data-skip-stretch="${esc(st.id)}">Skip</button>
     </div>
-    <p class="yr-fine">${PRIVATE}</p>
+    <p class="yr-fine">${esc(`Only you see this. ${capital(answerKept(backendKind))}.`)}</p>
   </div>`;
 }
 
-export function sectionHTML(s, i, ui) {
+export function sectionHTML(s, i, ui, backendKind) {
   const body = s.paragraphs.map((p) => para(p)).join("");
   const head = s.chip
     ? `<div class="yr-headchip"><span class="yr-chipheading" title="A period you named">${esc(s.chip)}</span></div>`
@@ -62,7 +62,7 @@ export function sectionHTML(s, i, ui) {
     <div class="yr-col-story${head ? "" : " prose"}">
       ${head}${head ? `<div class="yr-prose">${body}</div>` : body}${note}
       ${s.after ? `<div class="yr-prose">${para(s.after)}</div>` : ""}
-      ${s.stretch ? stretchAsk(s, ui) : ""}
+      ${s.stretch ? stretchAsk(s, ui, backendKind) : ""}
       ${s.month && (s.chip || s.stretch) ? `<button class="yr-quiet" data-month="${esc(s.month)}">See ${esc(monthLong(s.month).split(" ")[0])} day by day</button>` : ""}
     </div>
   </section>`;
@@ -129,7 +129,7 @@ export function pickerHTML(ms, year, month, { state, ui, picked }) {
         ${periods.length ? `<optgroup label="Your periods">${periods.map((p) => opt(`p:${p.id}`, p.name, false)).join("")}</optgroup>` : ""}
         ${state.reports.length ? `<optgroup label="Your saved questions">${state.reports.map((r) => opt(`r:${r.id}`, r.q, ui.story === `r:${r.id}`)).join("")}</optgroup>` : ""}
       </select>
-      <button class="yr-small" data-open="reports">Make your own story</button>
+      <button class="yr-smallbtn" data-open="reports">Make your own story</button>
     </div>
   </div>`;
 }

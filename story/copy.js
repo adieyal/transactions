@@ -208,6 +208,13 @@ export const privacyLabel = (backendKind) =>
     ? "Saved privately to your Claude account"
     : "Private to this device";
 
+// Where an answer to a question is kept, for the line under the question:
+// "your answer stays on this device" is false when saving to the account.
+export const answerKept = (backendKind) =>
+  backendKind === "account"
+    ? "your answer is saved privately to your Claude account"
+    : "your answer stays on this device";
+
 // The explanation behind the privacy chip and the banner above the questions.
 export function privacyText(backendKind) {
   const account = backendKind === "account";

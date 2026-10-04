@@ -122,9 +122,10 @@ document.addEventListener("tx-mark-period", (e) =>
   }),
 );
 // The year's Ask section: sent through the chat, and so through
-// assistant.js, only once the person has pressed Send.
+// assistant.js, only once the person has pressed Send. Read-only: that
+// section has no Apply or Undo for a change the assistant makes.
 document.addEventListener("tx-ask", (e) => {
-  const asking = actions.ask(e.detail.question);
+  const asking = actions.ask(e.detail.question, { write: false });
   redraw();
   asking.finally(redraw);
 });

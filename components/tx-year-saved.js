@@ -48,7 +48,20 @@ export function suggestionHTML(sg, byId, done) {
   </div>`;
 }
 
-export function savedHTML(r, story, { canRun, since, byId, suggested }) {
+// goes: assistant/prompts.js rerunGoes, shown after Run again and before
+// anything is sent, as the Ask section does.
+function rerunHTML(ai, goes) {
+  return `<div class="yr-card"><h3 class="yr-h3">Ready to send to ${esc(ai)}</h3>
+      <ul class="yr-sendlist">${goes.goes.map((g) => `<li>${esc(g)}</li>`).join("")}</ul>
+      <p class="yr-notsent">${esc(goes.notSent)}</p>
+      <div class="yr-chips"><button class="bn-dark" data-rerun-send="${esc(goes.id)}">Send</button><button class="bn-small" data-rerun-cancel>Cancel</button></div></div>`;
+}
+
+export function savedHTML(
+  r,
+  story,
+  { canRun, since, byId, suggested, ai, rerun },
+) {
   const ran = r.running
     ? "Running…"
     : r.ranAt
@@ -62,6 +75,7 @@ export function savedHTML(r, story, { canRun, since, byId, suggested }) {
     <div class="yr-col-story">
       <h1 class="yr-qh1" dir="auto">${esc(r.q)}</h1>
       <div class="yr-runrow"><span>${esc(ran)}</span>${canRun && !r.running ? `<button class="bn-small" data-run-question="${esc(r.id)}">Run again</button>` : ""}</div>
+      ${rerun && !r.running ? rerunHTML(ai, rerun) : ""}
       ${since && !r.running ? `<p role="status" class="yr-since">${esc(plain(since))}</p>` : ""}
       ${r.error ? `<p class="yr-fine">${esc(r.error)}</p>` : ""}
       ${r.answer ? answerHTML(story) : ""}

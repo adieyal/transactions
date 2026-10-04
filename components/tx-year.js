@@ -8,7 +8,7 @@ import { bandHTML } from "./tx-year-band.js";
 import { answeredHTML, askClick, askHTML } from "./tx-year-ask.js";
 import { wireYearStrip } from "./tx-year-strip.js";
 import { savedHTML } from "./tx-year-saved.js";
-import { whatGoes } from "../assistant/prompts.js";
+import { rerunGoes, whatGoes } from "../assistant/prompts.js";
 import { answerStory, sinceLastRun } from "../story/saved-question.js";
 import {
   benchClick,
@@ -42,6 +42,7 @@ export function createYearComponent(runtime, actions) {
     ask: "idle",
     text: "",
     asked: null,
+    rerun: null,
     story: null,
     bench: "details",
     manyName: "",
@@ -90,7 +91,7 @@ export function createYearComponent(runtime, actions) {
           <p class="yr-hint">Point at underlined text to find it on the timeline. Names and notes in boxes are your own words.</p>
         </div>
       </div>
-      ${y.sections.map((s, i) => sectionHTML(s, i, ui)).join("")}
+      ${y.sections.map((s, i) => sectionHTML(s, i, ui, actions.Store.backend.kind)).join("")}
       <div class="yr-foot"><div class="yr-side"></div><div class="yr-col-story yr-footbox">
         <div class="yr-chips"><button class="yr-chipbtn" data-mark-period>Mark a period</button><button class="yr-chipbtn" data-open="month">Write a note</button><button class="yr-chipbtn" data-open="reports">Tell the story of something else</button></div>
         <p class="yr-fine">This story is written from your statements and your notes, and it changes when you add either.</p>
@@ -118,6 +119,16 @@ export function createYearComponent(runtime, actions) {
       since: sinceLastRun(r, story, runtime.derived),
       byId: runtime.derived.byId,
       suggested: (sg) => ui.suggest[suggestKey(sg)]?.status,
+      ai: actions.AI(),
+      rerun: ui.rerun === r.id && {
+        id: r.id,
+        ...rerunGoes({
+          question: r.q,
+          ai: actions.AI(),
+          tools: !!caps.tools,
+          ranAt: r.answer && r.ranAt,
+        }),
+      },
     });
   }
 
@@ -366,6 +377,7 @@ export const contract = {
   provides: ["defineYear"],
   requires: [
     "AI",
+    "Store",
     "addBlankLens",
     "addPeriod",
     "addReport",

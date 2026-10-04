@@ -64,13 +64,26 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
 // the opening message above, the conversation so far (ui/chat.js sends the
 // last 16 messages), the ids of selected payments, and either the
 // transactions the assistant looks up (tools) or all of them (no tools).
+// Both callers send the read-only tools, which can't read the thread rules.
 // tests/prompts.test.js checks the "not sent" line against systemPrompt.
+// What Run again sends for a saved question (ui/reports.js runReport): the
+// question with the same context as Ask, and the earlier answer with the
+// months the statements covered then (privacy review 4).
+export function rerunGoes({ question, ai, tools, ranAt }) {
+  const { goes, notSent } = whatGoes({ question, ai, tools });
+  if (ranAt)
+    goes.push(
+      `The answer from the last run, on ${ranAt}, and the months your statements covered then`,
+    );
+  return { goes, notSent };
+}
+
 export function whatGoes({ question, ai, tools, earlier, selected }) {
   const goes = [
     `Your question: “${question}”`,
     "Your account names and the months each statement covers, your thread names and budgets, and your periods with their descriptions",
     tools
-      ? `The transactions ${ai} looks up to answer, with their notes and statement details, and your thread rules if it reads them`
+      ? `The transactions ${ai} looks up to answer, with their notes and statement details`
       : "All your transactions and the charges expected ahead, with their notes and statement details",
   ];
   if (earlier)
