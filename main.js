@@ -101,6 +101,10 @@ document.addEventListener("tx-highlight", (e) =>
   }),
 );
 
+// A linked reference pinned or released (components/linked-ref.js): its
+// payments become the selection, through the one select path.
+document.addEventListener("tx-select", (e) => actions.select(e.detail.ids));
+
 // The first-run page hands its files to the import flow, and asks for the
 // example year.
 document.addEventListener("tx-import-files", (e) =>

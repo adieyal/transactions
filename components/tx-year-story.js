@@ -11,7 +11,7 @@ const parts = (ps) =>
   ps
     .map((p) =>
       p.chip
-        ? `<span class="yr-chipinline" data-tip="A period you named">${esc(p.chip)}</span>`
+        ? `<span class="yr-chipinline" tabindex="0" data-ref data-period-ref="${esc(p.periodId)}" data-tip="A period you named">${esc(p.chip)}</span>`
         : p.txnIds?.length
           ? `<span class="sp" tabindex="0" data-ids="${esc(p.txnIds.join(","))}">${esc(p.text)}</span>`
           : esc(p.text),
@@ -49,7 +49,7 @@ function stretchAsk(s, ui, backendKind) {
 export function sectionHTML(s, i, ui, backendKind) {
   const body = s.paragraphs.map((p) => para(p)).join("");
   const head = s.chip
-    ? `<div class="yr-headchip"><span class="yr-chipheading" data-tip="A period you named">${esc(s.chip)}</span></div>`
+    ? `<div class="yr-headchip"><span class="yr-chipheading" tabindex="0" data-ref data-period-ref="${esc(s.periodId)}" data-tip="A period you named">${esc(s.chip)}</span></div>`
     : s.stretch
       ? `<div class="yr-headchip"><span class="yr-unnamed">A busy stretch, not named yet</span></div>`
       : "";
@@ -112,7 +112,7 @@ export function monthHTML(m) {
     .map(
       (
         p,
-      ) => `<div class="yr-headchip"><span class="yr-chipheading" data-tip="A period you named">${esc(p.name)}</span> <span class="yr-dates">${esc(p.dates)}</span></div>
+      ) => `<div class="yr-headchip"><span class="yr-chipheading" tabindex="0" data-ref data-period-ref="${esc(p.id)}" data-tip="A period you named">${esc(p.name)}</span> <span class="yr-dates">${esc(p.dates)}</span></div>
       <div class="yr-prose">${para(p.parts)}</div>
       ${p.description ? `<div class="yr-note"><div class="yr-notelabel">Your description</div><div class="yr-notetext" dir="auto">${esc(p.description)}</div></div>` : ""}
       ${notesHTML(p.notes)}`,

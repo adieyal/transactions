@@ -9,7 +9,7 @@ import {
   retag,
   tagsOf,
 } from "../transactions/tags.js";
-import { periodStats } from "../transactions/period-stats.js";
+import { periodPayments, periodStats } from "../transactions/period-stats.js";
 
 const TODAY = "2026-09-30";
 function demo() {
@@ -69,4 +69,21 @@ test("periodStats sums a period's charges by thread", () => {
   );
   assert.ok(st.inside.every((t) => !t.transfer));
   assert.ok(st.out.every((t) => st.inside.includes(t) && t.amount > 0));
+});
+
+test("periodPayments finds a period's payments by its id, not its name", () => {
+  const state = demo();
+  const derived = deriveTransactions(state, { today: TODAY });
+  const trip = state.periods.find((p) => p.id === "demo-trip");
+  const twin = { ...trip, id: "twin", start: "2026-01-10", end: "2026-01-13" };
+  const ids = periodPayments(derived.allTxns, trip);
+  assert.ok(ids.length >= periodStats(derived.allTxns, trip).out.length);
+  for (const id of ids) {
+    const t = derived.byId.get(id);
+    assert.ok(t.date >= trip.start && t.date <= trip.end && !t.transfer);
+  }
+  // Same name, other dates: other payments.
+  const other = periodPayments(derived.allTxns, twin);
+  assert.ok(other.length > 0);
+  assert.ok(other.every((id) => !ids.includes(id)));
 });

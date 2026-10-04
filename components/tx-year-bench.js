@@ -123,7 +123,8 @@ function threadsHTML(ui, runtime) {
           ? short(totals.get(name), cur)
           : ""
         : String(derived.lineHits[i]?.length ?? 0);
-      return `<button class="bn-line${head ? " head" : ""}${ui.activeLine === i ? " on" : ""}" data-rule-line="${i}"><span class="bn-gutter">${esc(gutter)}</span><span dir="auto"${thread ? ` style="color:${esc(thread.color)}"` : ""}>${esc(text)}</span></button>`;
+      const ids = lineIds(ln, i, derived);
+      return `<button class="bn-line${head ? " head" : ""}${ui.activeLine === i ? " on" : ""}" data-rule-line="${i}"${ids.length ? ` data-ref="hover" data-ids="${esc(ids.join(","))}"` : ""}><span class="bn-gutter">${esc(gutter)}</span><span dir="auto"${thread ? ` style="color:${esc(thread.color)}"` : ""}>${esc(text)}</span></button>`;
     })
     .join("");
   return `<p class="bn-p">Each thread is a wire on the timeline. Type a name, then indented bits of merchant names, #tags from your notes, or /patterns/. Put the cursor on a line to see what it catches.</p>
@@ -290,13 +291,17 @@ export function benchClick(b, ui, runtime, actions, host) {
   return true;
 }
 
-function lightLine(i, runtime, actions) {
-  const { derived, state } = runtime;
-  const line = (state.previewRules ?? state.rules).split("\n")[i] ?? "";
-  const ts = /^\s/.test(line)
+// The payments a rule line sorts: a rule's hits, or a thread's payments.
+const lineIds = (line, i, derived) =>
+  (/^\s/.test(line)
     ? (derived.lineHits[i] ?? [])
     : derived.txns.filter(
         (t) => t.thread === line.trim().replace(/\s*\[.*\]\s*$/, ""),
-      );
-  actions.highlight(ts.map((t) => t.id));
+      )
+  ).map((t) => t.id);
+
+function lightLine(i, runtime, actions) {
+  const { derived, state } = runtime;
+  const line = (state.previewRules ?? state.rules).split("\n")[i] ?? "";
+  actions.highlight(lineIds(line, i, derived));
 }

@@ -708,6 +708,28 @@ test("period lanes, drag and the Periods strip have one home each", () => {
     assert.ok(bites(home), `${home} should hold the ${what}`);
 });
 
+test("hover highlighting goes through linked references", () => {
+  // components/linked-ref.js is the one place a hover or focus lights up
+  // payments (ADR 0012); a hand-rolled handler elsewhere would drift.
+  const HOVER =
+    /addEventListener\(\s*["'`](?:mouseover|mouseenter|pointerover|pointerenter|focusin)["'`][\s\S]{0,600}?(?:emitHighlight|\.highlight\(|tx-highlight)/;
+  const found = FILES.filter(
+    (f) =>
+      f.startsWith("components/") &&
+      f !== "components/linked-ref.js" &&
+      HOVER.test(SOURCE[f]),
+  ).map((f) => `${f} lights up payments on hover itself`);
+  assert.deepEqual(
+    found,
+    [],
+    "Use wireLinkedRefs from components/linked-ref.js",
+  );
+  assert.ok(
+    HOVER.test(SOURCE["components/linked-ref.js"]) ||
+      /\["mouseover", show\]/.test(SOURCE["components/linked-ref.js"]),
+  );
+});
+
 test("modules stay within their size budget", (t) => {
   const found = [];
   for (const file of FILES) {

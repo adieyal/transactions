@@ -174,7 +174,8 @@ function tell(derived, state, months, inRange, today) {
       outs.forEach((o, i) => {
         if (i) lead.push({ text: i === outs.length - 1 ? ", and " : ", " });
         const when = ` in ${monthName(o.from.slice(0, 7))}`;
-        if (o.kind === "period") lead.push({ chip: o.p.name }, { text: when });
+        if (o.kind === "period")
+          lead.push({ chip: o.p.name, periodId: o.id }, { text: when });
         else
           lead.push({
             text: `${word(daysBetween(o.from, o.to) + 1)} days${when} you haven’t named yet`,

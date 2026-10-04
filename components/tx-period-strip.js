@@ -9,6 +9,7 @@ import {
 } from "../transactions/period-drag.js";
 import { periodLanes } from "../transactions/period-lanes.js";
 import { subscribeWhileConnected } from "./base.js";
+import { refIds, togglePin, wireLinkedRefs } from "./linked-ref.js";
 
 // <tx-period-strip months="YYYY-MM,…" variant="year|month" stretches="[…]">:
 // the Periods strip, the one implementation every canvas view embeds (ADR
@@ -59,6 +60,9 @@ export function createPeriodStrip(runtime, actions) {
   // A name nudged from the keyboard keeps its focus across the refresh,
   // which may draw a new element in this one's place.
   let refocus = null;
+  // A name clicked pins its payments (linked-ref.js) and opens its card;
+  // the pin refreshes the view, so the card opens in the next render.
+  let reopen = null;
 
   function definePeriodStrip() {
     if (customElements.get("tx-period-strip")) return;
@@ -102,7 +106,7 @@ export function createPeriodStrip(runtime, actions) {
           const chips = [
             ...named.map(
               (p) =>
-                `<button class="${L.chip}" data-period="${esc(p.id)}" data-tip="${esc(`${p.name}: a period you named. Drag to move it, drag a side to change its dates, or click to rename or delete it.`)}" style="left: ${pct(sc.at(p.start))}%; min-width: ${pct(Math.max(sc.end(p.end) - sc.at(p.start), 0.008))}%">${esc(p.name)}</button>`,
+                `<button class="${L.chip}" data-period="${esc(p.id)}" data-ref data-period-ref="${esc(p.id)}" data-tip="${esc(`${p.name}: a period you named. Drag to move it, drag a side to change its dates, or click to rename or delete it.`)}" style="left: ${pct(sc.at(p.start))}%; min-width: ${pct(Math.max(sc.end(p.end) - sc.at(p.start), 0.008))}%">${esc(p.name)}</button>`,
             ),
             ...stretches.map(
               (s) =>
@@ -132,6 +136,11 @@ export function createPeriodStrip(runtime, actions) {
           );
           this.stack();
           this.placeBands();
+          if (reopen && this.chip(reopen)) {
+            const id = reopen;
+            reopen = null;
+            this.openCard(id);
+          }
           const back = refocus && this.chip(refocus);
           if (back) {
             refocus = null;
@@ -318,8 +327,17 @@ export function createPeriodStrip(runtime, actions) {
           this.addEventListener("click", (e) => {
             const chip = e.target.closest(".ps-strip [data-period]");
             if (chip) {
-              e.stopPropagation();
-              if (dragged) dragged = false;
+              // Ahead of this element's own linked-ref listener.
+              e.stopImmediatePropagation();
+              if (dragged) return void (dragged = false);
+              const ids = refIds(chip, runtime);
+              const pinned =
+                ids.length &&
+                ids.length === state.selection.size &&
+                ids.every((i) => state.selection.has(i));
+              reopen = pinned ? null : chip.dataset.period;
+              if (pinned) this.closeCard();
+              if (ids.length) togglePin(chip, runtime);
               else this.openCard(chip.dataset.period);
               return;
             }
@@ -347,6 +365,8 @@ export function createPeriodStrip(runtime, actions) {
               );
             } else if (e.target.closest("[data-pedit-close]")) this.closeCard();
           });
+          // Hover, focus, pin and Escape, as on every linked reference.
+          wireLinkedRefs(this, runtime);
         }
         chip(id) {
           return this.querySelector(

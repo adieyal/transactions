@@ -124,7 +124,12 @@ function rowsHTML(derived, txns, scale, { year, compact, numbers }) {
           ? `<button class="yr-addbudget" data-add-budget="${esc(thread)}">+ Budget</button>`
           : "";
       return `<div class="yr-row" data-thread="${esc(thread)}" style="height: ${RH}px">
-        <div class="yr-rowhead"><span class="yr-thread" style="color: ${esc(col)}; font-size: ${compact ? 13 : 15}px">${esc(thread)}</span>${meta ? `<span class="yr-meta">${esc(meta)}</span>` : ""}${add}</div>
+        <div class="yr-rowhead"><span class="yr-thread" tabindex="0" data-ref data-ids="${esc(
+          ts
+            .filter((t) => !t.expected)
+            .map((t) => t.id)
+            .join(","),
+        )}" style="color: ${esc(col)}; font-size: ${compact ? 13 : 15}px">${esc(thread)}</span>${meta ? `<span class="yr-meta">${esc(meta)}</span>` : ""}${add}</div>
         <div class="yr-track">${budget ? budgetHTML(ts, budget, cur, col, scale) : ""}<div class="yr-wire" style="top: ${WY}px"></div>${arcs ? `<svg class="yr-arcs" viewBox="0 0 1000 ${RH}" preserveAspectRatio="none" aria-hidden="true"><path d="${esc(arcs)}" style="stroke: ${esc(col)}"></path></svg>` : ""}${beads}</div>
       </div>`;
     })
@@ -165,7 +170,11 @@ function stretchesOf(derived, state, [from, to]) {
         to: m.to,
         label: `${money(m.facts.total, m.currency)} · ${r}`,
         aria: `A busy stretch, ${r}, not named yet. Name it`,
-        data: { "data-stretch": m.id, "data-ids": m.txnIds.join(",") },
+        data: {
+          "data-stretch": m.id,
+          "data-ids": m.txnIds.join(","),
+          "data-ref": "hover",
+        },
       };
     });
 }

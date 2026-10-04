@@ -382,6 +382,8 @@ The rules for a component:
 
 `main.js` shows a prototype layout at `transactions.html#lab`, taken from `<template id="layoutLab">` in `index.html`. It is kept out of the normal app.
 
+**Linked references** ([ADR 0012](adr/0012-linked-references.md)): anything that stands for a set of payments (a dotted phrase, a citation, a period chip, a thread name, a bench line) is wired by `wireLinkedRefs` in `components/linked-ref.js`. Hover and focus light up its payments through `tx-highlight`, and click, Enter or Space pins them as the selection through `tx-select` and `actions.select`. A view adds no hover handlers of its own; a test checks this.
+
 **Named periods have one implementation** ([ADR 0011](adr/0011-one-period-strip.md)):
 
 | Module                          | Layer  | Holds                                                                                                                                                                    |
@@ -483,6 +485,7 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | A module warns above 400 lines and fails above 700                                                                                                  | modules stay within their size budget                         | `ui/timeline.js` up to 1000 (R8), `ui/chat.js` up to 800 (R9)                       |
 | Components (`components/`) look things up only inside their own element: no `$(` or `document.querySelector…`/`getElementById`/`body`               | components draw only inside themselves                        | 20 `ui/` modules and `suggestions.js` (R13–R15); never a component                  |
 | Lane packing, period move/resize maths and the period names and edit card live only in `period-lanes.js`, `period-drag.js` and `tx-period-strip.js` | period lanes, drag and the Periods strip have one home each   | none                                                                                |
+| Hover or focus that lights up payments in `components/` goes through `components/linked-ref.js`                                                     | hover highlighting goes through linked references             | none                                                                                |
 | Every allowlist entry names a step in section 8                                                                                                     | every allowlist entry names a step that exists                | none                                                                                |
 
 Allowlists are exact. A violation that isn't listed fails the test, and so does a listed one that no longer occurs, so each entry gets deleted together with its fix.

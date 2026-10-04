@@ -3,8 +3,9 @@ import { wireTip } from "./tip.js";
 import { coveredMonths, typicalMonth } from "../story/moment-kit.js";
 import { monthLong } from "../story/copy.js";
 import { yearMonthStory, yearStory } from "../story/year.js";
-import { sameIds, wireHoverHighlight } from "../ui/highlight.js";
-import { emitHighlight, subscribeWhileConnected } from "./base.js";
+import { sameIds } from "../ui/highlight.js";
+import { wireLinkedRefs } from "./linked-ref.js";
+import { subscribeWhileConnected } from "./base.js";
 import { bandHTML } from "./tx-year-band.js";
 import { answeredHTML, askClick, askHTML } from "./tx-year-ask.js";
 import { savedHTML } from "./tx-year-saved.js";
@@ -262,9 +263,7 @@ export function createYearComponent(runtime, actions) {
         wire() {
           this.wired = true;
           wireTip(this, () => runtime.derived?.byId);
-          wireHoverHighlight(this, runtime, (ids) =>
-            emitHighlight(this, [...ids]),
-          );
+          wireLinkedRefs(this, runtime);
           this.addEventListener("mouseover", (e) => {
             const sec = e.target.closest?.(".yr-sec[data-sec]");
             if (sec && sec.dataset.sec !== ui.sec) {

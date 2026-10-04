@@ -7,8 +7,9 @@ import {
   periodStrip,
   regularResult,
 } from "../story/one-month.js";
-import { phraseHTML, sameIds, wireHoverHighlight } from "../ui/highlight.js";
-import { emitHighlight, subscribeWhileConnected } from "./base.js";
+import { phraseHTML, sameIds } from "../ui/highlight.js";
+import { wireLinkedRefs } from "./linked-ref.js";
+import { subscribeWhileConnected } from "./base.js";
 
 const ACCEPT = ".xls,.xlsx,.csv,.txt,.html,.htm";
 const STEPS = [
@@ -97,6 +98,7 @@ export function createOneMonthComponent(runtime, actions) {
       aria: b.aria,
       data: {
         "data-ids": b.txnIds.join(","),
+        "data-ref": "hover",
         "data-days": `${b.from}-${b.to}`,
       },
     }));
@@ -228,7 +230,7 @@ export function createOneMonthComponent(runtime, actions) {
         wire() {
           this.wired = true;
           wireTip(this, () => runtime.derived?.byId);
-          wireHoverHighlight(this, runtime, (ids) => emitHighlight(this, ids));
+          wireLinkedRefs(this, runtime);
           this.addEventListener("click", (e) => {
             const a = e.target.closest("[data-answer]");
             if (a) this.answer(a.dataset.answer);

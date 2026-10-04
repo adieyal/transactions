@@ -438,6 +438,11 @@ body.nopanel .qcount{min-width:0; width:16px; padding:4px 0; margin:4px 0 0}
 .sp{text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; text-decoration-color:color-mix(in srgb,var(--ink-3) 35%,transparent); cursor:default; transition:background .15s, text-decoration-color .15s; border-radius:2px}
 .sp:hover,.sp.on,.sp:focus-visible{text-decoration-color:var(--ink-2); outline:0}
 .sp.on,.sp:focus-visible{background:color-mix(in srgb,#E9C46A 45%,transparent)}
+/* A linked reference pinned as the selection (components/linked-ref.js):
+   pressed, with a solid underline and a ring that stays after the pointer leaves. */
+[data-ref]:not([data-ref="hover"]), .sp[data-ids]:not([data-ref="hover"]){cursor:pointer}
+.pinned{box-shadow:0 0 0 2px var(--ink-2); border-radius:4px}
+.sp.pinned{background:color-mix(in srgb,#E9C46A 60%,transparent); text-decoration-color:var(--ink); text-decoration-style:solid}
 .yours{margin:0 0 14px; padding:10px 14px; border-left:3px solid var(--wire); background:var(--raised); border-radius:0 8px 8px 0}
 .yours figcaption{font:600 11.5px var(--ui); letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2); margin-bottom:4px}
 .yourtext{font:400 16px/1.55 var(--display)}

@@ -28,3 +28,13 @@ export function periodStats(txns, period) {
     days: Math.round((ms(period.end) - ms(period.start)) / 864e5) + 1,
   };
 }
+
+// The payments a period stands for, by id: everything in its dates apart
+// from transfers, as periodStats counts them. Found from the period itself,
+// since several periods can share a name.
+export const periodPayments = (txns, period) =>
+  txns
+    .filter(
+      (t) => !t.transfer && t.date >= period.start && t.date <= period.end,
+    )
+    .map((t) => t.id);

@@ -8,7 +8,7 @@ import {
   normText,
 } from "../helpers.js";
 import { $, toast } from "./dom.js";
-import { wireHoverHighlight } from "./highlight.js";
+import { wireLinkedRefs } from "../components/linked-ref.js";
 import { addToThread as addLines } from "../transactions/rules-edit.js";
 
 export function createInspector(runtime, actions) {
@@ -24,7 +24,7 @@ export function createInspector(runtime, actions) {
   }
 
   function wireInspector() {
-    wireHoverHighlight($("#insp"), runtime, (ids) => actions.highlight(ids));
+    wireLinkedRefs($("#insp"), runtime, { pin: false });
     $("#insp").addEventListener("click", (e) => {
       const c = e.target.closest("[data-cite]");
       if (c) {

@@ -4,10 +4,11 @@ import { summarizeMonth } from "../story/summary.js";
 import { polishFacts, polishSummary } from "../story/assist.js";
 import { monthLong } from "../story/copy.js";
 import { waitingForCurrency } from "../story/currency.js";
-import { phraseHTML, sameIds, wireHoverHighlight } from "../ui/highlight.js";
+import { phraseHTML, sameIds } from "../ui/highlight.js";
+import { wireLinkedRefs } from "./linked-ref.js";
 import { html, raw } from "../ui/dom.js";
 import { markdown } from "../ui/markdown.js";
-import { emitHighlight, subscribeWhileConnected } from "./base.js";
+import { subscribeWhileConnected } from "./base.js";
 
 // <tx-month month="YYYY-MM">: one month's summary. Without a month it shows
 // the app's month (state.monthView) and its arrows move that; with one, its
@@ -182,7 +183,7 @@ export function createMonthComponent(runtime, actions) {
         }
         wire() {
           this.wired = true;
-          wireHoverHighlight(this, runtime, (ids) => emitHighlight(this, ids));
+          wireLinkedRefs(this, runtime);
           this.addEventListener("click", (e) => {
             const b = e.target.closest("[data-mstep]");
             if (b) this.step(+b.dataset.mstep);
