@@ -278,15 +278,71 @@ function detectCurrency(matrix, map) {
   return found.size === 1 ? [...found][0] : null;
 }
 
+const bodyRows = (matrix, map) =>
+  matrix
+    .slice((map.headerRow ?? 0) + 1)
+    .filter((row) => row?.some((c) => String(c ?? "").trim()));
+
+// How a file writes its dates, read from the dates themselves: a part above
+// 12 can only be the day. Null when the dates don't settle it, so the person
+// is asked; "YMD" when every date starts with its year or isn't text.
+function inferDateOrder(matrix, map) {
+  if (map.date == null || map.date === "") return null;
+  let day1 = false,
+    day2 = false,
+    open = false;
+  for (const row of bodyRows(matrix, map)) {
+    const m = String(row[map.date] ?? "")
+      .replace(BIDI, "")
+      .trim()
+      .match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-]\d{2,4}/);
+    if (!m) continue;
+    if (+m[1] > 12) day1 = true;
+    else if (+m[2] > 12) day2 = true;
+    else open = true;
+  }
+  if (day1 !== day2) return day1 ? "DMY" : "MDY";
+  return day1 || open ? null : "YMD";
+}
+
+// Whether spending is written as positive or negative in a single amount
+// column, from the share of negative amounts: most rows of a statement are
+// spending. Null when the amounts don't settle it.
+function inferExpenseSign(matrix, map) {
+  if (map.amount == null || map.amount === "") return null;
+  let neg = 0,
+    all = 0;
+  for (const row of bodyRows(matrix, map)) {
+    const a = parseAmount(row[map.amount]);
+    if (!a?.amount) continue;
+    all++;
+    if (a.amount < 0) neg++;
+  }
+  if (!all) return null;
+  if (neg / all >= 0.6) return "negative";
+  if (neg / all <= 0.4) return "positive";
+  return null;
+}
+
 function applyMapping(matrix, map, file) {
+  return readMapping(matrix, map, file).batch;
+}
+
+// A generic file read with a mapping: the batch, and the rows that couldn't
+// be read, each with its reason ("date", "amount", "zero" or "currency").
+function readMapping(matrix, map, file) {
   const out = [];
+  const unread = [];
   const occ = {};
   const account = (map.account || "").trim() || file.replace(/\.[^.]+$/, "");
   for (let r = (map.headerRow ?? 0) + 1; r < matrix.length; r++) {
     const row = matrix[r];
-    if (!row) continue;
+    if (!row?.some((c) => String(c ?? "").trim())) continue;
     const date = parseDateCell(row[map.date], map.dateFormat || "DMY");
-    if (!date) continue;
+    if (!date) {
+      unread.push({ row: r, reason: "date" });
+      continue;
+    }
     let amount = null;
     if (map.amount != null && map.amount !== "") {
       const a = parseAmount(row[map.amount]);
@@ -297,12 +353,18 @@ function applyMapping(matrix, map, file) {
       if (d || c)
         amount = (d ? Math.abs(d.amount) : 0) - (c ? Math.abs(c.amount) : 0);
     }
-    if (amount == null || amount === 0) continue;
+    if (amount == null || amount === 0) {
+      unread.push({ row: r, reason: amount == null ? "amount" : "zero" });
+      continue;
+    }
     const merchant = String(row[map.merchant] ?? "")
       .replace(BIDI, "")
       .trim();
     const currency = rowCurrency(row, map);
-    if (!currency) continue;
+    if (!currency) {
+      unread.push({ row: r, reason: "currency" });
+      continue;
+    }
     const o = map.orig != null ? parseAmount(row[map.orig]) : null;
     const details =
       map.details != null ? String(row[map.details] ?? "").trim() : "";
@@ -329,7 +391,7 @@ function applyMapping(matrix, map, file) {
     });
   }
   const currencies = [...new Set(out.map((r) => r.currency))];
-  return {
+  const batch = {
     kind: "generic",
     currency: currencies.length === 1 ? currencies[0] : null,
     account,
@@ -337,6 +399,7 @@ function applyMapping(matrix, map, file) {
     file,
     rows: out,
   };
+  return { batch, unread };
 }
 export {
   COLUMN_WORDS,
@@ -347,7 +410,10 @@ export {
   csvMatrix,
   decodeText,
   guessHeaderRow,
+  inferDateOrder,
+  inferExpenseSign,
   parseLeumiRows,
+  readMapping,
   sigOf,
   tableMatrix,
 };

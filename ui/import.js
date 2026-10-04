@@ -1,10 +1,12 @@
 import { CURRENCIES, esc, fmt, fnv, monthName } from "../helpers.js";
 import { $, toast } from "./dom.js";
 import {
-  applyMapping,
   columnWords,
   detectCurrency,
   guessHeaderRow,
+  inferDateOrder,
+  inferExpenseSign,
+  readMapping,
   sigOf,
 } from "../transactions/import.js";
 import { readMatrix } from "../files.js";
@@ -18,10 +20,35 @@ export function createImport(runtime, actions) {
   const REPLACE_DEMO =
     "Replace the demo with your statements?\n\nThe fictional demo year, with its notes, periods and answers, is removed and your statements take its place.";
 
+  // Why some rows of a file weren't read, in a sentence; "" when all were.
+  const UNREAD = {
+    date: [
+      "has no date Transactions can read",
+      "have no date Transactions can read",
+    ],
+    amount: ["has no amount", "have no amount"],
+    zero: ["has an amount of 0", "have an amount of 0"],
+    currency: ["doesn't say its currency", "don't say their currency"],
+  };
+  function unreadText(unread) {
+    if (!unread.length) return "";
+    const parts = Object.entries(UNREAD)
+      .map(([k, [one, many]]) => {
+        const rows = unread.filter((u) => u.reason === k).map((u) => u.row);
+        if (!rows.length) return "";
+        const which =
+          rows.slice(0, 5).join(", ") + (rows.length > 5 ? "…" : "");
+        return `${rows.length} ${rows.length === 1 ? one : many} (row${rows.length === 1 ? "" : "s"} ${which})`;
+      })
+      .filter(Boolean);
+    return `${unread.length} row${unread.length === 1 ? "" : "s"} couldn't be read: ${parts.join(", ")}.`;
+  }
+
   async function importFiles(files) {
     let added = 0,
       dup = 0;
     const names = [];
+    const skipped = [];
     let demo = state.isDemo ? "ask" : "no";
     for (const f of files) {
       try {
@@ -56,7 +83,10 @@ export function createImport(runtime, actions) {
             adapter ? { ...adapter, headerRow: hr } : null,
           );
           if (!map) continue;
-          batch = applyMapping(m, map, f.name);
+          const read = readMapping(m, map, f.name);
+          batch = read.batch;
+          if (read.unread.length)
+            skipped.push(`${f.name}: ${unreadText(read.unread)}`);
           state.adapters[fnv(sigOf(m[map.headerRow]))] = { ...map };
           actions.save("adapters");
         }
@@ -100,7 +130,7 @@ export function createImport(runtime, actions) {
     if (names.length) {
       const stale = caps.sample ? actions.staleReports().length : 0;
       toast(
-        `Added ${added} transaction${added === 1 ? "" : "s"} from ${names.join(", ")}${dup ? `. ${dup} were already here.` : "."}${stale ? ` ${stale} saved report${stale > 1 ? "s have" : " has"} new data.` : ""}`,
+        `Added ${added} transaction${added === 1 ? "" : "s"} from ${names.join(", ")}${dup ? `. ${dup} were already here.` : "."}${skipped.length ? ` ${skipped.join(" ")}` : ""}${stale ? ` ${stale} saved report${stale > 1 ? "s have" : " has"} new data.` : ""}`,
         8000,
         stale
           ? {
@@ -130,8 +160,12 @@ export function createImport(runtime, actions) {
         orig: null,
         type: null,
         details: null,
-        dateFormat: "DMY",
-        expenseSign: "positive",
+        // Read from the dates and amounts where they settle it, otherwise
+        // asked; the *Chosen flags keep a choice over what is inferred.
+        dateFormat: null,
+        dateChosen: false,
+        expenseSign: null,
+        signChosen: false,
         // The currency the file shows, or the one the person chose; never a
         // default. currencyChosen keeps a choice over what is detected.
         currency: null,
@@ -150,7 +184,11 @@ export function createImport(runtime, actions) {
         map.debit == null && map.credit == null
           ? find(columnWords("amount"))
           : null;
-      if (preset) Object.assign(map, preset);
+      if (preset)
+        Object.assign(map, preset, {
+          dateChosen: !!preset.dateFormat,
+          signChosen: !!preset.expenseSign,
+        });
       $("#mapTitle").textContent = preset
         ? "Which account is this?"
         : "Teach Transactions this file";
@@ -167,6 +205,31 @@ export function createImport(runtime, actions) {
       const draw = () => {
         const found = detectCurrency(matrix, map);
         if (!map.currencyChosen) map.currency = found;
+        const order = inferDateOrder(matrix, map);
+        if (!map.dateChosen) map.dateFormat = order;
+        const sign = inferExpenseSign(matrix, map);
+        if (!map.signChosen) map.expenseSign = sign;
+        const usesSign = map.amount != null;
+        const dateNote =
+          map.dateChosen || map.date == null
+            ? ""
+            : order
+              ? " Read from the dates in the file; change it if it's wrong."
+              : " The dates could be read either way, such as 03/04 for 3 April or March 4. Choose how they are written.";
+        const signNote =
+          map.signChosen || !usesSign
+            ? ""
+            : sign
+              ? ` Most amounts are ${sign}, so spending is read as ${sign}; change it if it's wrong.`
+              : " About as many amounts are positive as negative. Choose which one is spending.";
+        const pick = (k, opts) =>
+          `<option value=""${map[k] ? "" : " selected"}>Choose…</option>` +
+          opts
+            .map(
+              ([v, l]) =>
+                `<option value="${v}"${map[k] === v ? " selected" : ""}>${l}</option>`,
+            )
+            .join("");
         const currencyNote = map.currencyChosen
           ? ""
           : found
@@ -187,38 +250,50 @@ export function createImport(runtime, actions) {
           `<label>${label}<select data-k="${k}">${colOpts(map[k])}</select></label>`;
         $("#mapGrid").innerHTML =
           `<label>Heading row<input type="number" min="0" data-k="headerRow" value="${map.headerRow}"></label>${f("date", "Date")}${f("merchant", "Merchant or description")}${f("amount", "Amount (one signed column)")}
-        <label>In that column, spending is<select data-k="expenseSign"><option value="positive"${map.expenseSign === "positive" ? " selected" : ""}>positive</option><option value="negative"${map.expenseSign === "negative" ? " selected" : ""}>negative</option></select></label>
+        <label>In that column, spending is<select data-k="expenseSign">${pick(
+          "expenseSign",
+          [
+            ["positive", "positive"],
+            ["negative", "negative"],
+          ],
+        )}</select><span class="sub">${esc(signNote)}</span></label>
         ${f("debit", "…or money out column")}${f("credit", "…and money in column")}${f("currencyColumn", "Currency column (optional)")}${f("orig", "Original amount (optional)")}${f("type", "Type (optional)")}${f("details", "Details (optional)")}
-        <label>Dates are written<select data-k="dateFormat">${[
-          ["DMY", "day/month/year"],
-          ["MDY", "month/day/year"],
-          ["YMD", "year-month-day"],
-        ]
-          .map(
-            ([v, l]) =>
-              `<option value="${v}"${map.dateFormat === v ? " selected" : ""}>${l}</option>`,
-          )
-          .join("")}</select></label>
+        <label>Dates are written<select data-k="dateFormat">${pick(
+          "dateFormat",
+          [
+            ["DMY", "day/month/year"],
+            ["MDY", "month/day/year"],
+            ["YMD", "year-month-day"],
+          ],
+        )}</select><span class="sub">${esc(dateNote)}</span></label>
         <label>Account name<input data-k="account" value="${esc(map.account)}"></label>
         <label>Currency<select data-k="currency"><option value=""${map.currency ? "" : " selected"}>Choose…</option>${CURRENCIES.map((c) => `<option value="${esc(c)}"${map.currency === c ? " selected" : ""}>${esc(c)}</option>`).join("")}</select><span class="sub" id="mapCurNote">${esc(currencyNote)}</span></label>`;
-        const b = applyMapping(matrix, map, fileName);
+        const { batch: b, unread } = readMapping(matrix, map, fileName);
         const unpriced = !map.currency && b.rows.length === 0;
-        $("#mapPreview").innerHTML = b.rows.length
-          ? `<tr><th>Date</th><th>Merchant</th><th>Amount</th></tr>` +
-            b.rows
-              .slice(0, 6)
-              .map(
-                (r) =>
-                  `<tr><td>${r.date}</td><td dir="auto">${esc(r.merchant)}</td><td>${fmt(r.amount, undefined, r.currency)}</td></tr>`,
-              )
-              .join("") +
-            `<tr><td colspan="3" class="sub">${b.rows.length} rows in total</td></tr>`
-          : unpriced &&
-              applyMapping(matrix, { ...map, currency: "XXX" }, fileName).rows
-                .length
-            ? `<tr><td class="sub">Choose the currency these amounts are in. The file doesn't say, and Transactions never guesses one.</td></tr>`
-            : `<tr><td class="sub">No rows read yet. Choose at least a date column and an amount (or money out/in) column.</td></tr>`;
-        $("#mapOk").disabled = !b.rows.length;
+        const waiting =
+          map.date != null && !map.dateFormat
+            ? "Choose how the dates are written before importing."
+            : usesSign && !map.expenseSign
+              ? "Choose whether spending is positive or negative before importing."
+              : "";
+        $("#mapPreview").innerHTML = waiting
+          ? `<tr><td class="sub">${esc(waiting)}</td></tr>`
+          : b.rows.length
+            ? `<tr><th>Date</th><th>Merchant</th><th>Amount</th></tr>` +
+              b.rows
+                .slice(0, 6)
+                .map(
+                  (r) =>
+                    `<tr><td>${r.date}</td><td dir="auto">${esc(r.merchant)}</td><td>${fmt(r.amount, undefined, r.currency)}</td></tr>`,
+                )
+                .join("") +
+              `<tr><td colspan="3" class="sub">${b.rows.length} rows in total. ${esc(unreadText(unread))}</td></tr>`
+            : unpriced &&
+                readMapping(matrix, { ...map, currency: "XXX" }, fileName).batch
+                  .rows.length
+              ? `<tr><td class="sub">Choose the currency these amounts are in. The file doesn't say, and Transactions never guesses one.</td></tr>`
+              : `<tr><td class="sub">No rows read yet. Choose at least a date column and an amount (or money out/in) column.</td></tr>`;
+        $("#mapOk").disabled = !!waiting || !b.rows.length;
       };
       $("#mapGrid").oninput = (e) => {
         const k = e.target.dataset.k;
@@ -228,8 +303,10 @@ export function createImport(runtime, actions) {
         else if (k === "currency") {
           v = v || null;
           map.currencyChosen = !!v;
-        } else if (!["expenseSign", "dateFormat", "account"].includes(k))
-          v = v === "" ? null : +v;
+        } else if (k === "dateFormat" || k === "expenseSign") {
+          v = v || null;
+          map[k === "dateFormat" ? "dateChosen" : "signChosen"] = !!v;
+        } else if (k !== "account") v = v === "" ? null : +v;
         map[k] = v;
         if (k === "amount" && v != null) {
           map.debit = map.credit = null;
@@ -276,9 +353,12 @@ ${JSON.stringify(matrix.slice(0, 18).map((r) => r.map((c) => String(c ?? "").sli
           ])
             if (k in r) map[k] = r[k] == null || r[k] === "" ? null : +r[k];
           if (/^(DMY|MDY|YMD)$/.test(r.dateFormat))
-            map.dateFormat = r.dateFormat;
+            Object.assign(map, { dateFormat: r.dateFormat, dateChosen: true });
           if (/^(positive|negative)$/.test(r.expenseSign))
-            map.expenseSign = r.expenseSign;
+            Object.assign(map, {
+              expenseSign: r.expenseSign,
+              signChosen: true,
+            });
           if (r.account) map.account = String(r.account).slice(0, 40);
           $("#mapAskNote").textContent =
             "Filled in. Check the preview before importing.";
