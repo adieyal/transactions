@@ -1,11 +1,11 @@
 import { esc } from "../helpers.js";
 import { coveredMonths, typicalMonth } from "../story/moment-kit.js";
-import { dayShort, monthLong } from "../story/copy.js";
+import { monthLong } from "../story/copy.js";
 import { yearMonthStory, yearStory } from "../story/year.js";
 import { sameIds, wireHoverHighlight } from "../ui/highlight.js";
 import { emitHighlight, subscribeWhileConnected } from "./base.js";
 import { bandHTML } from "./tx-year-band.js";
-import { answeredHTML, askHTML } from "./tx-year-ask.js";
+import { answeredHTML, askClick, askHTML } from "./tx-year-ask.js";
 import { wireYearStrip } from "./tx-year-strip.js";
 import { savedHTML } from "./tx-year-saved.js";
 import { whatGoes } from "../assistant/prompts.js";
@@ -18,11 +18,15 @@ import {
   selectedIds,
 } from "./tx-year-bench.js";
 import { wireGather } from "./tx-year-gather.js";
+import {
+  monthHTML,
+  para,
+  pickerHTML,
+  sectionHTML,
+  storyLensesHTML,
+} from "./tx-year-story.js";
 import { showLensView, wireLensView } from "./tx-year-lens.js";
-import { suggestKey } from "./tx-year-saved.js";
-import { restoreNotes, retag } from "../transactions/tags.js";
-
-const PRIVATE = "Only you see this. Your answer stays on this device.";
+import { applySuggestion, suggestKey } from "./tx-year-saved.js";
 
 // <tx-year>: artboard 3, the timeline band, the story column and the bench
 // beside it (tx-year-bench.js). The Year scale tells the covered months as sections,
@@ -50,13 +54,15 @@ export function createYearComponent(runtime, actions) {
     // Suggested changes chosen, by suggestKey: { status, previous }.
     suggest: {},
   };
-  // What the bench (tx-year-bench.js) may do, through this contract.
+  // What the bench and the Ask area (tx-year-bench.js, tx-year-ask.js) may
+  // do, through this contract.
   const benchActions = {
     addBlankLens: () => actions.addBlankLens(),
     addPeriod: (...a) => actions.addPeriod(...a),
     addReport: (...a) => actions.addReport(...a),
     bulkTag: (...a) => actions.bulkTag(...a),
     highlight: (ids) => actions.highlight(ids),
+    openAISettings: () => actions.openAISettings(),
     openLensEditor: (id) => actions.openLensEditor(id),
     refresh: () => actions.refresh(),
     refreshSoon: () => actions.refreshSoon(),
@@ -67,97 +73,12 @@ export function createYearComponent(runtime, actions) {
   const picked = () =>
     ui.story && state.reports.find((r) => `r:${r.id}` === ui.story);
 
-  const parts = (ps) =>
-    ps
-      .map((p) =>
-        p.chip
-          ? `<span class="yr-chipinline" title="A period you named">${esc(p.chip)}</span>`
-          : p.txnIds?.length
-            ? `<span class="sp" tabindex="0" data-ids="${esc(p.txnIds.join(","))}">${esc(p.text)}</span>`
-            : esc(p.text),
-      )
-      .join("");
-  const para = (ps, cls = "") =>
-    `<p${cls ? ` class="${cls}"` : ""} dir="auto">${parts(ps)}</p>`;
-
   function months() {
     return runtime.derived ? coveredMonths(runtime.derived) : [];
   }
   function currentMonth(ms) {
     if (!ms.includes(state.monthView)) state.monthView = ms.at(-1) ?? null;
     return state.monthView;
-  }
-
-  function pickerHTML(ms, year, month) {
-    const opt = (v, label, sel) =>
-      `<option value="${esc(v)}"${sel ? " selected" : ""}>${esc(label)}</option>`;
-    const periods = (state.periods || []).filter(
-      (p) => p.start <= `${ms.at(-1)}-31` && p.end >= `${ms[0]}-01`,
-    );
-    return `<div class="yr-pick">
-      <label for="story-pick" class="yr-side">Story</label>
-      <div class="yr-pickrow">
-        <select id="story-pick">
-          <optgroup label="Told from your statements">${opt("year", "Your year so far", year && !picked())}${[
-            ...ms,
-          ]
-            .reverse()
-            .map((m) => opt(`m:${m}`, monthLong(m), !year && m === month))
-            .join("")}</optgroup>
-          ${periods.length ? `<optgroup label="Your periods">${periods.map((p) => opt(`p:${p.id}`, p.name, false)).join("")}</optgroup>` : ""}
-          ${state.reports.length ? `<optgroup label="Your saved questions">${state.reports.map((r) => opt(`r:${r.id}`, r.q, ui.story === `r:${r.id}`)).join("")}</optgroup>` : ""}
-        </select>
-        <button class="yr-small" data-open="reports">Make your own story</button>
-      </div>
-    </div>`;
-  }
-
-  function stretchAsk(s) {
-    const st = s.stretch;
-    if (ui.naming === st.id)
-      return `<div class="yr-card">
-        <label for="stretch-name" class="yr-namelabel">Name this stretch</label>
-        <div class="yr-namerow">
-          <input id="stretch-name" value="${esc(ui.name)}" placeholder="In your own words">
-          <button class="yr-dark" data-save-stretch="${esc(st.id)}" data-from="${esc(s.from)}" data-to="${esc(s.to)}">Save as a period</button>
-          <button class="yr-chipbtn quiet" data-cancel>Cancel</button>
-        </div>
-        <p class="yr-fine">It covers ${esc(st.when)}. You can change the dates on the timeline.</p>
-      </div>`;
-    if (st.skipped)
-      return `<p class="yr-result">Left unnamed. You can name it from the timeline any time.</p>`;
-    return `<div class="yr-card">
-      <div class="yr-when">Optional · ${esc(st.when)}</div>
-      <p class="yr-qtext">Want to say what this was for? A name turns it into a period, and the story will use it.</p>
-      <div class="yr-chips">
-        <button class="yr-chipbtn" data-name-stretch="${esc(st.id)}">Name this stretch</button>
-        <button class="yr-chipbtn" data-name-stretch="${esc(st.id)}">Write a note</button>
-        <button class="yr-chipbtn quiet" data-skip-stretch="${esc(st.id)}">Skip</button>
-      </div>
-      <p class="yr-fine">${PRIVATE}</p>
-    </div>`;
-  }
-
-  function sectionHTML(s, i) {
-    const body = s.paragraphs.map((p) => para(p)).join("");
-    const head = s.chip
-      ? `<div class="yr-headchip"><span class="yr-chipheading" title="A period you named">${esc(s.chip)}</span></div>`
-      : s.stretch
-        ? `<div class="yr-headchip"><span class="yr-unnamed">A busy stretch, not named yet</span></div>`
-        : "";
-    const note =
-      (s.note
-        ? `<div class="yr-note"><div class="yr-notelabel">${esc(s.note.label)}</div><div class="yr-notetext" dir="auto">${esc(s.note.text)}</div></div>`
-        : "") + notesHTML(s.notes ?? []);
-    return `<section class="yr-sec${i ? "" : " first"}" data-sec="${esc(s.id)}" data-from="${esc(s.from)}" data-to="${esc(s.to)}">
-      <div class="yr-side"><div class="yr-seclabel">${esc(s.label)}</div></div>
-      <div class="yr-col-story${head ? "" : " prose"}">
-        ${head}${head ? `<div class="yr-prose">${body}</div>` : body}${note}
-        ${s.after ? `<div class="yr-prose">${para(s.after)}</div>` : ""}
-        ${s.stretch ? stretchAsk(s) : ""}
-        ${s.month && (s.chip || s.stretch) ? `<button class="yr-quiet" data-month="${esc(s.month)}">See ${esc(monthLong(s.month).split(" ")[0])} day by day</button>` : ""}
-      </div>
-    </section>`;
   }
 
   function yearHTML(y) {
@@ -169,12 +90,12 @@ export function createYearComponent(runtime, actions) {
           <p class="yr-hint">Point at underlined text to find it on the timeline. Names and notes in boxes are your own words.</p>
         </div>
       </div>
-      ${y.sections.map(sectionHTML).join("")}
+      ${y.sections.map((s, i) => sectionHTML(s, i, ui)).join("")}
       <div class="yr-foot"><div class="yr-side"></div><div class="yr-col-story yr-footbox">
         <div class="yr-chips"><button class="yr-chipbtn" data-mark-period>Mark a period</button><button class="yr-chipbtn" data-open="month">Write a note</button><button class="yr-chipbtn" data-open="reports">Tell the story of something else</button></div>
         <p class="yr-fine">This story is written from your statements and your notes, and it changes when you add either.</p>
       </div></div>
-      ${lensesHTML()}
+      ${storyLensesHTML(state)}
       ${answeredHTML(ui, state, actions.AI(), runtime.derived.byId)}
       <section class="yr-sec" aria-label="Ask"><div class="yr-side"><div class="yr-seclabel">Ask</div></div><div class="yr-col-story">${askHTML(
         ui,
@@ -190,18 +111,6 @@ export function createYearComponent(runtime, actions) {
       )}</div></section>`;
   }
 
-  // Lenses the person added to the story, each run in its <tx-lens>.
-  function lensesHTML() {
-    const ls = state.lenses.filter((l) => l.inStory);
-    if (!ls.length) return "";
-    return `<section class="yr-sec yr-lensesec" aria-label="Your lenses"><div class="yr-side"><div class="yr-seclabel strong">Your lenses</div></div><div class="yr-col-story yr-lensfigs">${ls
-      .map(
-        (l) =>
-          `<figure class="yr-lensfig"><figcaption><span class="yr-lenstitle" dir="auto">${esc(l.title)}</span><span class="yr-lensnote">Your lens · updates with each statement</span></figcaption><tx-lens lens="${esc(l.id)}"></tx-lens></figure>`,
-      )
-      .join("")}</div></section>`;
-  }
-
   function savedQuestionHTML(r) {
     const story = answerStory(r.answer, runtime.derived.byId);
     return savedHTML(r, story, {
@@ -214,36 +123,7 @@ export function createYearComponent(runtime, actions) {
 
   // The story column, and the bench beside it.
   function pageHTML(band, ms, year, month, story) {
-    return `${band}<main class="yr-main"><div class="yr-story">${pickerHTML(ms, year, month)}${!year ? monthHTML(story) : picked() ? savedQuestionHTML(picked()) : yearHTML(story)}</div><aside class="yr-bench${state.compactTimeline ? " sticky" : ""}" aria-label="Details and tools">${benchHTML(ui, runtime)}</aside></main>`;
-  }
-
-  // The notes written on a period's payments, each with its day.
-  const notesHTML = (notes) =>
-    notes.length
-      ? `<div class="yr-note"><div class="yr-notelabel">Your notes</div><div class="yr-notegrid">${notes.map((n) => `<span class="yr-notedate">${esc(dayShort(n.date))}</span><span dir="auto">${esc(n.text)}</span>`).join("")}</div></div>`
-      : "";
-
-  function monthHTML(m) {
-    const periods = m.periods
-      .map(
-        (
-          p,
-        ) => `<div class="yr-headchip"><span class="yr-chipheading" title="A period you named">${esc(p.name)}</span> <span class="yr-dates">${esc(p.dates)}</span></div>
-        <div class="yr-prose">${para(p.parts)}</div>
-        ${p.description ? `<div class="yr-note"><div class="yr-notelabel">Your description</div><div class="yr-notetext" dir="auto">${esc(p.description)}</div></div>` : ""}
-        ${notesHTML(p.notes)}`,
-      )
-      .join("");
-    return `<div class="yr-intro">
-      <div class="yr-side top"><button class="yr-quiet" data-to-year>‹ Your year</button></div>
-      <div class="yr-col-story">
-        <h1>${esc(m.label)}</h1>
-        ${m.lead.length ? para(m.lead, "yr-lead month") : ""}
-        ${periods}
-        <div class="yr-prose after">${m.paragraphs.map((p) => para(p)).join("")}</div>
-        ${m.numbersHint ? `<p class="yr-hint yr-numhint">Turn on Numbers to see each thread against its budget.</p>` : ""}
-      </div>
-    </div>`;
+    return `${band}<main class="yr-main"><div class="yr-story">${pickerHTML(ms, year, month, { state, ui, picked: picked() })}${!year ? monthHTML(story) : picked() ? savedQuestionHTML(picked()) : yearHTML(story)}</div><aside class="yr-bench${state.compactTimeline ? " sticky" : ""}" aria-label="Details and tools">${benchHTML(ui, runtime)}</aside></main>`;
   }
 
   function defineYear() {
@@ -354,30 +234,6 @@ export function createYearComponent(runtime, actions) {
           state.highlight = new Set();
           actions.refresh();
         }
-        // Apply, Discard or Undo a suggested change ("#car>id1,id2").
-        suggestion(d) {
-          const key = d.suggestApply || d.suggestDiscard || d.suggestUndo;
-          if (d.suggestDiscard) ui.suggest[key] = { status: "discarded" };
-          else if (d.suggestApply) {
-            const [tags, ids] = key.split(">");
-            const { notes, previous } = retag(
-              state.notes,
-              ids.split(","),
-              tags.split(" "),
-              [],
-            );
-            state.notes = notes;
-            ui.suggest[key] = { status: "applied", previous };
-          } else {
-            state.notes = restoreNotes(
-              state.notes,
-              ui.suggest[key]?.previous ?? {},
-            );
-            delete ui.suggest[key];
-          }
-          if (!d.suggestDiscard) actions.save("notes");
-          actions.refresh();
-        }
         go(scale, month) {
           state.scale = scale;
           if (month) state.monthView = month;
@@ -441,7 +297,7 @@ export function createYearComponent(runtime, actions) {
             }
             const d = t.dataset;
             if (d.suggestApply || d.suggestDiscard || d.suggestUndo)
-              return this.suggestion(d);
+              return applySuggestion(d, ui, state, actions);
             if ("toYear" in d) this.go("year");
             else if (d.month) this.go("month", d.month);
             else if (t.classList.contains("yr-compact")) {
@@ -493,58 +349,8 @@ export function createYearComponent(runtime, actions) {
                   detail: { start: d.from, end: d.to, name },
                 }),
               );
-            } else if ("connectAi" in d) actions.openAISettings();
-            else if ("askPreview" in d) {
-              if (ui.text.trim()) ((ui.ask = "preview"), this.render());
-            } else if ("askBack" in d) ((ui.ask = "idle"), this.render());
-            else if ("askSend" in d) {
-              ui.asked = ui.text.trim();
-              ui.ask = "idle";
-              ui.text = "";
-              this.dispatchEvent(
-                new CustomEvent("tx-ask", {
-                  bubbles: true,
-                  detail: { question: ui.asked },
-                }),
-              );
-            } else if (d.addBudget)
-              this.dispatchEvent(
-                new CustomEvent("tx-add-budget", {
-                  bubbles: true,
-                  detail: { thread: d.addBudget },
-                }),
-              );
-            else if (d.runQuestion)
-              this.dispatchEvent(
-                new CustomEvent("tx-run-question", {
-                  bubbles: true,
-                  detail: { id: d.runQuestion },
-                }),
-              );
-            else if (d.removeQuestion) {
-              state.reports = state.reports.filter(
-                (r) => r.id !== d.removeQuestion,
-              );
-              actions.save("reports");
-              this.go("year");
-            } else if (d.changeQuestion) {
-              ui.text = picked()?.q ?? "";
-              ui.story = null;
-              ui.ask = "idle";
-              this.go("year");
-              this.querySelector("#ask")?.focus();
-            } else if ("saveQuestion" in d)
-              this.dispatchEvent(
-                new CustomEvent("tx-save-question", {
-                  bubbles: true,
-                  detail: { question: ui.asked },
-                }),
-              );
-            else if ("askAgain" in d) {
-              ui.ask = "idle";
-              this.render();
-              this.querySelector("#ask")?.focus();
-            }
+            } else
+              askClick(this, d, { ui, state, actions: benchActions, picked });
           });
         }
       },

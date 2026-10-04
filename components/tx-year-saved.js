@@ -1,6 +1,7 @@
 import { MONTHS, esc } from "../helpers.js";
 import { plain } from "../story/copy.js";
 import { suggestionWhat } from "../story/saved-question.js";
+import { restoreNotes, retag } from "../transactions/tags.js";
 
 // Questions to an assistant told as stories (artboard 3): a saved question
 // picked from the story list, and the struck sentences and "Save as a
@@ -70,4 +71,26 @@ export function savedHTML(r, story, { canRun, since, byId, suggested }) {
       <div class="yr-chips"><button class="bn-small" data-change-question="${esc(r.id)}">Change the question</button><button class="bn-small" data-remove-question="${esc(r.id)}">Remove</button></div>
     </div>
   </div>`;
+}
+
+// Apply, Discard or Undo a suggested change ("#car>id1,id2").
+export function applySuggestion(d, ui, state, actions) {
+  const key = d.suggestApply || d.suggestDiscard || d.suggestUndo;
+  if (d.suggestDiscard) ui.suggest[key] = { status: "discarded" };
+  else if (d.suggestApply) {
+    const [tags, ids] = key.split(">");
+    const { notes, previous } = retag(
+      state.notes,
+      ids.split(","),
+      tags.split(" "),
+      [],
+    );
+    state.notes = notes;
+    ui.suggest[key] = { status: "applied", previous };
+  } else {
+    state.notes = restoreNotes(state.notes, ui.suggest[key]?.previous ?? {});
+    delete ui.suggest[key];
+  }
+  if (!d.suggestDiscard) actions.save("notes");
+  actions.refresh();
 }

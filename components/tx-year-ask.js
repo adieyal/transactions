@@ -58,3 +58,59 @@ export function answeredHTML(ui, state, ai, byId) {
     ${story ? suggestionHTML(story.suggestion, byId, story.suggestion && ui.suggest[suggestKey(story.suggestion)]?.status) : ""}
     <div class="yr-chips">${save}<button class="bn-small" data-ask-again>Ask a follow-up</button></div></div></section>`;
 }
+
+// The Ask area's and a saved question's buttons, for <tx-year> (host).
+// Returns false when the click wasn't one of theirs.
+export function askClick(host, d, { ui, state, actions, picked }) {
+  if ("connectAi" in d) actions.openAISettings();
+  else if ("askPreview" in d) {
+    if (ui.text.trim()) ((ui.ask = "preview"), host.render());
+  } else if ("askBack" in d) ((ui.ask = "idle"), host.render());
+  else if ("askSend" in d) {
+    ui.asked = ui.text.trim();
+    ui.ask = "idle";
+    ui.text = "";
+    host.dispatchEvent(
+      new CustomEvent("tx-ask", {
+        bubbles: true,
+        detail: { question: ui.asked },
+      }),
+    );
+  } else if (d.addBudget)
+    host.dispatchEvent(
+      new CustomEvent("tx-add-budget", {
+        bubbles: true,
+        detail: { thread: d.addBudget },
+      }),
+    );
+  else if (d.runQuestion)
+    host.dispatchEvent(
+      new CustomEvent("tx-run-question", {
+        bubbles: true,
+        detail: { id: d.runQuestion },
+      }),
+    );
+  else if (d.removeQuestion) {
+    state.reports = state.reports.filter((r) => r.id !== d.removeQuestion);
+    actions.save("reports");
+    host.go("year");
+  } else if (d.changeQuestion) {
+    ui.text = picked()?.q ?? "";
+    ui.story = null;
+    ui.ask = "idle";
+    host.go("year");
+    host.querySelector("#ask")?.focus();
+  } else if ("saveQuestion" in d)
+    host.dispatchEvent(
+      new CustomEvent("tx-save-question", {
+        bubbles: true,
+        detail: { question: ui.asked },
+      }),
+    );
+  else if ("askAgain" in d) {
+    ui.ask = "idle";
+    host.render();
+    host.querySelector("#ask")?.focus();
+  } else return false;
+  return true;
+}
