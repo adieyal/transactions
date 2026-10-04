@@ -1,8 +1,10 @@
 import { $, esc, fmtShort } from "../helpers.js";
+import { paneShown } from "./dom.js";
 
 export function createThreads(runtime, actions) {
   const { state } = runtime;
   function renderEditor() {
+    if (!paneShown("threads")) return;
     const ta = $("#rules");
     const text = state.previewRules ?? state.rules;
     if (ta.value !== text) ta.value = text;
@@ -87,10 +89,15 @@ export function createThreads(runtime, actions) {
       ids.length === state.highlight.size &&
       ids.every((i) => state.highlight.has(i));
     if (!same) {
-      state.highlight = new Set(ids);
-      actions.renderTimeline();
+      actions.highlight(ids);
     }
   }
 
-  return { caretHighlight, renderEditor, selectRuleLine, syncGutter };
+  return {
+    caretHighlight,
+    renderEditor,
+    selectRuleLine,
+    syncGutter,
+    renders: [renderEditor],
+  };
 }

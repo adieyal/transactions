@@ -1,5 +1,5 @@
 import { $, TODAY, debounce, esc, fmt, monthName } from "../helpers.js";
-import { toast } from "./dom.js";
+import { paneShown, toast } from "./dom.js";
 
 export function createLenses(runtime, actions) {
   const { state, caps } = runtime;
@@ -99,6 +99,7 @@ export function createLenses(runtime, actions) {
   }
 
   function renderLenses() {
+    if (!paneShown("lenses")) return;
     const el = $("#lenses");
     if (!state.loaded || !runtime.derived.allTxns.length) {
       el.innerHTML = "";
@@ -137,9 +138,7 @@ export function createLenses(runtime, actions) {
           ids.length &&
           ids.length === state.highlight.size &&
           ids.every((i) => state.highlight.has(i));
-        state.highlight = same ? new Set() : new Set(ids);
-        state.selection.clear();
-        actions.renderTimeline();
+        actions.highlight(same ? [] : ids, { clearSelection: true });
         el.querySelectorAll(".bar.on,tr.on").forEach((x) =>
           x.classList.remove("on"),
         );
@@ -267,16 +266,14 @@ export function createLenses(runtime, actions) {
         : "Change with " + actions.AI();
   }, 250);
 
-  const renderLensesSoon = debounce(() => renderLenses(), 300);
-
   return {
     lensLib,
     publicTxn,
     renderLenses,
-    renderLensesSoon,
     renderView,
     rerunLens,
     runLens,
     wireLenses,
+    renders: [renderLenses],
   };
 }

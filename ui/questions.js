@@ -1,5 +1,5 @@
 import { $, TODAY, esc } from "../helpers.js";
-import { toast } from "./dom.js";
+import { paneShown, toast } from "./dom.js";
 import { MAX_SHOWN, detectMoments, findMoments } from "../story/moments.js";
 import { answerMoment } from "../story/answers.js";
 import { suggestAnswers } from "../story/assist.js";
@@ -72,7 +72,7 @@ export function createQuestions(runtime, actions) {
     const pane = $("#questions");
     open = openMoments();
     $("#qCount").textContent = open.length || "";
-    if (!pane) return;
+    if (!pane || !paneShown("questions")) return;
     const answers = Object.values(state.answers || {});
     const answered = answers.filter((a) => a.status === "answered").length;
     const skipped = answers.length - answered;
@@ -104,8 +104,7 @@ export function createQuestions(runtime, actions) {
   }
 
   function rerender() {
-    renderQuestions();
-    actions.renderMonth?.();
+    actions.redraw();
   }
 
   // Cards whose transactions are lit up on the timeline.
@@ -212,10 +211,8 @@ export function createQuestions(runtime, actions) {
         if (o.action === "threads") {
           // Light the charges up and open the Threads editor. The question
           // stays until they are in threads, or skipped.
-          state.highlight = new Set(m.txnIds);
-          state.selection.clear();
           actions.openTab("threads");
-          actions.refresh();
+          actions.highlight(m.txnIds, { clearSelection: true });
         } else if (o.source === "generic") {
           writing = { id: m.id, action: o.action, where };
           rerender();
@@ -226,9 +223,7 @@ export function createQuestions(runtime, actions) {
       if (e.target.closest("form, button, input, textarea")) return;
       // Clicking the card lights up its transactions, like a lens bar.
       const ids = m.txnIds;
-      state.highlight = sameIds(ids) ? new Set() : new Set(ids);
-      state.selection.clear();
-      actions.renderTimeline();
+      actions.highlight(sameIds(ids) ? [] : ids, { clearSelection: true });
       markCards();
     });
     pane.addEventListener("submit", (e) => {
@@ -281,5 +276,6 @@ export function createQuestions(runtime, actions) {
     wireCards,
     wirePrivacy,
     wireQuestions,
+    renders: [renderQuestions],
   };
 }

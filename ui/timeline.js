@@ -876,6 +876,29 @@ export function createTimeline(runtime, actions) {
       });
   }
 
+  // Lights up beads without selecting them. A Set is kept as given, so a
+  // caller can tell later whether the highlight is still its own.
+  function highlight(ids, { clearSelection = false } = {}) {
+    state.highlight = ids instanceof Set ? ids : new Set(ids);
+    if (clearSelection) state.selection.clear();
+    renderTimeline();
+  }
+  // Selects beads and lights them up, as clicking a citation does.
+  function select(ids) {
+    state.selection = new Set(ids);
+    state.highlight = new Set(ids);
+    actions.refresh();
+  }
+  // Nothing selected, lit up or open in the inspector.
+  function clearFocus() {
+    state.selection.clear();
+    state.highlight = new Set();
+    state.statement = null;
+    state.periodSel = null;
+    state.threadSel = null;
+    actions.refresh();
+  }
+
   // Shows or hides one account's transactions; one account always stays on.
   function toggleAccount(a) {
     const hidden = state.hiddenAccounts;
@@ -958,10 +981,14 @@ export function createTimeline(runtime, actions) {
   }
 
   return {
+    clearFocus,
+    highlight,
     renderParkbar,
     renderTimeline,
+    select,
     transferText,
     wireParkbar,
     wireTimeline,
+    renders: [renderParkbar, renderTimeline],
   };
 }

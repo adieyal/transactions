@@ -19,31 +19,37 @@ export function createInspector(runtime, actions) {
     $("#insp").addEventListener("click", (e) => {
       const c = e.target.closest("[data-cite]");
       if (c) {
-        state.selection = new Set([c.dataset.cite]);
-        state.highlight = new Set([c.dataset.cite]);
         state.periodSel = null;
         state.statement = null;
-        actions.refresh();
+        actions.select([c.dataset.cite]);
         return;
       }
       const op = e.target.closest("[data-openperiod]");
       if (op) {
-        state.periodSel = op.dataset.openperiod;
-        state.selection.clear();
-        actions.refresh();
+        actions.openPeriod(op.dataset.openperiod);
         return;
       }
       const b = e.target.closest(".bar[data-ids]");
       if (b) {
         const ids = b.dataset.ids.split(",").filter(Boolean);
-        state.highlight = new Set(ids);
-        actions.renderTimeline();
+        actions.highlight(ids);
       }
     });
   }
 
-  function renderInspector() {
+  // A refresh leaves the inspector alone while someone types in one of its
+  // text fields (a period's name, a note), so the field keeps its caret.
+  // Any other call redraws it.
+  function renderInspector({ fromRefresh = false } = {}) {
     const el = $("#insp");
+    if (
+      fromRefresh &&
+      el.contains(document.activeElement) &&
+      document.activeElement.matches(
+        "textarea, input:not([type]), input[type=text], input[type=search]",
+      )
+    )
+      return;
     if (!state.loaded || !runtime.derived.allTxns.length) {
       el.innerHTML = "";
       return;
@@ -245,7 +251,6 @@ export function createInspector(runtime, actions) {
     }
     $("#askThese")?.addEventListener("click", () => {
       actions.openTab("ask");
-      actions.renderAskCtx();
       $("#askInput").focus();
     });
   }
@@ -305,5 +310,9 @@ export function createInspector(runtime, actions) {
       );
   }
 
-  return { renderInspector, wireInspector };
+  return {
+    renderInspector,
+    wireInspector,
+    renders: [() => renderInspector({ fromRefresh: true })],
+  };
 }

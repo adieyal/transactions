@@ -14,11 +14,7 @@ export function createTour(runtime, actions) {
     card = null;
 
   const clear = () => {
-    state.selection.clear();
-    state.highlight = new Set();
-    state.periodSel = null;
-    state.threadSel = null;
-    actions.refresh();
+    actions.clearFocus();
   };
   // The demo's biggest burst of purchases: the move. Once answered with a
   // period it is no longer a burst outside a period, so use that period.
@@ -45,7 +41,6 @@ export function createTour(runtime, actions) {
     clear();
     state.monthView = month;
     actions.openTab("month");
-    actions.renderMonth();
     actions.resetPanelScroll();
   };
   const movePeriod = (move) =>
@@ -74,8 +69,7 @@ export function createTour(runtime, actions) {
           const phrase = $("#month .mp-overview .sp");
           if (!phrase) return;
           phrase.classList.add("on");
-          state.highlight = new Set(phrase.dataset.ids.split(","));
-          actions.renderTimeline();
+          actions.highlight(phrase.dataset.ids.split(","));
         },
       },
       !state.answers[move.id] && {
@@ -103,8 +97,7 @@ export function createTour(runtime, actions) {
               label: "Moving house",
             });
           showMonth(move.month);
-          state.highlight = new Set(move.txnIds);
-          actions.renderTimeline();
+          actions.highlight(move.txnIds);
         },
       },
       {

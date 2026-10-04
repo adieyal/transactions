@@ -105,7 +105,7 @@ export function createPeriods(runtime, actions) {
         p.start = e.target.value;
         if (p.end < p.start) p.end = p.start;
         upd();
-        actions.renderInspector();
+        actions.refresh();
       }
     });
     $("#pEnd").addEventListener("change", (e) => {
@@ -113,7 +113,7 @@ export function createPeriods(runtime, actions) {
         p.end = e.target.value;
         if (p.end < p.start) p.start = p.end;
         upd();
-        actions.renderInspector();
+        actions.refresh();
       }
     });
     $("#pStory")?.addEventListener("input", (e) => {
@@ -123,12 +123,12 @@ export function createPeriods(runtime, actions) {
     $("#pStory")?.addEventListener("blur", () => {
       if (p.story) {
         state.storyEdit = null;
-        actions.renderInspector();
+        actions.refresh();
       }
     });
     $("#pEdit")?.addEventListener("click", () => {
       state.storyEdit = p.id;
-      actions.renderInspector();
+      actions.refresh();
       $("#pStory")?.focus();
     });
     $("#pFilter").onclick = () => {
@@ -140,7 +140,7 @@ export function createPeriods(runtime, actions) {
     $("#pRemove").onclick = () => removePeriod(p.id);
     $("#pRegular").onchange = (e) => {
       state.periodRegular = e.target.checked;
-      actions.renderInspector();
+      actions.refresh();
     };
     $("#pDraftStory")?.addEventListener("click", () => draftStory(p));
   }
@@ -200,13 +200,13 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
       p.story = r.text.trim();
       state.storyEdit = null;
       actions.save("periods");
-      actions.renderInspector();
+      actions.refresh();
       toast("Story drafted. Edit it however you like.", 9000, {
         label: "Undo",
         fn: () => {
           p.story = before;
           actions.save("periods");
-          actions.renderInspector();
+          actions.refresh();
         },
       });
     } catch (e) {
@@ -258,5 +258,13 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
     return p;
   }
 
-  return { addPeriod, removePeriod, renderPeriodInspector };
+  // Opens a period in the inspector, in place of any selection or statement.
+  function openPeriod(id) {
+    state.periodSel = id;
+    state.selection.clear();
+    state.statement = null;
+    actions.refresh();
+  }
+
+  return { addPeriod, openPeriod, removePeriod, renderPeriodInspector };
 }

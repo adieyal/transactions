@@ -4,6 +4,7 @@ import { summarizeMonth } from "../story/summary.js";
 import { polishFacts, polishSummary } from "../story/assist.js";
 import { monthLong } from "../story/copy.js";
 import { phraseHTML, wireHoverHighlight } from "./highlight.js";
+import { paneShown } from "./dom.js";
 
 export function createMonth(runtime, actions) {
   const { state, caps } = runtime;
@@ -36,7 +37,7 @@ export function createMonth(runtime, actions) {
 
   function renderMonth() {
     const el = $("#month");
-    if (!el || !state.loaded) return;
+    if (!el || !state.loaded || !paneShown("month")) return;
     const ms = months();
     if (!ms.length) {
       el.innerHTML = `<p class="sub">No statements yet. Add some and a summary of each month appears here.</p>`;
@@ -132,5 +133,5 @@ export function createMonth(runtime, actions) {
     actions.wireCards(el, "month");
   }
 
-  return { renderMonth, wireMonth };
+  return { renderMonth, wireMonth, renders: [renderMonth] };
 }

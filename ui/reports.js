@@ -1,5 +1,5 @@
 import { $, TODAY, esc, fmtDate, fnv } from "../helpers.js";
-import { toast } from "./dom.js";
+import { paneShown, toast } from "./dom.js";
 
 export function createReports(runtime, actions) {
   const { state, caps } = runtime;
@@ -10,7 +10,7 @@ export function createReports(runtime, actions) {
 
   function renderReports() {
     const el = $("#reports");
-    if (!el) return;
+    if (!el || !paneShown("reports")) return;
     const stale = staleReports().length;
     let h = caps.sample
       ? ""
@@ -126,10 +126,8 @@ export function createReports(runtime, actions) {
       }
       const c = e.target.closest("[data-cite]");
       if (c) {
-        state.selection = new Set([c.dataset.cite]);
-        state.highlight = new Set([c.dataset.cite]);
         state.periodSel = null;
-        actions.refresh();
+        actions.select([c.dataset.cite]);
         $("#tlwrap").scrollIntoView({ block: "nearest", behavior: "smooth" });
       }
     });
@@ -151,5 +149,12 @@ export function createReports(runtime, actions) {
     });
   }
 
-  return { addReport, renderReports, runStale, staleReports, wireReports };
+  return {
+    addReport,
+    renderReports,
+    runStale,
+    staleReports,
+    wireReports,
+    renders: [renderReports],
+  };
 }

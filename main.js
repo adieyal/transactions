@@ -1,7 +1,7 @@
 import { createBackupImport } from "./ui/backup.js";
 import { saveBrowserDownload } from "./downloads.js";
 import { createDemoData } from "./demo.js";
-import { $, debounce } from "./helpers.js";
+import { debounce } from "./helpers.js";
 import { dbBackend, localBackend } from "./storage.js";
 import { toast } from "./ui/dom.js";
 import { createRuntime } from "./state.js";
@@ -34,46 +34,48 @@ const actions = {
   },
 };
 
-Object.assign(actions, createPersistence(runtime, actions));
-Object.assign(actions, createFilter(runtime, actions));
-Object.assign(actions, createTimeline(runtime, actions));
-Object.assign(actions, createTags(runtime, actions));
-Object.assign(actions, createInspector(runtime, actions));
-Object.assign(actions, createPeriods(runtime, actions));
-Object.assign(actions, createQuestions(runtime, actions));
-Object.assign(actions, createMonth(runtime, actions));
-Object.assign(actions, createThreadSummary(runtime, actions));
-Object.assign(actions, createReports(runtime, actions));
-Object.assign(actions, createThreads(runtime, actions));
-Object.assign(actions, createLenses(runtime, actions));
-Object.assign(actions, createChrome(runtime, actions));
-Object.assign(actions, createAssistantSettings(runtime, actions));
-Object.assign(actions, createSuggestions(runtime, actions));
-Object.assign(actions, createChat(runtime, actions));
-Object.assign(actions, createImport(runtime, actions));
-Object.assign(actions, createBackupImport(runtime, actions));
-Object.assign(actions, createTour(runtime, actions));
-Object.assign(actions, createLensEditor(runtime, actions));
+// Each factory's functions join actions; the renders it lists are called,
+// in registration order, by every refresh. A render returns early when its
+// pane is hidden, so this order is also the order on screen updates.
+const renders = [];
+function register({ renders: own = [], ...provided }) {
+  Object.assign(actions, provided);
+  renders.push(...own);
+}
 
-function renderAll() {
+register(createPersistence(runtime, actions));
+register(createChrome(runtime, actions));
+register(createFilter(runtime, actions));
+register(createTimeline(runtime, actions));
+register(createTags(runtime, actions));
+register(createQuestions(runtime, actions));
+register(createMonth(runtime, actions));
+register(createReports(runtime, actions));
+register(createThreads(runtime, actions));
+register(createInspector(runtime, actions));
+register(createPeriods(runtime, actions));
+register(createThreadSummary(runtime, actions));
+register(createLenses(runtime, actions));
+register(createAssistantSettings(runtime, actions));
+register(createSuggestions(runtime, actions));
+register(createChat(runtime, actions));
+register(createImport(runtime, actions));
+register(createBackupImport(runtime, actions));
+register(createTour(runtime, actions));
+register(createLensEditor(runtime, actions));
+
+// The one way the screen catches up with state: re-derive, then every
+// registered render. redraw() skips deriving, for a change of tab or layout.
+function redraw() {
   if (!runtime.state.loaded) {
     actions.renderTimeline();
     return;
   }
-  actions.derive();
-  actions.renderChrome();
-  actions.renderFilterBar();
-  actions.renderParkbar();
-  actions.renderQuestions();
-  actions.renderMonth();
-  if ($("#pane-reports").classList.contains("on")) actions.renderReports();
-  actions.renderTimeline();
-  actions.renderEditor();
-  actions.renderInspector();
-  actions.renderLenses();
-  actions.renderAskCtx();
-  if ($("#pane-ask").classList.contains("on")) actions.renderLog();
-  if ($("#pane-reports").classList.contains("on")) actions.renderReports();
+  for (const render of renders) render();
+}
+function refresh() {
+  if (runtime.state.loaded) actions.derive();
+  redraw();
 }
 
 async function useCap(name) {
@@ -157,19 +159,11 @@ async function boot() {
   }
   actions.applyPanel();
   runtime.state.loaded = true;
-  renderAll();
+  refresh();
   actions.maybeStartTour();
 }
 
-const refreshSoon = debounce(() => {
-  actions.derive();
-  actions.renderQuestions();
-  actions.renderMonth();
-  actions.renderFilterBar();
-  actions.renderTimeline();
-  actions.renderEditor();
-  actions.renderLenses();
-}, 250);
-Object.assign(actions, { refresh: renderAll, renderAll, refreshSoon });
+const refreshSoon = debounce(refresh, 250);
+Object.assign(actions, { redraw, refresh, refreshSoon });
 
 boot();

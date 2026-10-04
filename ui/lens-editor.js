@@ -342,7 +342,7 @@ export function createLensEditor(runtime, actions) {
     view = null;
     lensId = null;
     $("#lensDlg").close();
-    actions.renderLenses();
+    actions.redraw();
   }
 
   function wireLensEditor() {

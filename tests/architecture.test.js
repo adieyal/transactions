@@ -337,12 +337,11 @@ test("only the named adapters use the network or browser storage", () => {
 
 test("every actions.X call has exactly one provider", async () => {
   // main.js registers the factories; each must build without a DOM and
-  // without touching actions, so it can be built here.
+  // without touching actions, so it can be built here. A factory's `renders`
+  // list goes to the refresh path, not onto actions.
   const main = SOURCE["main.js"];
   const registered = [
-    ...main.matchAll(
-      /Object\.assign\(actions, (create\w+)\(runtime, actions\)\)/g,
-    ),
+    ...main.matchAll(/register\((create\w+)\(runtime, actions\)\)/g),
   ].map((m) => m[1]);
   const factoryFile = {};
   for (const [, names, spec] of main.matchAll(
@@ -382,12 +381,12 @@ test("every actions.X call has exactly one provider", async () => {
       );
       const made = mod[name](createRuntime(), untouchable);
       for (const key of Object.keys(made))
-        (providers[key] ||= []).push(factoryFile[name]);
+        if (key !== "renders") (providers[key] ||= []).push(factoryFile[name]);
     }
   } finally {
     globalThis.localStorage = saved;
   }
-  // main.js provides derive() up front and refresh/renderAll/refreshSoon last.
+  // main.js provides derive() up front and redraw/refresh/refreshSoon last.
   const own = [
     ...(main.match(/const actions = \{([\s\S]*?)\n\};/)?.[1] || "").matchAll(
       /^ {2}(\w+)\(/gm,

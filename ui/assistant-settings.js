@@ -103,7 +103,7 @@ export function createAssistantSettings(runtime, actions) {
       saveAI(c);
       $("#aiNote").textContent = "Key removed from this browser.";
       applyProvider();
-      actions.renderAll();
+      actions.refresh();
     };
     $("#aiCancel").onclick = () => dlg.close();
     $("#aiSave").onclick = () => {
@@ -116,7 +116,7 @@ export function createAssistantSettings(runtime, actions) {
       saveAI(c);
       applyProvider();
       dlg.close();
-      actions.renderAll();
+      actions.refresh();
       toast(
         caps.sample
           ? `${AI()} will handle suggestions, lenses and questions.`
@@ -136,7 +136,7 @@ export function createAssistantSettings(runtime, actions) {
         if (caps.sample === caps.claude) {
           caps.claude = null;
           applyProvider();
-          actions.renderAll();
+          actions.refresh();
         }
         return "Claude isn't allowed in this view. Pick another assistant under More → AI assistant settings.";
       case "rate_limited":

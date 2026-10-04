@@ -344,14 +344,16 @@ flowchart LR
 
 ### When to re-render what
 
-| Situation                                                                       | Call                                                                         |
-| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Any change to saved or shared session state                                     | `actions.refresh()`: re-derives, then calls every registered render          |
-| A change while typing (rules, notes, names, story)                              | `actions.refreshSoon()`: the same, debounced at 250 ms                       |
-| A hot interaction inside one view (dragging a budget or period, moving a lasso) | That module's own render, directly. Only within the module.                  |
-| An expensive view (lenses run user code)                                        | The module debounces inside its own render, as `renderLensesSoon` does today |
+| Situation                                                                       | Call                                                                      |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Any change to saved or shared session state                                     | `actions.refresh()`: re-derives, then calls every registered render       |
+| A change while typing (rules, notes, names, story)                              | `actions.refreshSoon()`: the same, debounced at 250 ms                    |
+| A new tab, or something that changes no derived data (a saved lens)             | `actions.redraw()`: every registered render, without re-deriving          |
+| Lighting up or selecting beads, opening a period, clearing the focus            | `actions.highlight(ids)`, `select(ids)`, `openPeriod(id)`, `clearFocus()` |
+| A hot interaction inside one view (dragging a budget or period, moving a lasso) | That module's own render, directly. Only within the module.               |
+| An expensive view (lenses run user code)                                        | Its render returns early unless its pane is open                          |
 
-A render checks whether its pane is visible and returns early if not. The visibility checks for reports and Ask move out of `main.js:63,70` into those modules' renders.
+A factory lists its refresh renders in a `renders` array in the object it returns, and `main.js` calls them in registration order. A render checks whether its pane is open (`paneShown` in `ui/dom.js`) and returns early if not; `openTab` calls `redraw()` so the opened pane catches up. The inspector skips a refresh while someone is typing in one of its text fields, so the field keeps its caret. The calls left outside the owning module are deliberate: the timeline relayout when the panel or window changes size, the inspector's period and thread sub-renders, the privacy chip inside `renderChrome`, and the lens view helper `renderView`.
 
 ## 5. Testing conventions
 
@@ -408,20 +410,20 @@ Until the registry exists (backlog R1), the story-first UI modules follow today'
 
 Each step is small, keeps behaviour unchanged, and has a backlog entry with the same id in `docs/refactor-backlog.md`. Steps that touch many `ui/` files or `main.js` wait until the current story-first milestone has merged, so the two branches don't conflict.
 
-| Step | Change                                                                                                              | Answers review finding |
-| ---- | ------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| R1   | `contract` exports, `registry.js`, the scoped `actions` proxy, the contract test                                    | 1                      |
-| R2   | Boot, saves and backups derived from `documents.js`; the `demo`/`workspace` key reconciled (done)                   | 2                      |
-| R3   | One refresh path: registered renders, `highlight`/`select`/`clearFocus` commands, duplicate `renderReports` removed | 3, 5                   |
-| R4   | Pure logic out of UI: rules-text editing, assistant tools, period statistics, tags, the lens runner                 | 4                      |
-| R5   | Split `helpers.js`: `$` to `ui/dom.js`, `TODAY` injected                                                            | 7                      |
-| R6   | Browser file readers out of `transactions/import.js`                                                                | 7                      |
-| R7   | `persistence.js` and `suggestions.js` stop importing `ui/dom.js`                                                    | 7                      |
-| R8   | `renderTimeline` layout to a pure `ui/timeline-layout.js`                                                           | 6                      |
-| R9   | Split `ui/chat.js` into tools, prompts and log rendering                                                            | 6                      |
-| R10  | `html` tag and delegated events, adopted as modules are touched                                                     | 8                      |
-| R11  | `localStorage` keys into `storage.js`                                                                               | 8                      |
-| R12  | Fonts and SheetJS bundled or lazy-loaded (needs the user's decision)                                                | 10                     |
+| Step | Change                                                                                                                     | Answers review finding |
+| ---- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| R1   | `contract` exports, `registry.js`, the scoped `actions` proxy, the contract test                                           | 1                      |
+| R2   | Boot, saves and backups derived from `documents.js`; the `demo`/`workspace` key reconciled (done)                          | 2                      |
+| R3   | One refresh path: registered renders, `highlight`/`select`/`clearFocus` commands, duplicate `renderReports` removed (done) | 3, 5                   |
+| R4   | Pure logic out of UI: rules-text editing, assistant tools, period statistics, tags, the lens runner                        | 4                      |
+| R5   | Split `helpers.js`: `$` to `ui/dom.js`, `TODAY` injected                                                                   | 7                      |
+| R6   | Browser file readers out of `transactions/import.js`                                                                       | 7                      |
+| R7   | `persistence.js` and `suggestions.js` stop importing `ui/dom.js`                                                           | 7                      |
+| R8   | `renderTimeline` layout to a pure `ui/timeline-layout.js`                                                                  | 6                      |
+| R9   | Split `ui/chat.js` into tools, prompts and log rendering                                                                   | 6                      |
+| R10  | `html` tag and delegated events, adopted as modules are touched                                                            | 8                      |
+| R11  | `localStorage` keys into `storage.js`                                                                                      | 8                      |
+| R12  | Fonts and SheetJS bundled or lazy-loaded (needs the user's decision)                                                       | 10                     |
 
 ## 9. Guardrails
 

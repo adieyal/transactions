@@ -15,14 +15,12 @@ export function wireHoverHighlight(el, runtime, actions) {
     sp.classList.add("on");
     if (!(hovered && state.highlight === hovered)) before = state.highlight;
     hovered = new Set(ids);
-    state.highlight = hovered;
-    actions.renderTimeline();
+    actions.highlight(hovered);
   }
   function hide(sp) {
     sp.classList.remove("on");
     if (hovered && state.highlight === hovered) {
-      state.highlight = before ?? new Set();
-      actions.renderTimeline();
+      actions.highlight(before ?? new Set());
     }
     hovered = before = null;
   }

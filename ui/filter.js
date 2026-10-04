@@ -67,13 +67,8 @@ export function createFilter(runtime, actions) {
     const input = $("#q");
     const redraw = debounce(() => {
       state.selection.clear();
-      state.highlight.clear();
-      actions.derive();
-      renderFilterBar();
-      actions.renderTimeline();
-      actions.renderEditor();
-      actions.renderInspector();
-      actions.renderLenses();
+      state.highlight = new Set();
+      actions.refresh();
     }, 120);
     const apply = () => {
       state.query = input.value;
@@ -116,5 +111,5 @@ export function createFilter(runtime, actions) {
     });
   }
 
-  return { renderFilterBar, wireFilter };
+  return { renderFilterBar, wireFilter, renders: [renderFilterBar] };
 }

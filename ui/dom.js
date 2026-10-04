@@ -22,4 +22,9 @@ function toast(msg, t = 4200, action) {
     action ? Math.max(t, 9000) : t,
   );
 }
-export { toast };
+// Whether a side-panel pane is the open tab. Renders for a pane return early
+// when it isn't; opening the tab redraws it.
+const paneShown = (name) =>
+  !!document.getElementById("pane-" + name)?.classList.contains("on");
+
+export { paneShown, toast };

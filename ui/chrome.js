@@ -62,12 +62,8 @@ export function createChrome(runtime, actions) {
         $("#pane-" + w).classList.toggle("on", w === which);
       },
     );
-    if (which === "ask") {
-      actions.renderAskCtx();
-      actions.renderLog();
-    }
-    if (which === "reports") actions.renderReports();
-    if (which === "questions") actions.renderQuestions();
+    // Hidden panes skip their renders, so the one just opened catches up.
+    actions.redraw();
   }
 
   function wireChrome() {
@@ -117,11 +113,7 @@ export function createChrome(runtime, actions) {
       if (state.previewRules != null) return;
       state.rules = ta.value;
       actions.save("rules");
-      actions.derive();
-      actions.renderTimeline();
-      actions.renderEditor();
-      actions.renderInspector();
-      actions.renderLensesSoon();
+      actions.refresh();
       actions.caretHighlight();
     });
     ta.addEventListener("scroll", actions.syncGutter);
@@ -131,8 +123,7 @@ export function createChrome(runtime, actions) {
     ta.addEventListener("blur", () =>
       setTimeout(() => {
         if (document.activeElement !== ta && state.highlight.size) {
-          state.highlight.clear();
-          actions.renderTimeline();
+          actions.highlight([]);
         }
       }, 150),
     );
@@ -191,7 +182,7 @@ export function createChrome(runtime, actions) {
           if (!have.has(l.id)) state.lenses.push({ ...l });
         });
         actions.save("lenses");
-        actions.renderLenses();
+        actions.redraw();
         return;
       }
       if (!caps.downloads) {
@@ -225,12 +216,7 @@ export function createChrome(runtime, actions) {
         return;
       }
       if (e.key === "Escape" && !$("#mapDlg").open) {
-        state.selection.clear();
-        state.highlight.clear();
-        state.statement = null;
-        state.periodSel = null;
-        state.threadSel = null;
-        actions.refresh();
+        actions.clearFocus();
       }
     });
     new ResizeObserver(
@@ -238,5 +224,12 @@ export function createChrome(runtime, actions) {
     ).observe($("#tl"));
   }
 
-  return { applyPanel, openTab, renderChrome, resetPanelScroll, wireChrome };
+  return {
+    applyPanel,
+    openTab,
+    renderChrome,
+    resetPanelScroll,
+    wireChrome,
+    renders: [renderChrome],
+  };
 }

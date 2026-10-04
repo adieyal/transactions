@@ -1,4 +1,5 @@
 import { $, TODAY, esc, fmt, monthOf, normText } from "../helpers.js";
+import { paneShown } from "./dom.js";
 import { PALETTE } from "../transactions/constants.js";
 
 export function createChat(runtime, actions) {
@@ -438,6 +439,7 @@ export function createChat(runtime, actions) {
   let askCtl = null;
 
   function renderAskCtx() {
+    if (!paneShown("ask")) return;
     const n = [...state.selection].filter((id) =>
       runtime.derived?.byId.has(id),
     ).length;
@@ -483,6 +485,7 @@ export function createChat(runtime, actions) {
   }
 
   function renderLog() {
+    if (!paneShown("ask")) return;
     renderAskMem();
     const log = $("#log");
     $("#askoff").innerHTML = caps.sample
@@ -625,8 +628,7 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
         .map((m) => m[1])
         .filter((id) => runtime.derived.byId.has(id));
       if (cited.length) {
-        state.highlight = new Set(cited);
-        actions.renderTimeline();
+        actions.highlight(cited);
       }
     } catch (e) {
       reply.content = e.text || "";
@@ -690,9 +692,7 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
       const sn = e.target.closest("[data-shownoted]");
       if (sn) {
         const t = state.turns[+sn.dataset.shownoted];
-        state.highlight = new Set(Object.keys(t.undo || {}));
-        state.selection.clear();
-        actions.renderTimeline();
+        actions.highlight(Object.keys(t.undo || {}), { clearSelection: true });
         $("#tlwrap").scrollIntoView({ block: "nearest", behavior: "smooth" });
         return;
       }
@@ -702,10 +702,7 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
       }
       const op = e.target.closest("[data-openperiod]");
       if (op) {
-        state.periodSel = op.dataset.openperiod;
-        state.selection.clear();
-        state.statement = null;
-        actions.refresh();
+        actions.openPeriod(op.dataset.openperiod);
         $("#insp").scrollIntoView({ block: "nearest", behavior: "smooth" });
         return;
       }
@@ -717,9 +714,7 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
       }
       const c = e.target.closest("[data-cite]");
       if (c) {
-        state.selection = new Set([c.dataset.cite]);
-        state.highlight = new Set([c.dataset.cite]);
-        actions.refresh();
+        actions.select([c.dataset.cite]);
         $("#tlwrap").scrollIntoView({ block: "nearest", behavior: "smooth" });
         return;
       }
@@ -738,7 +733,7 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
             code: r.code,
           });
           actions.save("lenses");
-          actions.renderLenses();
+          actions.redraw();
           l.textContent = "Added to Lenses";
           actions.openTab("lenses");
           $("#lenses .lens:last-of-type")?.scrollIntoView({
@@ -752,5 +747,13 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
     });
   }
 
-  return { buildIntro, callAssistant, md, renderAskCtx, renderLog, wireAsk };
+  return {
+    buildIntro,
+    callAssistant,
+    md,
+    renderAskCtx,
+    renderLog,
+    wireAsk,
+    renders: [renderAskCtx, renderLog],
+  };
 }

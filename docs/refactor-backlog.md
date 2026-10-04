@@ -15,7 +15,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 | ---: | --------------------------------------------------------------------------------------------------------------- | :---------: | :--------: | ---------------------------------------------------------------------------- | :------------------------------: |
 |    0 | [M0](#m0-merge-tasks-for-story-first) Merge tasks                                                               |      S      |    Low     | `answers`, `merchantAnswers` (done; adds `dismissed` under R2)               |           is the merge           |
 |    1 | [R2](#r2-derive-boot-saves-and-backups-from-documentsjs) Derive boot, saves and backups from `documents.js`     |      M      |   Medium   | `workspace is missing from: save`, `main.js writes undeclared document demo` |        **Done** (`next`)         |
-|    2 | [R3](#r3-one-refresh-path) One refresh path                                                                     |      M      |   Medium   | none (removes the duplicate `renderReports` call)                            |               Yes                |
+|    2 | [R3](#r3-one-refresh-path) One refresh path                                                                     |      M      |   Medium   | none (removes the duplicate `renderReports` call)                            |        **Done** (`next`)         |
 |    3 | [R1](#r1-declared-module-contracts-and-registry) Declared module contracts and registry                         |      M      |    Low     | none (turns the provider test into a contract test)                          |               Yes                |
 |    4 | [R4](#r4-pure-logic-out-of-the-ui) Pure logic out of the UI                                                     | L (4 × S/M) | Low–medium | none directly; shrinks `ui/chat.js` and `ui/timeline.js`                     |        Mostly yes; R4d no        |
 |    5 | [R6](#r6-browser-file-readers-out-of-transactionsimportjs) Browser file readers out of `transactions/import.js` |      S      |    Low     | 3: `transactions/import.js uses window`, `… DOMParser`, `… XLSX`             |              **No**              |
@@ -83,6 +83,12 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Size:** M. **Risk:** medium. Render order and cost change, so profile typing in the rules editor on the demo year before and after.
 - **Removes:** no allowlist entries. Consider adding a guardrail afterwards: no `actions.render…` calls outside the owning module.
 - **Wait:** yes. `ui/month.js` and `ui/questions.js` are new render targets.
+- **Done** on branch `next`, 4 October 2026:
+  - **Registered renders.** Factories return `renders: [...]`, and `main.js` collects them with `register()` in registration order: chrome, filter bar, parkbar, timeline, questions, month, reports, editor, inspector, lenses, Ask. `refresh()` re-derives and calls them all. `refreshSoon()` is `refresh` debounced at 250 ms, and `redraw()` renders without deriving.
+  - **One list instead of four.** `renderAll`, the old `refreshSoon` list, the rules input and the filter now all go through `refresh`, and the duplicate `renderReports` call is gone.
+  - **Hidden panes.** Month, questions (apart from the badge and the open list), reports, lenses, the threads editor and Ask return early while their pane is hidden, and `openTab` calls `redraw()`. The inspector skips a refresh while someone types in one of its text fields.
+  - **New commands.** `highlight(ids, { clearSelection })`, `select(ids)` and `clearFocus()` in `ui/timeline.js`, and `openPeriod(id)` in `ui/periods.js`. They replace 19 hand-written sequences. Of the 34 cross-module `renderX()` calls, 7 deliberate ones remain (listed in docs/architecture.md section 4).
+  - **Cost.** Typing in the rules editor on the demo year takes a median of 14.7 ms a keystroke, against 15.1 ms before (headless Chrome, 30 keystrokes).
 
 ### R1. Declared module contracts and registry
 
