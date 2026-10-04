@@ -614,7 +614,7 @@ tx-year[hidden]{display:none}
 .yr-pchip{position:absolute; bottom:4px; font:600 14px var(--ui); white-space:nowrap; color:var(--ink); background:none; border:0; padding:0; cursor:pointer}
 .yr-schip.sp{position:absolute; bottom:1px; height:25px; display:inline-flex; align-items:center; gap:6px; padding:0 8px; border-radius:6px; font:500 13px var(--ui); white-space:nowrap; color:var(--ink); cursor:pointer; background:var(--band); border:1.5px dashed #7d878a}
 .yr-q{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:9px; background:#1e2528; color:#f3f4f0; font-size:12px; font-weight:600}
-.yr-rows{position:relative; user-select:none}
+.yr-rows{position:relative; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none}
 .yr-grid{position:absolute; left:170px; right:0; top:0; bottom:0; pointer-events:none}
 .yr-gridline{position:absolute; top:0; bottom:0; width:1px; background:var(--gridline)}
 .yr-future{position:absolute; top:0; bottom:0; right:0; background:repeating-linear-gradient( 135deg, rgba(30, 37, 40, 0.045) 0 5px, transparent 5px 11px )}

@@ -107,3 +107,58 @@ test("a suggested change is taken out of the answer and offered", () => {
   );
   assert.equal(answerStory("No change here.", derived.byId).suggestion, null);
 });
+
+test("a touch on the timeline scrolls when it moves at once, and gathers after a hold", async () => {
+  const { touchIntent, HOLD_MS, SLOP_PX } =
+    await import("../components/tx-year-gather.js");
+  assert.equal(touchIntent(100, 2), "wait");
+  assert.equal(touchIntent(100, SLOP_PX + 1), "scroll");
+  assert.equal(touchIntent(HOLD_MS, 0), "gather");
+  assert.equal(touchIntent(HOLD_MS + 200, SLOP_PX + 40), "gather");
+});
+
+test("the lens view shows the lens's title, its code and the six drawn reference rows", async () => {
+  const { lensViewHTML, lensViewClick } =
+    await import("../components/tx-year-lens.js");
+  const runtime = {
+    state: {
+      lenses: [{ id: "l1", title: "Cats & <dogs>", code: "return {a:1<2};" }],
+    },
+  };
+  assert.equal(lensViewHTML({}, runtime), "");
+  const h = lensViewHTML({ lensView: "l1" }, runtime);
+  assert.match(h, /<h2 dir="auto">Cats &amp; &lt;dogs&gt;<\/h2>/);
+  assert.match(h, /<pre class="bn-lv-code">return \{a:1&lt;2\};<\/pre>/);
+  assert.deepEqual(
+    [...h.matchAll(/<dt>(.*?)<\/dt>/g)].map((m) => m[1]),
+    [
+      "id",
+      "date",
+      "merchant · original",
+      "amount",
+      "thread · tags · note · period",
+      "lib.expected",
+    ],
+  );
+  const ui = {};
+  const opened = [];
+  const actions = { openLensEditor: (id) => opened.push(id) };
+  assert.ok(lensViewClick({ lensEdit: "l1" }, ui, actions));
+  assert.equal(ui.lensView, "l1");
+  assert.ok(lensViewClick({ lensOpenEditor: "l1" }, ui, actions));
+  assert.equal(ui.lensView, null);
+  assert.deepEqual(opened, ["l1"]);
+  assert.equal(lensViewClick({}, ui, actions), false);
+});
+
+test("new workspaces start with the two drawn lenses; the third stays the app's own", async () => {
+  const { STARTER_LENSES, OTHER_LENSES } = await import("../defaults.js");
+  assert.deepEqual(
+    STARTER_LENSES.map((l) => l.title),
+    ["Already spoken for", "Things that keep coming back"],
+  );
+  assert.deepEqual(
+    OTHER_LENSES.map((l) => l.id),
+    ["l-where"],
+  );
+});
