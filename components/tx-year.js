@@ -275,6 +275,27 @@ export function createYearComponent(runtime, actions) {
           // Click a bead for its details; shift-click to add or take it out.
           wireGather(this, (ids, add) => this.pick(ids, add));
           wireLensView(this);
+          // A question sent from the Ask section folds the timeline to its
+          // compact strip, as a selection does (Copy rules s9), so the
+          // question and its progress stay in view below it.
+          const sent = (e) => {
+            if (!this.chat?.contains(e.target) || state.compactTimeline) return;
+            state.compactTimeline = true;
+            this.render();
+            const q = this.chat.querySelectorAll(".q");
+            q[q.length - 1]?.scrollIntoView({ block: "nearest" });
+          };
+          this.addEventListener("click", (e) => {
+            if (e.target.closest(".ch-send, [data-sug]")) sent(e);
+          });
+          this.addEventListener("keydown", (e) => {
+            if (
+              e.key === "Enter" &&
+              !e.shiftKey &&
+              e.target.closest(".ch-input")
+            )
+              sent(e);
+          });
           this.addEventListener("click", (e) => {
             const bead = e.target.closest(".yr-bead[data-id]");
             if (bead) return this.pick([bead.dataset.id], e.shiftKey);
