@@ -109,6 +109,36 @@ const HTML_ALLOW = [
   { v: "ui/tour.js sets innerHTML from a plain template", fix: "R10" },
 ];
 
+// UI modules that look things up outside their own element, with $("#…") or
+// document-level queries (ADR 0009). Components never may; these convert in
+// the steps named.
+const REACH_ALLOW = [
+  // R13: what the Story view needs first: the timeline, the inspector, periods, threads and the question cards.
+  { v: "ui/timeline.js reaches outside itself", fix: "R13" },
+  { v: "ui/timeline-drag.js reaches outside itself", fix: "R13" },
+  { v: "ui/timeline-labels.js reaches outside itself", fix: "R13" },
+  { v: "ui/timeline-text.js reaches outside itself", fix: "R13" },
+  { v: "ui/inspector.js reaches outside itself", fix: "R13" },
+  { v: "ui/periods.js reaches outside itself", fix: "R13" },
+  { v: "ui/thread-summary.js reaches outside itself", fix: "R13" },
+  { v: "ui/threads.js reaches outside itself", fix: "R13" },
+  { v: "ui/questions.js reaches outside itself", fix: "R13" },
+  // R14: the other side-panel panes.
+  { v: "ui/lenses.js reaches outside itself", fix: "R14" },
+  { v: "ui/lens-editor.js reaches outside itself", fix: "R14" },
+  { v: "ui/reports.js reaches outside itself", fix: "R14" },
+  { v: "ui/chat.js reaches outside itself", fix: "R14" },
+  { v: "suggestions.js reaches outside itself", fix: "R14" },
+  { v: "ui/filter.js reaches outside itself", fix: "R14" },
+  // R15: the app shell and dialogs; ui/dom.js keeps `$` until the last caller goes.
+  { v: "ui/chrome.js reaches outside itself", fix: "R15" },
+  { v: "ui/import.js reaches outside itself", fix: "R15" },
+  { v: "ui/backup.js reaches outside itself", fix: "R15" },
+  { v: "ui/assistant-settings.js reaches outside itself", fix: "R15" },
+  { v: "ui/tour.js reaches outside itself", fix: "R15" },
+  { v: "ui/dom.js reaches outside itself", fix: "R15" },
+];
+
 // Lines per module: warn above SIZE_WARN, fail above SIZE_FAIL.
 const SIZE_WARN = 400;
 const SIZE_FAIL = 700;
@@ -602,6 +632,21 @@ test("UI markup goes through the escaping html tag", () => {
   expectAllowlist("Markup", found, HTML_ALLOW);
 });
 
+test("components draw only inside themselves", () => {
+  // $( and document-level lookups reach elements the module doesn't own.
+  const REACH =
+    /(?<![\w$.])\$\(|\bdocument\.(?:querySelector|querySelectorAll|getElementById|getElementsBy\w+|body|documentElement|activeElement)\b/;
+  const found = FILES.filter(
+    (f) => layerOf(f) === "ui" && REACH.test(CODE[f]),
+  ).map((f) => `${f} reaches outside itself`);
+  assert.deepEqual(
+    found.filter((v) => v.startsWith("components/")),
+    [],
+    "A component looks things up only inside its own element (this.querySelector)",
+  );
+  expectAllowlist("Reach", found, REACH_ALLOW);
+});
+
 test("modules stay within their size budget", (t) => {
   const found = [];
   for (const file of FILES) {
@@ -632,6 +677,7 @@ test("every allowlist entry names a step that exists", () => {
     ...DOCUMENT_ALLOW,
     ...SIZE_ALLOW,
     ...HTML_ALLOW,
+    ...REACH_ALLOW,
   ]
     .filter((a) => a.fix !== "story-first" && !steps.has(a.fix))
     .map((a) => `${a.v} -> ${a.fix}`);

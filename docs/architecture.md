@@ -430,6 +430,9 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | R10  | `html` tag and delegated events, adopted as modules are touched (started: tag, guardrail, 5 modules)                       | 8                      |
 | R11  | `localStorage` keys into `storage.js` (done)                                                                               | 8                      |
 | R12  | Fonts kept external; SheetJS loaded on demand, pinned with an integrity hash (done, the user's decisions)                  | 10                     |
+| R13  | Web components for what the Story view needs: timeline, inspector, periods, threads, question cards (ADR 0009)             | 11                     |
+| R14  | Web components for the other side-panel panes: lens list, lens editor, reports, Ask, filter                                | 11                     |
+| R15  | Web components for the shell and dialogs: chrome, import, backup, assistant settings, tour; `$` retired                    | 11                     |
 
 ## 9. Guardrails
 
@@ -446,6 +449,7 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | Every `actions.X` has exactly one provider; factories build without a DOM or `actions`; every factory is registered in `main.js`                 | every actions.X call has exactly one provider                 | none                                                                                |
 | Every saved key is declared in `documents.js`, with a state field, a boot load, a save, backup and restore coverage, and one wrapper shape       | saved documents match documents.js                            | `workspace` never saved, the `demo` marker, and legacy `dismissed` never saved (R2) |
 | A module warns above 400 lines and fails above 700                                                                                               | modules stay within their size budget                         | `ui/timeline.js` up to 1000 (R8), `ui/chat.js` up to 800 (R9)                       |
+| Components (`components/`) look things up only inside their own element: no `$(` or `document.querySelector…`/`getElementById`/`body`            | components draw only inside themselves                        | 20 `ui/` modules and `suggestions.js` (R13–R15); never a component                  |
 | Every allowlist entry names a step in section 8                                                                                                  | every allowlist entry names a step that exists                | none                                                                                |
 
 Allowlists are exact. A violation that isn't listed fails the test, and so does a listed one that no longer occurs, so each entry gets deleted together with its fix.
