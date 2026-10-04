@@ -307,3 +307,22 @@ test("SheetJS loads on demand, pinned and hash-checked, and a failed load says s
   assert.equal(await loadSheetJS(ok.doc, ok.win), XLSX);
   assert.equal(ok.added.length, 1);
 });
+
+test("price changes and stopped charges reach the questions, not markers on the timeline", async () => {
+  const { createDemoData } = await import("../demo.js");
+  const { createRuntime } = await import("../state.js");
+  const { state } = createRuntime();
+  Object.assign(state, createDemoData("2026-09-30"));
+  const derived = deriveTransactions(state, { today: "2026-09-30" });
+  // findChanges still flags them, for story/moments.js to turn into questions…
+  assert.ok(derived.flags.some((f) => f.type === "price"));
+  // …but nothing marks beads with ▲, ▼ or ◌ any more.
+  assert.equal(derived.flagged, undefined);
+  const { readFileSync } = await import("node:fs");
+  for (const file of ["ui/timeline.js", "ui/timeline-layout.js"])
+    assert.doesNotMatch(
+      readFileSync(new URL(`../${file}`, import.meta.url), "utf8"),
+      /flagmark|[▲▼◌]/,
+      file,
+    );
+});

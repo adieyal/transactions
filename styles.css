@@ -340,7 +340,6 @@ dialog::backdrop{background:rgba(10,14,16,.35)}
 .bhandle:hover circle,.bhandle:focus circle{fill:var(--raised); stroke-width:3}
 .transferlink{fill:none; stroke:#6F7F99; stroke-dasharray:2 3; opacity:.8}
 .transferlink.dim{opacity:.1}
-.flagmark{font-size:10px; fill:var(--warn)!important}
 .chg{display:inline-block; width:16px; text-align:center}
 .chg.up{color:var(--warn)} .chg.down{color:#3F7F4F} .chg.gone{color:var(--ink-3)}
 .pname{font:500 24px/1.2 var(--display); border:0; border-bottom:2px solid; background:transparent; padding:2px 0; width:100%; color:var(--ink)}

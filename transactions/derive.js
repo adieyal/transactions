@@ -164,10 +164,8 @@ function deriveTransactions(state, { today }) {
       .filter((p) => d >= p.start && d <= p.end)
       .map((p) => p.name);
   }
+  // Price changes and stopped charges, for the questions (story/moments.js).
   const flags = findChanges(groups, coverage, state.dismissed);
-  const flagged = {};
-  for (const f of flags)
-    flagged[f.t.id] = f.type === "price" ? (f.b > f.a ? "▲" : "▼") : "◌";
   const byId = new Map();
   [...txns, ...extras].forEach((t) => byId.set(t.id, t));
   // the filter box: every term must match the description, details or note; #tags look only in notes; -term excludes
@@ -214,7 +212,6 @@ function deriveTransactions(state, { today }) {
     tags,
     filtered: !!Q,
     flags,
-    flagged,
     stmts: TR.stmts,
     stmtPaid: TR.paid,
   };

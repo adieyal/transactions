@@ -229,8 +229,6 @@ export function createTimeline(runtime, actions) {
     let s = `<circle class="${cls.join(" ")}" data-id="${t.id}" cx="${x.toFixed(1)}" cy="${y}" r="${r.toFixed(1)}" ${attrs}/>`;
     if (t.kind === "actual" && t.amount < 0)
       s += `<line x1="${x - r * 0.5}" x2="${x + r * 0.5}" y1="${y}" y2="${y}" stroke="${c}" stroke-width="1.6" pointer-events="none"/>`;
-    if (runtime.derived.flagged[t.id])
-      s += `<text class="flagmark" x="${x}" y="${y - r - 3}" text-anchor="middle" pointer-events="none">${runtime.derived.flagged[t.id]}</text>`;
     return s;
   }
 
