@@ -187,3 +187,15 @@ export function createDemoData(
     ],
   };
 }
+
+// The three parts of the year, as the first-run card names them: the date
+// each one starts, in the year createDemoData(today) builds.
+export function demoMoments(today) {
+  const month = (index) =>
+    addMonths(today.slice(0, 7) + "-01", index - 12).slice(0, 7);
+  return [
+    { label: "Car", date: `${month(CAR)}-10` },
+    { label: "Move", date: `${month(MOVE)}-09` },
+    { label: "Holiday", date: `${month(11)}-15` },
+  ];
+}
