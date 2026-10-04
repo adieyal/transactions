@@ -9,6 +9,8 @@ import {
   noteChanges,
   totals,
 } from "../assistant/tools.js";
+import { systemPrompt } from "../assistant/prompts.js";
+import { markdown } from "./markdown.js";
 
 export function createChat(runtime, actions) {
   const { state, caps } = runtime;
@@ -278,25 +280,7 @@ export function createChat(runtime, actions) {
     });
   }
 
-  function md(text) {
-    const withCites = esc(text)
-      .replace(/\[\[([a-z0-9\-]+)\]\]/gi, (_, id) => {
-        const t = runtime.derived.byId.get(id);
-        return t
-          ? `<button class="cite" data-cite="${id}" title="${esc(t.merchant)}"><span dir="auto">${esc(t.merchant.slice(0, 22))}</span> ${fmt(t.amount, 0)}</button>`
-          : "";
-      })
-      .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
-    const blocks = withCites.split(/\n{2,}/);
-    return blocks
-      .map((b) => {
-        const ls = b.split("\n");
-        if (ls.every((l) => /^\s*[-*•] /.test(l)))
-          return `<ul>${ls.map((l) => `<li>${l.replace(/^\s*[-*•] /, "")}</li>`).join("")}</ul>`;
-        return `<p>${ls.join("<br>")}</p>`;
-      })
-      .join("");
-  }
+  const md = (text) => markdown(text, runtime.derived.byId);
 
   function renderAskMem() {
     const n = state.turns.filter((t) => !t.pending).length;
@@ -356,38 +340,16 @@ export function createChat(runtime, actions) {
     log.scrollTop = log.scrollHeight;
   }
 
-  function buildIntro(write = true) {
-    const pers = state.periods
-      .slice()
-      .sort((a, b) => (a.start < b.start ? -1 : 1));
-    const budgets = runtime.derived.R.threads
-      .filter((t) => t.budget != null)
-      .map((t) => `${t.name} ₪${t.budget}/month`);
-    let intro = `You're the question-answering part of Transactions, a personal tool one person uses to explore their own card and bank statements. Today is ${runtime.today}.
-Money is in ILS (₪). A positive amount is money out; negative is a refund or money in. "Threads" are the person's own groupings, from rules they edit: ${runtime.derived.names.join(", ")}. Accounts and the statement months present: ${actions.coverageText()}. Any other months are missing, so say so when an answer depends on them.
-Transfers between their own accounts (such as the bank paying the card bill) are not spending: the tools leave them out unless you pass include_transfers.
-Transaction fields: date is when it was bought and charge_date when it was billed, if different; amount is in ILS and orig is the amount in the currency it was charged in; type and details are copied from the statement; rule is the line of their thread rules that put it in its thread; source is the account, statement month and file it came from; kind is set for things worked out rather than read from a statement, with why explaining it.
-${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}${pers.length ? `Periods they've marked as context for what was going on (they can overlap, and not every charge in the dates belongs):\n${pers.map((p) => `- "${p.name}" ${p.start} to ${p.end}${p.story ? `: ${p.story.replace(/\s+/g, " ").slice(0, 300)}` : ""}`).join("\n")}\n` : ""}Answer briefly (a few sentences or a short list) in the language the person writes in. Don't guess figures. When you refer to specific transactions, cite them inline as [[id]] using ids from the data (at most 8 citations; no other link syntax).`;
-    if (caps.tools) {
-      intro += `\nUse the tools to look things up.`;
-      if (write)
-        intro += ` When the person asks to translate or rename descriptions, use list_merchants then rename_merchants (short, natural names like "Israel Electric Corp", "Shufersal Deal, Yakhin"; keep brand names; the original is kept automatically). When they ask to annotate or tag transactions, write it into their notes with update_notes (prefer the merchant form for anything that applies to every visit to a merchant). When they ask to change threads, read them with get_thread_rules and show a new version with propose_threads. When they describe a stretch of time (a trip, a move, a busy season), create or update it with save_period, and you can write its story. Only change things they asked for, then say briefly what you changed.`;
-      else
-        intro += ` In this mode you only read; don't try to change anything.`;
-    } else
-      intro +=
-        `\nAll transactions, one JSON object per line:\n` +
-        runtime.derived.allTxns
-          .slice(0, 1800)
-          .map((t) => JSON.stringify(compact(t)))
-          .join("\n") +
-        `\nExpected future charges:\n` +
-        runtime.derived.expected
-          .map((t) => JSON.stringify(compact(t)))
-          .join("\n") +
-        `\nYou can't change anything in this setup, only read. If they ask for changes, say so and suggest picking an assistant that supports tools.`;
-    return intro;
-  }
+  // The opening message, from assistant/prompts.js; write: false for reports.
+  const buildIntro = (write = true) =>
+    systemPrompt({
+      derived: runtime.derived,
+      state,
+      today: runtime.today,
+      tools: caps.tools,
+      write,
+      compact,
+    });
 
   async function callAssistant(
     messages,
@@ -576,7 +538,6 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
   return {
     buildIntro,
     callAssistant,
-    md,
     renderAskCtx,
     renderLog,
     wireAsk,
@@ -589,7 +550,6 @@ export const contract = {
   provides: [
     "buildIntro",
     "callAssistant",
-    "md",
     "renderAskCtx",
     "renderLog",
     "wireAsk",
@@ -597,7 +557,6 @@ export const contract = {
   requires: [
     "AI",
     "addReport",
-    "coverageText",
     "highlight",
     "noAssistant",
     "openPeriod",

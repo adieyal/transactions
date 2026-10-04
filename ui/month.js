@@ -5,6 +5,7 @@ import { polishFacts, polishSummary } from "../story/assist.js";
 import { monthLong } from "../story/copy.js";
 import { phraseHTML, wireHoverHighlight } from "./highlight.js";
 import { $, paneShown } from "./dom.js";
+import { markdown } from "./markdown.js";
 
 export function createMonth(runtime, actions) {
   const { state, caps } = runtime;
@@ -31,7 +32,7 @@ export function createMonth(runtime, actions) {
       return `${first ? `<p class="mqhead">Optional questions</p>` : ""}<ul class="qlist">${actions.questionCard(s.moment, "month")}</ul>`;
     }
     if (s.kind === "yours")
-      return `<figure class="yours"><figcaption>${esc(s.label)}</figcaption><div class="yourtext" dir="auto">${actions.md(s.parts[0].text)}</div></figure>`;
+      return `<figure class="yours"><figcaption>${esc(s.label)}</figcaption><div class="yourtext" dir="auto">${markdown(s.parts[0].text, runtime.derived.byId)}</div></figure>`;
     return `<p class="mp mp-${s.kind}" dir="auto">${s.parts.map(partHTML).join("")}</p>`;
   }
 
@@ -143,7 +144,6 @@ export const contract = {
   requires: [
     "AI",
     "highlight",
-    "md",
     "openQuestions",
     "questionCard",
     "resetPanelScroll",

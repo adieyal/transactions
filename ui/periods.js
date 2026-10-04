@@ -5,6 +5,8 @@ import { periodStats as statsFor } from "../transactions/period-stats.js";
 import { periodNotes, summarizePeriod } from "../story/summary.js";
 import { dayShort } from "../story/copy.js";
 import { phraseHTML } from "./highlight.js";
+import { markdown } from "./markdown.js";
+import { coverageText } from "../assistant/prompts.js";
 
 export function createPeriods(runtime, actions) {
   const { state, caps } = runtime;
@@ -59,7 +61,7 @@ export function createPeriods(runtime, actions) {
       ${
         editing
           ? `<textarea class="note story" id="pStory" dir="auto" placeholder="e.g. Moved into the new flat. Most of the Home Center and IKEA runs are furniture and fixing up.">${esc(p.story || "")}</textarea>`
-          : `<div class="storyview" dir="auto">${actions.md(p.story)}</div>`
+          : `<div class="storyview" dir="auto">${markdown(p.story, runtime.derived.byId)}</div>`
       }
       <div class="row-actions">${!editing ? `<button class="btn small quiet" id="pEdit">Edit</button>` : ""}${caps.sample ? `<button class="btn small quiet" id="pDraftStory">${p.story ? "Rework it with " : "Draft it with "}${actions.AI()}</button>` : ""}</div>
       <p class="sub" id="pNote"></p>
@@ -172,7 +174,7 @@ Spend by thread in the period: ${st.byThread.map(([n, v]) => `${n} ₪${v.toFixe
 A typical month for them, by thread: ${Object.entries(typical)
       .map(([n, v]) => `${n} ₪${v.toFixed(0)}`)
       .join(", ")}.
-Statement months available: ${actions.coverageText()}.
+Statement months available: ${coverageText(runtime.derived)}.
 
 Write 80 to 180 words in the first person, as the person's own plain notes: what was going on, what the money went on, anything unusual compared with a typical month. Not everything in the dates belongs to this period, so leave out charges that are clearly routine. Stay with what the data and their notes support; don't invent reasons. Cite up to 6 specific transactions inline as [[id]]. Reply with only the story text.`;
     const before = p.story;
@@ -262,15 +264,7 @@ export const contract = {
     "removePeriod",
     "renderPeriodInspector",
   ],
-  requires: [
-    "AI",
-    "coverageText",
-    "md",
-    "refresh",
-    "refreshSoon",
-    "sampleErr",
-    "save",
-  ],
+  requires: ["AI", "refresh", "refreshSoon", "sampleErr", "save"],
   renders: [],
   wires: [],
 };

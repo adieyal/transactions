@@ -2,17 +2,11 @@ import { monthName } from "./helpers.js";
 import { $, toast } from "./ui/dom.js";
 import { LOOSE } from "./transactions/constants.js";
 import { publicTxn } from "./lens-api.js";
+import { coverageText as coverageOf } from "./assistant/prompts.js";
 
 export function createSuggestions(runtime, actions) {
   const { state, caps } = runtime;
-  function coverageText() {
-    return runtime.derived.accounts
-      .map(
-        (a) =>
-          `${a}: ${[...(runtime.derived.coverage[a] || [])].sort().map(monthName).join(", ")}`,
-      )
-      .join("; ");
-  }
+  const coverageText = () => coverageOf(runtime.derived);
 
   function merchantSummary(limit = 300) {
     const g = {};
@@ -103,13 +97,13 @@ Example transactions: ${JSON.stringify(sampleRows)}
     return { title: String(r.title || ""), code: r.code };
   }
 
-  return { coverageText, suggestThreads, writeLens };
+  return { suggestThreads, writeLens };
 }
 
 export const contract = {
   name: "suggestions",
   create: createSuggestions,
-  provides: ["coverageText", "suggestThreads", "writeLens"],
+  provides: ["suggestThreads", "writeLens"],
   requires: ["AI", "refresh", "sampleErr", "syncGutter"],
   renders: [],
   wires: [],

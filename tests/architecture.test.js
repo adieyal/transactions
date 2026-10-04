@@ -52,7 +52,7 @@ const PURE = new Set(["core", "domain"]);
 
 // The largest group of modules that all reach each other through actions
 // (review finding 1). It may only shrink: lower this when it does.
-const CYCLE_MAX = 13;
+const CYCLE_MAX = 12;
 
 const LAYER_ALLOW = [];
 

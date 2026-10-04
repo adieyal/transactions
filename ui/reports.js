@@ -1,5 +1,7 @@
 import { esc, fmtDate, fnv } from "../helpers.js";
 import { $, paneShown, toast } from "./dom.js";
+import { markdown } from "./markdown.js";
+import { coverageText } from "../assistant/prompts.js";
 
 export function createReports(runtime, actions) {
   const { state, caps } = runtime;
@@ -28,7 +30,7 @@ export function createReports(runtime, actions) {
         (r) => `<article class="report" data-rid="${r.id}">
       <h3 dir="auto">${esc(r.q)}</h3>
       <div class="sub">${r.running ? "Running…" : r.ranAt ? `Last run ${fmtDate(r.ranAt)}${r.dataKey !== dataKey() ? " · <b>new statements since</b>" : ""}` : "Not run yet"}</div>
-      ${r.running && r.draft ? `<div class="a" dir="auto">${actions.md(r.draft)}</div>` : r.answer ? `<div class="a" dir="auto">${actions.md(r.answer)}</div>` : ""}
+      ${r.running && r.draft ? `<div class="a" dir="auto">${markdown(r.draft, runtime.derived.byId)}</div>` : r.answer ? `<div class="a" dir="auto">${markdown(r.answer, runtime.derived.byId)}</div>` : ""}
       ${r.error ? `<p class="sub">${esc(r.error)}</p>` : ""}
       <div class="a-actions">${caps.sample && !r.running ? `<button class="linkish" data-run="${r.id}">Run again</button>` : ""}<button class="linkish" data-rmrep="${r.id}">Remove</button></div></article>`,
       )
@@ -64,7 +66,7 @@ export function createReports(runtime, actions) {
       r.answer = text;
       r.ranAt = runtime.today;
       r.dataKey = dataKey();
-      r.coverage = actions.coverageText();
+      r.coverage = coverageText(runtime.derived);
     } catch (e) {
       r.error = actions.sampleErr(e);
     }
@@ -85,7 +87,7 @@ export function createReports(runtime, actions) {
       answer: answer || "",
       ranAt: answer ? runtime.today : "",
       dataKey: answer ? dataKey() : "",
-      coverage: answer ? actions.coverageText() : "",
+      coverage: answer ? coverageText(runtime.derived) : "",
     });
     actions.save("reports");
     actions.openTab("reports");
@@ -171,8 +173,6 @@ export const contract = {
   requires: [
     "buildIntro",
     "callAssistant",
-    "coverageText",
-    "md",
     "noAssistant",
     "openTab",
     "sampleErr",

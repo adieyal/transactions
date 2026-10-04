@@ -424,7 +424,7 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | R6   | Browser file readers out of `transactions/import.js` (done)                                                                | 7                      |
 | R7   | `persistence.js` stops importing `ui/dom.js` (done; `suggestions.js` waits for R4b)                                        | 7                      |
 | R8   | `renderTimeline` layout to a pure `ui/timeline-layout.js`                                                                  | 6                      |
-| R9   | Split `ui/chat.js` into tools, prompts and log rendering                                                                   | 6                      |
+| R9   | Split `ui/chat.js` into tools, prompts and log rendering (done)                                                            | 6                      |
 | R10  | `html` tag and delegated events, adopted as modules are touched                                                            | 8                      |
 | R11  | `localStorage` keys into `storage.js` (done)                                                                               | 8                      |
 | R12  | Fonts and SheetJS bundled or lazy-loaded (needs the user's decision)                                                       | 10                     |

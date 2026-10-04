@@ -22,7 +22,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 |    6 | [R7](#r7-persistence-stops-importing-the-ui) Persistence stops importing the UI                                 |      S      |    Low     | `persistence.js (persistence) imports ui/dom.js (ui)`                        |       **Done** (`next`)       |
 |    7 | [R5](#r5-split-helpersjs) Split `helpers.js`                                                                    |      S      |    Low     | `helpers.js uses document`, `helpers.js uses new Date()`                     |       **Done** (`next`)       |
 |    8 | [R11](#r11-storage-keys-into-storagejs) Storage keys into `storage.js`                                          |      S      |    Low     | `ui/assistant-settings.js uses storage`, `ui/tour.js uses storage`           |       **Done** (`next`)       |
-|    9 | [R9](#r9-split-uichatjs) Split `ui/chat.js`                                                                     |      M      | Low–medium | `ui/chat.js` size ceiling                                                    |       Yes (milestone 6)       |
+|    9 | [R9](#r9-split-uichatjs) Split `ui/chat.js`                                                                     |      M      | Low–medium | `ui/chat.js` size ceiling                                                    |       **Done** (`next`)       |
 |   10 | [R8](#r8-timeline-layout-into-a-pure-helper) Timeline layout into a pure helper                                 |      L      |   Medium   | `ui/timeline.js` size ceiling                                                |       Yes (milestone 4)       |
 |   11 | [R10](#r10-escaped-html-tag-and-delegated-events) Escaped `html` tag and delegated events                       |   S each    |    Low     | none (adds a guardrail)                                                      |          Per module           |
 |   12 | [R12](#r12-fonts-and-sheetjs) Fonts and SheetJS                                                                 |     S–M     |   Medium   | none                                                                         |   Needs the user's decision   |
@@ -190,6 +190,11 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Size:** M. **Risk:** low to medium.
 - **Removes:** the `ui/chat.js` size ceiling, once the file is under 700 lines. (Done early: R4b's first slice brought it to 616 lines and the entry is deleted.)
 - **Wait:** yes. Story-first milestone 6 adds assistant features.
+- **Done** on branch `next`, 4 October 2026. `ui/chat.js` now keeps the conversation, the tool descriptions and their events (575 lines, from 790).
+  - `md()` is `markdown(text, byId)` in `ui/markdown.js`. It escapes everything first and is tested in Node, including an `<img onerror>` attempt. `ui/month.js`, `ui/periods.js` and `ui/reports.js` import it directly instead of calling `actions.md`.
+  - The system prompt is `systemPrompt` in `assistant/prompts.js`, and `coverageText` lives there too. This is the `buildIntro` part of R4b. The callers import `coverageText` directly.
+  - With `md` and `coverageText` off `actions`, the largest cycle of modules fell from 13 to 12, and `CYCLE_MAX` is now 12.
+  - Still in R4b: `save_period` and `propose_threads` change state inside the tool, and the prompts in `suggestions.js` and `ui/periods.js` (`draftStory`) haven't moved.
 
 ### R8. Timeline layout into a pure helper
 
