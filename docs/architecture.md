@@ -101,32 +101,31 @@ The layer of a file is fixed by a table in the guardrail test (`tests/architectu
 The factory pattern stays. What changes is that each module also declares what it provides and what it needs:
 
 ```js
-// ui/month.js
+// ui/example.js: an illustration; ui/questions.js is a real one
 import { html } from "./dom.js";
-import { summarise } from "../story/summary.js";
 
 export const contract = {
-  name: "month",
-  create: createMonth,
-  provides: ["renderMonth", "wireMonth", "showMonth"],
+  name: "example",
+  create: createExample,
+  provides: ["renderExample", "wireExample", "showExample"],
   requires: ["refresh", "highlight", "openTab", "save"],
-  renders: ["renderMonth"], // called by refresh(), in registration order
-  wires: ["wireMonth"], // called once at boot, before data loads
+  renders: ["renderExample"], // called by refresh(), in registration order
+  wires: ["wireExample"], // called once at boot, before data loads
 };
 
-export function createMonth(runtime, actions) {
+export function createExample(runtime, actions) {
   const { state } = runtime;
-  function renderMonth() {
-    /* reads runtime.derived and state; writes only #pane-month */
+  function renderExample() {
+    /* reads runtime.derived and state; writes only #pane-example */
   }
-  function wireMonth() {
-    /* one delegated listener on #pane-month */
+  function wireExample() {
+    /* one delegated listener on #pane-example */
   }
-  function showMonth(ym) {
-    state.month = ym;
+  function showExample(ym) {
+    state.exampleMonth = ym;
     actions.refresh();
   }
-  return { renderMonth, wireMonth, showMonth };
+  return { renderExample, wireExample, showExample };
 }
 ```
 
@@ -135,7 +134,7 @@ export function createMonth(runtime, actions) {
 | May                                                        | Must not                                                                                                                                 |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Read `runtime.state`, `runtime.derived` and `runtime.caps` | Write saved state without saving it. Use the owning module's command, or `actions.save(key)` (section 3).                                |
-| Write session state it owns, such as `state.month`         | Write session state another module owns. Call that module's command instead, for example `actions.clearFocus()`.                         |
+| Write session state it owns, such as `state.exampleMonth`  | Write session state another module owns. Call that module's command instead, for example `actions.clearFocus()`.                         |
 | Write the DOM inside its own pane or dialog                | Write another module's DOM, or call another module's `renderX` (use `refresh()`)                                                         |
 | Call functions listed in its `requires`                    | Reach anything else on `actions`. Its `actions` is a view that throws on undeclared names.                                               |
 | Do nothing DOM-related while being constructed             | Touch the DOM or `actions` inside `createX()` itself. This keeps every factory constructible in Node, which the contract test relies on. |
@@ -147,7 +146,7 @@ export function createMonth(runtime, actions) {
 ```js
 // main.js
 import { contract as persistence } from "./persistence.js";
-import { contract as month } from "./ui/month.js";
+import { contract as questions } from "./ui/questions.js";
 // …
 const MODULES = [persistence, chrome, filter, timeline /* … */, lensEditor];
 const registry = createRegistry(runtime, MODULES, {
@@ -165,7 +164,7 @@ const actions = registry.actions;
 
 `createRegistry` does the following:
 
-1. Calls each `contract.create(runtime, view)`. `view` is a `Proxy` over the shared table whose `get` throws `ui/month.js did not declare "renderTimeline"` for any name missing from `requires`.
+1. Calls each `contract.create(runtime, view)`. `view` is a `Proxy` over the shared table whose `get` throws `ui/questions.js did not declare "renderTimeline"` for any name missing from `requires`.
 2. Checks that the returned keys equal `provides`, and that no key is provided twice. It throws on a mismatch, so a name collision fails at startup instead of silently overwriting.
 3. After all modules are registered, checks that every `requires` entry has a provider.
 4. Takes the app-level functions from `main.js` first: `derive`, `redraw`, `refresh` and `refreshSoon`. (`save` belongs to `persistence.js`.)
