@@ -115,8 +115,6 @@ main{display:grid; grid-template-columns:minmax(0,1fr) 470px; min-height:0}
 /* Mid widths: the header stays on one line and the panel narrows a little,
    so the timeline keeps its room and the six tabs still fit. */
 @media (min-width:981px) and (max-width:1240px){
-  header{gap:10px; padding:12px 16px 10px}
-  .mark{font-size:22px; gap:8px}
   .chip{padding:3px 8px}
   .wide-only{display:none}
   main{grid-template-columns:minmax(0,1fr) 440px}
@@ -137,7 +135,6 @@ main{display:grid; grid-template-columns:minmax(0,1fr) 470px; min-height:0}
   .tabs{position:static}
   .tabs .hidepanel{display:none}
   .editor,#rules{min-height:320px}
-  header{padding:12px 14px}
   #insp{margin-left:14px; margin-right:14px}
   .empty{margin:20px 14px 0}
 }

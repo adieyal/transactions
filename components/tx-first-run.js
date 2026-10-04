@@ -25,12 +25,22 @@ export function createFirstRunComponent(runtime) {
     return strip;
   }
 
+  // A label that would overflow the strip ends at its right edge instead.
+  function fitMoments(line) {
+    const width = line.clientWidth;
+    line.querySelectorAll(".fr-moment").forEach((el) => {
+      el.style.transform = "";
+      const over = el.offsetLeft + el.offsetWidth - width;
+      if (over > 0) el.style.transform = `translateX(-${over}px)`;
+    });
+  }
+
   function stripHTML({ rows, moments }) {
     const momentHTML = moments.map(
       (m) =>
-        // Shifted back by its own share of the line, so a moment near
-        // either end stays inside the strip.
-        html`<div class="fr-moment" style="left: ${m.left}%; transform: translateX(-${m.left}%)">${m.label}</div>`,
+        // Its left edge at its date, as drawn; fitMoments pulls back only a
+        // label that would run past the strip's end.
+        html`<div class="fr-moment" style="left: ${m.left}%">${m.label}</div>`,
     );
     const rowHTML = rows.map(
       (r) =>
@@ -93,6 +103,10 @@ export function createFirstRunComponent(runtime) {
           if (this.wired) return;
           this.wired = true;
           this.innerHTML = String(pageHTML());
+          // Measured whenever the strip gets its size, including when the
+          // page is first shown.
+          const line = this.querySelector(".fr-moments");
+          if (line) new ResizeObserver(() => fitMoments(line)).observe(line);
           this.addEventListener("change", (e) => {
             if (!e.target.matches(".fr-files")) return;
             const files = [...e.target.files];
