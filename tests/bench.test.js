@@ -5,7 +5,13 @@ import { createRuntime } from "../state.js";
 import { deriveTransactions } from "../transactions/derive.js";
 import { manyStory, oneStory } from "../story/bench.js";
 import { plain } from "../story/copy.js";
-import { answerStory, figures } from "../story/saved-question.js";
+import {
+  answerStory,
+  figures,
+  latestPayment,
+  sinceLastRun,
+  suggestionWhat,
+} from "../story/saved-question.js";
 
 const today = "2026-09-30";
 const demo = { ...createRuntime().state, ...createDemoData(today) };
@@ -65,4 +71,39 @@ test("an answer is checked only when each sentence's amounts are its payments'",
     derived.byId,
   );
   assert.equal(uncited.checked, false);
+});
+
+test("since the last run: new payments to the merchants the answer cites", () => {
+  const paws = derived.txns.filter(
+    (t) => t.kind === "actual" && t.merchant === "Meadow Paws",
+  );
+  const story = answerStory(`Pixel cost ₪55 [[${paws[0].id}]].`, derived.byId);
+  const latest = latestPayment(derived);
+  assert.equal(sinceLastRun({ prevThrough: "" }, story, derived), null);
+  assert.equal(
+    plain(sinceLastRun({ prevThrough: latest }, story, derived)),
+    "Since the last run: no new payments to Meadow Paws.",
+  );
+  const last = paws.at(-1);
+  const before = paws.at(-2).date;
+  assert.equal(
+    plain(sinceLastRun({ prevThrough: before }, story, derived)),
+    `Since the last run: 1 new payment to Meadow Paws, ₪${last.amount}.`,
+  );
+});
+
+test("a suggested change is taken out of the answer and offered", () => {
+  const [a, b] = garage;
+  const s = answerStory(
+    `The garage came to ₪1,600 [[${a.id}]] [[${b.id}]].\n\nSuggested change: add #Car to [[${a.id}]] [[${b.id}]] [[nope]]`,
+    derived.byId,
+  );
+  assert.deepEqual(s.suggestion, { tags: ["#car"], txnIds: [a.id, b.id] });
+  assert.equal(s.paragraphs.flat().length, 1);
+  assert.equal(s.checked, true);
+  assert.equal(
+    plain(suggestionWhat(s.suggestion, derived.byId)),
+    "the two Cobble Lane Garage payments",
+  );
+  assert.equal(answerStory("No change here.", derived.byId).suggestion, null);
 });

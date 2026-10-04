@@ -697,6 +697,13 @@ tx-year[hidden]{display:none}
 .bn-links{display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:10px}
 .bn-link{padding:0; min-height:28px; border:0; background:none; font:500 13px var(--ui); color:var(--ink-body); text-decoration:underline; cursor:pointer}
 .yr-bead.sel{box-shadow:0 0 0 2px var(--band), 0 0 0 4px var(--ink); z-index:3}
+.yr-since{margin:0 0 16px; padding:10px 12px; border-radius:8px; background:#E4E8E3; font-size:14px; color:var(--ink)}
+.yr-suggest{background:var(--raised); border:1px solid var(--grid); border-radius:12px; padding:16px 18px; margin-bottom:14px}
+.yr-suggestlabel{font-size:13px; color:var(--ink-label); margin-bottom:6px}
+.yr-suggest p{margin:0 0 12px; font-size:16px; line-height:1.5}
+.yr-suggest .yr-chips{margin:0}
+.yr-dark.small{font-size:14px; min-height:40px; padding:0 16px}
+.yr-suggestmsg{margin:0 0 14px; font-size:14px; color:var(--ink-body)}
 .yr-gather{position:absolute; z-index:4; pointer-events:none; border:1px dashed var(--link); background:rgba(36,70,200,.07)}
 .yr-rows .yr-bead{cursor:pointer}
 .yr-seclabel.strong{font-weight:600; color:var(--ink)}

@@ -9,7 +9,7 @@ import { answeredHTML, askHTML } from "./tx-year-ask.js";
 import { wireYearStrip } from "./tx-year-strip.js";
 import { savedHTML } from "./tx-year-saved.js";
 import { whatGoes } from "../assistant/prompts.js";
-import { answerStory } from "../story/saved-question.js";
+import { answerStory, sinceLastRun } from "../story/saved-question.js";
 import {
   benchClick,
   benchHTML,
@@ -18,6 +18,8 @@ import {
   selectedIds,
 } from "./tx-year-bench.js";
 import { wireGather } from "./tx-year-gather.js";
+import { suggestKey } from "./tx-year-saved.js";
+import { restoreNotes, retag } from "../transactions/tags.js";
 
 const PRIVATE = "Only you see this. Your answer stays on this device.";
 
@@ -44,6 +46,8 @@ export function createYearComponent(runtime, actions) {
     tagging: false,
     tag: "",
     activeLine: null,
+    // Suggested changes chosen, by suggestKey: { status, previous }.
+    suggest: {},
   };
   // What the bench (tx-year-bench.js) may do, through this contract.
   const benchActions = {
@@ -197,9 +201,19 @@ export function createYearComponent(runtime, actions) {
       .join("")}</div></section>`;
   }
 
+  function savedQuestionHTML(r) {
+    const story = answerStory(r.answer, runtime.derived.byId);
+    return savedHTML(r, story, {
+      canRun: caps.sample,
+      since: sinceLastRun(r, story, runtime.derived),
+      byId: runtime.derived.byId,
+      suggested: (sg) => ui.suggest[suggestKey(sg)]?.status,
+    });
+  }
+
   // The story column, and the bench beside it.
   function pageHTML(band, ms, year, month, story) {
-    return `${band}<main class="yr-main"><div class="yr-story">${pickerHTML(ms, year, month)}${!year ? monthHTML(story) : picked() ? savedHTML(picked(), answerStory(picked().answer, runtime.derived.byId), { canRun: caps.sample }) : yearHTML(story)}</div><aside class="yr-bench${state.compactTimeline ? " sticky" : ""}" aria-label="Details and tools">${benchHTML(ui, runtime)}</aside></main>`;
+    return `${band}<main class="yr-main"><div class="yr-story">${pickerHTML(ms, year, month)}${!year ? monthHTML(story) : picked() ? savedQuestionHTML(picked()) : yearHTML(story)}</div><aside class="yr-bench${state.compactTimeline ? " sticky" : ""}" aria-label="Details and tools">${benchHTML(ui, runtime)}</aside></main>`;
   }
 
   // The notes written on a period's payments, each with its day.
@@ -337,6 +351,30 @@ export function createYearComponent(runtime, actions) {
           state.highlight = new Set();
           actions.refresh();
         }
+        // Apply, Discard or Undo a suggested change ("#car>id1,id2").
+        suggestion(d) {
+          const key = d.suggestApply || d.suggestDiscard || d.suggestUndo;
+          if (d.suggestDiscard) ui.suggest[key] = { status: "discarded" };
+          else if (d.suggestApply) {
+            const [tags, ids] = key.split(">");
+            const { notes, previous } = retag(
+              state.notes,
+              ids.split(","),
+              tags.split(" "),
+              [],
+            );
+            state.notes = notes;
+            ui.suggest[key] = { status: "applied", previous };
+          } else {
+            state.notes = restoreNotes(
+              state.notes,
+              ui.suggest[key]?.previous ?? {},
+            );
+            delete ui.suggest[key];
+          }
+          if (!d.suggestDiscard) actions.save("notes");
+          actions.refresh();
+        }
         go(scale, month) {
           state.scale = scale;
           if (month) state.monthView = month;
@@ -398,6 +436,8 @@ export function createYearComponent(runtime, actions) {
               return;
             }
             const d = t.dataset;
+            if (d.suggestApply || d.suggestDiscard || d.suggestUndo)
+              return this.suggestion(d);
             if ("toYear" in d) this.go("year");
             else if (d.month) this.go("month", d.month);
             else if (t.classList.contains("yr-compact")) {

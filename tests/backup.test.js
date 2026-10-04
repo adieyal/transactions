@@ -25,6 +25,8 @@ function source() {
       dataKey: "test",
       coverage: "Three months",
       by: "LM Studio",
+      through: "2026-09-28",
+      prevThrough: "2026-08-30",
     },
   ];
   state.view.parked = ["Home"];

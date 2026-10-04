@@ -86,6 +86,10 @@ const reportFields = (r) => ({
   dataKey: r.dataKey || "",
   coverage: r.coverage || "",
   by: r.by || "",
+  // The latest payment date at this run and at the one before, for
+  // "Since the last run: …".
+  through: r.through || "",
+  prevThrough: r.prevThrough || "",
 });
 const turnFields = (t) => ({
   role: t.role,

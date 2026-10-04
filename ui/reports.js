@@ -2,6 +2,7 @@ import { esc, fmtDate, fnv } from "../helpers.js";
 import { $, paneShown, toast } from "./dom.js";
 import { markdown } from "./markdown.js";
 import { coverageText } from "../assistant/prompts.js";
+import { latestPayment } from "../story/saved-question.js";
 
 export function createReports(runtime, actions) {
   const { state, caps } = runtime;
@@ -68,6 +69,8 @@ export function createReports(runtime, actions) {
       r.ranAt = runtime.today;
       r.dataKey = dataKey();
       r.coverage = coverageText(runtime.derived);
+      r.prevThrough = r.through || "";
+      r.through = latestPayment(runtime.derived);
     } catch (e) {
       r.error = actions.sampleErr(e);
     }
@@ -91,6 +94,7 @@ export function createReports(runtime, actions) {
       dataKey: answer ? dataKey() : "",
       coverage: answer ? coverageText(runtime.derived) : "",
       by: answer ? actions.AI() : "",
+      through: answer ? latestPayment(runtime.derived) : "",
     });
     actions.save("reports");
     if (open) actions.openTab("reports");

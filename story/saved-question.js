@@ -1,4 +1,4 @@
-import { dayShort, money, name } from "./copy.js";
+import { count, dayShort, list, money, name } from "./copy.js";
 
 // An assistant's answer told as a story (artboard 3, "A saved question" and
 // "You asked"). Each sentence that cites payments ([[id]]) lights exactly
@@ -27,9 +27,38 @@ function sentences(paragraph) {
     .filter(Boolean);
 }
 
+// "Suggested change: add #car to [[id]] [[id]]", on its own line (see
+// systemPrompt): taken out of the story and offered with Apply / Discard.
+const SUGGEST =
+  /^\s*\**suggested change:?\**\s*add\s+((?:#[\p{L}\p{N}_-]+[\s,]*(?:and\s+)?)+)to\b(.*)$/imu;
+
+function suggestion(answer, byId) {
+  const m = String(answer || "").match(SUGGEST);
+  if (!m) return { rest: answer, suggestion: null };
+  const tags = [...new Set(m[1].toLowerCase().match(/#[\p{L}\p{N}_-]+/gu))];
+  const txnIds = [...new Set([...m[2].matchAll(CITE)].map((c) => c[1]))].filter(
+    (id) => byId.get(id)?.kind === "actual",
+  );
+  return {
+    rest: String(answer).replace(m[0], ""),
+    suggestion: txnIds.length ? { tags, txnIds } : null,
+  };
+}
+
+// "the two Cityride Taxi payments", "these 5 payments".
+export function suggestionWhat(sg, byId) {
+  const ts = sg.txnIds.map((id) => byId.get(id));
+  const ms = new Set(ts.map((t) => t.merchant));
+  if (ms.size > 1) return `these ${count(ts.length)} payments`;
+  return ts.length === 1
+    ? `the ${name(ts[0].merchant)} payment on ${dayShort(ts[0].date)}`
+    : `the ${count(ts.length)} ${name(ts[0].merchant)} payments`;
+}
+
 export function answerStory(answer, byId) {
   const cited = [];
-  const paragraphs = String(answer || "")
+  const { rest, suggestion: suggested } = suggestion(answer, byId);
+  const paragraphs = String(rest || "")
     .split(/\n{2,}/)
     .map((p) =>
       sentences(p).map((s) => {
@@ -64,7 +93,38 @@ export function answerStory(answer, byId) {
     // or the sum of a merchant's, or of all of them.
     checked: paragraphs.length > 0 && paragraphs.flat().every((s) => s.checked),
     chips: chips([...new Set(cited)].map((id) => byId.get(id))),
+    suggestion: suggested,
   };
+}
+
+// The latest payment on the statements, for a run's `through`.
+export const latestPayment = (derived) =>
+  derived.txns
+    .filter((t) => t.kind === "actual")
+    .reduce((a, t) => (t.date > a ? t.date : a), "");
+
+// "Since the last run: no new payments to Meadow Paws." The merchants are
+// those the answer cites; a payment is new when it is dated after the latest
+// one the run before saw. Nothing to say before a second run.
+export function sinceLastRun(r, story, derived) {
+  if (!r.prevThrough) return null;
+  const cited = new Set(
+    story.paragraphs
+      .flat()
+      .flatMap((s) => s.txnIds ?? [])
+      .map((id) => derived.byId.get(id)?.merchant)
+      .filter(Boolean),
+  );
+  const fresh = derived.txns.filter(
+    (t) =>
+      t.kind === "actual" &&
+      t.date > r.prevThrough &&
+      (!cited.size || cited.has(t.merchant)),
+  );
+  const to = cited.size ? ` to ${list([...cited].map(name))}` : "";
+  if (!fresh.length) return `Since the last run: no new payments${to}.`;
+  const sum = fresh.reduce((a, t) => a + t.amount, 0);
+  return `Since the last run: ${fresh.length} new payment${fresh.length > 1 ? "s" : ""}${to}, ${money(sum, fresh[0].currency)}.`;
 }
 
 // The amounts a sentence names: "₪1,600", "ZAR 119", "$12.50", "€26.50".

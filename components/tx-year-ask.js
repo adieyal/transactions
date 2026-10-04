@@ -1,6 +1,11 @@
 import { esc } from "../helpers.js";
 import { answerStory } from "../story/saved-question.js";
-import { CHECKED, answerHTML } from "./tx-year-saved.js";
+import {
+  CHECKED,
+  answerHTML,
+  suggestKey,
+  suggestionHTML,
+} from "./tx-year-saved.js";
 
 // The year's Ask section (artboard 3): connect, write, check what goes,
 // and the answer. Nothing is sent from here; tx-year asks the chat, and only
@@ -50,5 +55,6 @@ export function answeredHTML(ui, state, ai, byId) {
   return `<section class="yr-sec"><div class="yr-side"><div class="yr-seclabel">You asked</div></div>
     <div class="yr-col-story"><div class="yr-note gap"><div class="yr-notelabel">Your question</div><div class="yr-notetext" dir="auto">${esc(ui.asked)}</div></div>
     <div class="yr-answered by">Answered by ${esc(ai)}${story?.checked ? ` · ${CHECKED}` : ""}</div>${text}
+    ${story ? suggestionHTML(story.suggestion, byId, story.suggestion && ui.suggest[suggestKey(story.suggestion)]?.status) : ""}
     <div class="yr-chips">${save}<button class="yr-small" data-ask-again>Ask a follow-up</button></div></div></section>`;
 }
