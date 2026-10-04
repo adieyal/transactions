@@ -1,7 +1,8 @@
 import { MAX_SHOWN } from "../story/moments.js";
 import { plural, privacyText } from "../story/copy.js";
 import { html, raw } from "../ui/dom.js";
-import { sameIds, subscribeWhileConnected } from "./base.js";
+import { sameIds } from "../ui/highlight.js";
+import { subscribeWhileConnected } from "./base.js";
 
 // <tx-questions limit="5">: the open questions, the highest-ranked `limit`
 // shown and the rest folded under More questions. The cards and their

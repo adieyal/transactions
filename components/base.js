@@ -25,9 +25,3 @@ export function emitHighlight(el, ids, { clearSelection = false } = {}) {
     }),
   );
 }
-
-// Whether ids are exactly the lit-up transactions.
-export const sameIds = (ids, highlight) =>
-  ids.length > 0 &&
-  ids.length === highlight.size &&
-  ids.every((i) => highlight.has(i));

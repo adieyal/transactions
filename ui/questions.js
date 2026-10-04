@@ -1,5 +1,6 @@
 import { esc } from "../helpers.js";
 import { $, toast } from "./dom.js";
+import { sameIds } from "./highlight.js";
 import { detectMoments, findMoments } from "../story/moments.js";
 import { answerMoment } from "../story/answers.js";
 import { suggestAnswers } from "../story/assist.js";
@@ -76,11 +77,6 @@ export function createQuestions(runtime, actions) {
     actions.redraw();
   }
 
-  const sameIds = (ids) =>
-    ids.length > 0 &&
-    ids.length === state.highlight.size &&
-    ids.every((i) => state.highlight.has(i));
-
   function answer(m, choice) {
     const before = {
       answers: state.answers,
@@ -105,7 +101,7 @@ export function createQuestions(runtime, actions) {
       actions.save("notes");
     }
     actions.save("answers", "merchantAnswers");
-    if (sameIds(m.txnIds)) state.highlight = new Set();
+    if (sameIds(m.txnIds, state.highlight)) state.highlight = new Set();
     actions.refresh();
     toast(result.message, 9000, {
       label: "Undo",
@@ -179,7 +175,9 @@ export function createQuestions(runtime, actions) {
       if (e.target.closest("form, button, input, textarea")) return;
       // Clicking the card lights up its transactions, like a lens bar.
       const ids = m.txnIds;
-      actions.highlight(sameIds(ids) ? [] : ids, { clearSelection: true });
+      actions.highlight(sameIds(ids, state.highlight) ? [] : ids, {
+        clearSelection: true,
+      });
     });
     pane.addEventListener("submit", (e) => {
       e.preventDefault();

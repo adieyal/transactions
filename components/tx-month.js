@@ -4,10 +4,10 @@ import { summarizeMonth } from "../story/summary.js";
 import { polishFacts, polishSummary } from "../story/assist.js";
 import { monthLong } from "../story/copy.js";
 import { waitingForCurrency } from "../story/currency.js";
-import { phraseHTML, wireHoverHighlight } from "../ui/highlight.js";
+import { phraseHTML, sameIds, wireHoverHighlight } from "../ui/highlight.js";
 import { html, raw } from "../ui/dom.js";
 import { markdown } from "../ui/markdown.js";
-import { emitHighlight, sameIds, subscribeWhileConnected } from "./base.js";
+import { emitHighlight, subscribeWhileConnected } from "./base.js";
 
 // <tx-month month="YYYY-MM">: one month's summary. Without a month it shows
 // the app's month (state.monthView) and its arrows move that; with one, its
@@ -23,6 +23,10 @@ export function createMonthComponent(runtime, actions) {
     original = new Set();
   let polishing = null;
   let count = 0;
+  // Every <tx-month> in the page, so a polish shows in each one that shares
+  // its month without telling the store.
+  const shown = new Set();
+  const renderAll = () => shown.forEach((el) => el.render());
   const months = () => (runtime.derived ? coveredMonths(runtime.derived) : []);
   const partHTML = (p) => phraseHTML(p, esc);
 
@@ -41,10 +45,14 @@ export function createMonthComponent(runtime, actions) {
         }
         connectedCallback() {
           if (!this.wired) this.wire();
+          shown.add(this);
           subscribeWhileConnected(this, runtime.store, (change) =>
             change === "highlight" ? this.mark() : this.render(),
           );
           this.render();
+        }
+        disconnectedCallback() {
+          shown.delete(this);
         }
         attributeChangedCallback() {
           if (this.isConnected) this.render();
@@ -144,7 +152,7 @@ export function createMonthComponent(runtime, actions) {
           );
           polishing = m;
           delete notes[m];
-          runtime.store.notify("refresh");
+          renderAll();
           try {
             const r = await polishSummary(caps.sample, sections, m);
             if (r.ok) {
@@ -158,7 +166,7 @@ export function createMonthComponent(runtime, actions) {
             notes[m] = actions.sampleErr(e);
           }
           polishing = null;
-          runtime.store.notify("refresh");
+          renderAll();
         }
         step(d) {
           const ms = months();
@@ -169,7 +177,7 @@ export function createMonthComponent(runtime, actions) {
             return;
           }
           state.monthView = ms[i];
-          runtime.store.notify("refresh");
+          actions.redraw();
           actions.resetPanelScroll();
         }
         wire() {
@@ -207,6 +215,7 @@ export const contract = {
     "askCurrencies",
     "openQuestions",
     "questionCard",
+    "redraw",
     "resetPanelScroll",
     "sampleErr",
     "wireCards",

@@ -1,5 +1,6 @@
 import { html, raw } from "../ui/dom.js";
-import { emitHighlight, sameIds, subscribeWhileConnected } from "./base.js";
+import { sameIds } from "../ui/highlight.js";
+import { emitHighlight, subscribeWhileConnected } from "./base.js";
 
 // <tx-lens lens="…">: one lens's view, run in the sandbox on the derived
 // transactions as they are now. With `titled` it shows the lens's title too.
