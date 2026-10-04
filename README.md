@@ -40,7 +40,7 @@ This screenshot maps the five rows in the [sample CSV](docs/demo-statements.csv)
 
 ### 3. Accounts and date range
 
-Click an account chip to include or exclude that account from the view. Use the range controls to focus on all data or the last three, six, or twelve months. These controls change the view while keeping the imported statements saved.
+Click an account's name beside its statement bars, at the top of the timeline, to include or exclude that account from the view. Hidden accounts stay listed, dimmed, so you can turn them back on. Use the range controls to focus on all data or the last three, six, or twelve months. These controls change the view while keeping the imported statements saved.
 
 ![Account visibility controls and three-month timeline range](docs/screenshots/03-accounts-and-range.png)
 

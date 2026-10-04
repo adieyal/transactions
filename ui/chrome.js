@@ -1,5 +1,5 @@
 import { createBackup } from "../backup.js";
-import { $, TODAY, debounce, esc } from "../helpers.js";
+import { $, TODAY, debounce } from "../helpers.js";
 import { toast } from "./dom.js";
 import { STARTER_LENSES } from "../defaults.js";
 
@@ -16,12 +16,6 @@ export function createChrome(runtime, actions) {
       ? `Demo · a fictional year · <button class="linkish" id="tourBtn">Take the tour</button>`
       : "Imported data";
     $("#tourBtn")?.addEventListener("click", actions.startTour);
-    $("#accts").innerHTML = (runtime.derived?.accounts || [])
-      .map(
-        (a) =>
-          `<button class="chip acct" aria-pressed="${!state.hiddenAccounts.has(a)}" data-acct="${esc(a)}" dir="auto">${esc(a)}</button>`,
-      )
-      .join("");
     $("#ranges").innerHTML = [
       ["all", "All"],
       ["12", "12 months"],
@@ -86,15 +80,6 @@ export function createChrome(runtime, actions) {
       const fs = [...(e.dataTransfer?.files || [])];
       if (fs.length) actions.importFiles(fs);
     });
-    $("#accts").onclick = (e) => {
-      const b = e.target.closest("[data-acct]");
-      if (!b) return;
-      const a = b.dataset.acct;
-      state.hiddenAccounts.has(a)
-        ? state.hiddenAccounts.delete(a)
-        : state.hiddenAccounts.add(a);
-      actions.refresh();
-    };
     $("#ranges").onclick = (e) => {
       const b = e.target.closest("[data-range]");
       if (!b) return;

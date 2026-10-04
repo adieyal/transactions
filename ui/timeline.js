@@ -80,10 +80,10 @@ export function createTimeline(runtime, actions) {
       const v = ms(t.chargeDate || t.date);
       return v >= t0 && v <= t1;
     };
-    const accts = runtime.derived.accounts.filter(
-      (a) => !state.hiddenAccounts.has(a),
-    );
-    const covTop = 4,
+    // Hidden accounts keep their row so their name can turn them back on.
+    const accts = runtime.derived.accounts;
+    // Room above the statement bars for the future area's heading.
+    const covTop = 28,
       covH = accts.length * 13;
     const axisY = covTop + covH + 16;
     const expY = axisY + 16;
@@ -150,9 +150,12 @@ export function createTimeline(runtime, actions) {
       dimming = hl.size > 0;
     let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Transactions on a timeline, one row per thread">`;
     const xToday = X(ms(TODAY));
-    s += `<rect class="futurebg" x="${xToday}" y="${covTop}" width="${Math.max(0, W - padR - xToday)}" height="${H - covTop}"/>`;
-    if (W - padR - xToday > 90)
-      s += `<text class="futurelabel" x="${W - padR - 6}" y="${covTop + 11}" text-anchor="end"><title>Dates still to come. Dashed marks and ≈ amounts are charges expected from recurring payments and instalments.</title>The future</text>`;
+    const fx0 = Math.max(labelW, xToday),
+      fx1 = W - padR;
+    s += `<rect class="futurebg" x="${fx0}" y="0" width="${Math.max(0, fx1 - fx0)}" height="${H}"/>`;
+    // A heading with a bracket across the whole shaded area it describes.
+    if (fx1 - fx0 > 120)
+      s += `<g class="futurehead"><title>Dates still to come. Dashed marks and ≈ amounts are charges expected from recurring payments and instalments.</title><text x="${fx0 + 10}" y="13">Future transactions</text><path d="M${fx0 + 4},${covTop - 8}v4H${fx1 - 4}v-4"/></g>`;
     // every period shades the dates beneath it; the selected one is stronger
     // and can be dragged to move it, or by its sides to resize it
     const selP = pers.find((p) => p.id === state.periodSel);
@@ -199,7 +202,7 @@ export function createTimeline(runtime, actions) {
         const has = runtime.derived.coverage[a]?.has(monthOf(mm));
         if (x1 - x0 > 2)
           s += has
-            ? `<rect class="cov-on" data-acct="${esc(a)}" data-period="${monthOf(mm)}" x="${x0 + 1}" y="${y}" width="${x1 - x0 - 2}" height="8" rx="2"><title>${esc(a)}: statement for ${monthName(monthOf(mm))}</title></rect>`
+            ? `<rect class="cov-on${state.hiddenAccounts.has(a) ? " hidden-acct" : ""}" data-acct="${esc(a)}" data-period="${monthOf(mm)}" x="${x0 + 1}" y="${y}" width="${x1 - x0 - 2}" height="8" rx="2"><title>${esc(a)}: statement for ${monthName(monthOf(mm))}</title></rect>`
             : mm < TODAY
               ? `<rect class="cov-off" x="${x0 + 1.5}" y="${y + 0.5}" width="${x1 - x0 - 3}" height="7" rx="2"><title>No ${monthName(monthOf(mm))} statement for ${esc(a)}</title></rect>`
               : "";
@@ -208,10 +211,10 @@ export function createTimeline(runtime, actions) {
       if (ex && x1 - x0 > 40)
         s += `<text class="exp" x="${(x0 + x1) / 2}" y="${expY}" text-anchor="middle"><title>Expected charges this month</title>≈ ${fmtShort(ex)}</text>`;
     });
-    accts.forEach(
-      (a, ai) =>
-        (s += `<text class="covlabel" x="${labelW - 8}" y="${covTop + ai * 13 + 8}" text-anchor="end">${esc(a.length > (narrow ? 13 : 22) ? a.slice(0, narrow ? 12 : 21) + "…" : a)}</text>`),
-    );
+    accts.forEach((a, ai) => {
+      const off = state.hiddenAccounts.has(a);
+      s += `<text class="covlabel acctlabel${off ? " off" : ""}" data-togacct="${esc(a)}" role="switch" aria-checked="${!off}" tabindex="0" x="${labelW - 8}" y="${covTop + ai * 13 + 8}" text-anchor="end"><title>${off ? `Show ${esc(a)}` : `Hide ${esc(a)}`}</title>${esc(a.length > (narrow ? 13 : 22) ? a.slice(0, narrow ? 12 : 21) + "…" : a)}</text>`;
+    });
     // periods strip
     s += `<rect class="pstrip" x="${labelW}" y="${perTop}" width="${W - padR - labelW}" height="${perBottom - perTop}"><title>Drag along this strip to mark a period</title></rect>`;
     s += `<text class="covlabel" x="${labelW - 8}" y="${perTop + 14}" text-anchor="end">Periods</text>`;
@@ -305,9 +308,13 @@ export function createTimeline(runtime, actions) {
         }
         s += `<line class="wire" x1="${labelW}" x2="${W - padR}" y1="${cy}" y2="${cy}"/>`;
         if (!narrow) {
-          s += `<g class="parkbtn" data-park="${esc(row.name)}" tabindex="0" role="button" aria-label="${isParked(row) ? "Unpark" : "Park"} ${esc(row.name)}"><title>${isParked(row) ? "Unpark this thread" : "Park this thread: fold it into one quiet wire at the bottom"}</title><circle cx="12" cy="${cy - 6}" r="7"/><text x="12" y="${cy - 2}" text-anchor="middle">${isParked(row) ? "+" : "−"}</text></g>`;
+          // An eye beside the thread name parks it; placeParkButtons moves it
+          // flush against the rendered name.
+          const parked = isParked(row);
+          s += `<g class="parkbtn${parked ? " parked" : ""}" data-park="${esc(row.name)}" data-for-y="${cy - 2}" transform="translate(${labelW - 12 - row.name.length * 7 - 14},${cy - 6})" tabindex="0" role="button" aria-label="${parked ? "Unpark" : "Park"} ${esc(row.name)}"><title>${parked ? "Unpark this thread" : "Park this thread: fold it into one quiet wire at the bottom"}</title><rect x="-9" y="-8" width="18" height="16" rx="4"/><path d="M-6,0 Q0,-6 6,0 Q0,6 -6,0Z"/><circle r="1.8"/>${parked ? `<path d="M-6,5 L6,-5"/>` : ""}</g>`;
+          // Adding a budget sits at the right end, where its drag handle will be.
           if (thr && thr.budget == null && !drag)
-            s += `<g class="parkbtn budgetbtn" data-budget="${esc(row.name)}" tabindex="0" role="button" aria-label="Set a budget for ${esc(row.name)}"><title>Give this thread a monthly budget line you can drag</title><circle cx="12" cy="${cy + 12}" r="7"/><text x="12" y="${cy + 16}" text-anchor="middle">₪</text></g>`;
+            s += `<g class="budgetbtn" data-budget="${esc(row.name)}" transform="translate(${W - padR - 4},${cy - 16})" tabindex="0" role="button" aria-label="Set a budget for ${esc(row.name)}"><title>Give this thread a monthly budget line you can drag</title><rect x="-62" y="-9" width="62" height="17" rx="8.5"/><text x="-31" y="3.5" text-anchor="middle">+ Budget</text></g>`;
         }
         s += `<text class="rowlabel" data-thread="${esc(row.name)}" data-line="${thr ? thr.line : ""}" x="${labelW - 12}" y="${cy - 2}" text-anchor="end" style="fill:${row.color}">${esc(row.name.length > maxName ? row.name.slice(0, maxName - 1) + "…" : row.name)}</text>`;
         s += `<text class="rowtotal" x="${labelW - 12}" y="${cy + 14}" text-anchor="end">${row.items.some((t) => t.kind === "actual") ? (row.name === TRANSFERS ? "moved " : "") + fmt(total, 0) : ""}</text>`;
@@ -392,6 +399,7 @@ export function createTimeline(runtime, actions) {
     }
     s += `<rect id="lassoRect" class="lasso" x="0" y="0" width="0" height="0" style="display:none"/></svg>`;
     host.innerHTML = s;
+    placeParkButtons(labelW);
     TL = {
       t0,
       t1,
@@ -464,6 +472,21 @@ export function createTimeline(runtime, actions) {
     tip.style.top = y + "px";
   }
 
+  // Starts a budget at about the thread's monthly average.
+  function addBudget(name) {
+    const ts = runtime.derived.allTxns.filter(
+      (t) => t.thread === name && t.amount > 0,
+    );
+    const months = new Set(
+      Object.values(runtime.derived.coverage).flatMap((set) => [...set]),
+    );
+    const avg = ts.reduce((a, t) => a + t.amount, 0) / Math.max(1, months.size);
+    setBudget(name, niceBudget(avg) || 500);
+    toast(
+      `Budget line added at about your monthly average. Drag the handle on the right to change it.`,
+    );
+  }
+
   function removeBudget(name) {
     const th = runtime.derived.R.threads.find((t) => t.name === name);
     if (!th?.budget || state.previewRules != null) return setBudget(name, 0);
@@ -500,7 +523,9 @@ export function createTimeline(runtime, actions) {
     if (!svg || !TL) return;
     const top =
       $(".left").getBoundingClientRect().top - svg.getBoundingClientRect().top;
-    const show = top > TL.perBottom;
+    // Only while the timeline itself is still on screen below the names.
+    const show =
+      top > TL.perBottom && top + 24 < svg.getBoundingClientRect().height;
     svg.querySelectorAll(".pstick").forEach((t) => {
       t.style.display = show ? "" : "none";
       if (show) t.setAttribute("y", top + 16);
@@ -627,7 +652,9 @@ export function createTimeline(runtime, actions) {
       const hit =
         !g &&
         !ev.shiftKey &&
-        !ev.target.closest("circle[data-id],.rowlabel,.parkbtn,#parkedLabel") &&
+        !ev.target.closest(
+          "circle[data-id],.rowlabel,.parkbtn,.budgetbtn,#parkedLabel",
+        ) &&
         bandAt({ x, y });
       if (g || hit) {
         const p = state.periods.find(
@@ -650,7 +677,7 @@ export function createTimeline(runtime, actions) {
       }
       if (
         ev.target.closest(
-          "circle[data-id],.rowlabel,.cov-on,.parkbtn,#parkedLabel",
+          "circle[data-id],.rowlabel,.cov-on,.acctlabel,.parkbtn,.budgetbtn,#parkedLabel",
         )
       )
         return;
@@ -747,19 +774,7 @@ export function createTimeline(runtime, actions) {
       }
       const bb = ev.target.closest(".budgetbtn");
       if (bb) {
-        const name = bb.dataset.budget;
-        const ts = runtime.derived.allTxns.filter(
-          (t) => t.thread === name && t.amount > 0,
-        );
-        const months = new Set(
-          Object.values(runtime.derived.coverage).flatMap((set) => [...set]),
-        );
-        const avg =
-          ts.reduce((a, t) => a + t.amount, 0) / Math.max(1, months.size);
-        setBudget(name, niceBudget(avg) || 500);
-        toast(
-          `Budget line added at about your monthly average. Drag the handle on the right to change it.`,
-        );
+        addBudget(bb.dataset.budget);
         return;
       }
       const pk = ev.target.closest(".parkbtn");
@@ -784,6 +799,11 @@ export function createTimeline(runtime, actions) {
         state.selection.clear();
         if (lab.dataset.line !== "") actions.selectRuleLine(+lab.dataset.line);
         actions.refresh();
+        return;
+      }
+      const tog = ev.target.closest("[data-togacct]");
+      if (tog) {
+        toggleAccount(tog.dataset.togacct);
         return;
       }
       const cov = ev.target.closest(".cov-on");
@@ -822,6 +842,37 @@ export function createTimeline(runtime, actions) {
           ?.focus(),
       );
     });
+  }
+
+  // Puts each park eye just left of its thread name, now that names have width.
+  function placeParkButtons(labelW) {
+    $("#tl")
+      .querySelectorAll(".parkbtn[data-park]")
+      .forEach((b) => {
+        const lab = $(
+          `#tl .rowlabel[data-thread="${CSS.escape(b.dataset.park)}"]`,
+        );
+        if (!lab) return;
+        const x = labelW - 12 - lab.getComputedTextLength() - 14;
+        b.setAttribute("transform", `translate(${x},${b.dataset.forY - 4})`);
+      });
+  }
+
+  // Shows or hides one account's transactions; one account always stays on.
+  function toggleAccount(a) {
+    const hidden = state.hiddenAccounts;
+    if (!hidden.has(a)) {
+      const shown = runtime.derived.accounts.filter((x) => !hidden.has(x));
+      if (shown.length <= 1) {
+        toast("At least one account stays visible.");
+        return;
+      }
+      hidden.add(a);
+    } else hidden.delete(a);
+    actions.refresh();
+    requestAnimationFrame(() =>
+      $(`#tl [data-togacct="${CSS.escape(a)}"]`)?.focus(),
+    );
   }
 
   function togglePark(name) {
@@ -868,6 +919,18 @@ export function createTimeline(runtime, actions) {
       }
     };
     $("#tl").addEventListener("keydown", (e) => {
+      const ta = e.target.closest?.("[data-togacct]");
+      if (ta && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        toggleAccount(ta.dataset.togacct);
+        return;
+      }
+      const bb = e.target.closest?.(".budgetbtn");
+      if (bb && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        addBudget(bb.dataset.budget);
+        return;
+      }
       const pk = e.target.closest?.(".parkbtn");
       if (pk && (e.key === "Enter" || e.key === " ")) {
         e.preventDefault();
