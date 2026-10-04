@@ -198,7 +198,7 @@ export function createQuestions(runtime, actions) {
 
   function renderPrivacy() {
     const privacy = privacyText(actions.Store.backend.kind);
-    $("#privacyChip").textContent = privacy.label;
+    $("#privacyChip .label").textContent = privacy.label;
     $("#privacyTitle").textContent = privacy.label;
     $("#privacyBody").innerHTML = privacy.details
       .map((d) => `<p>${esc(d)}</p>`)

@@ -2,6 +2,7 @@ import { createBackup } from "../backup.js";
 import { debounce } from "../helpers.js";
 import { $, html, toast } from "./dom.js";
 import { STARTER_LENSES } from "../defaults.js";
+import { coveredMonths } from "../story/moment-kit.js";
 
 export function createChrome(runtime, actions) {
   const { state, caps } = runtime;
@@ -13,7 +14,24 @@ export function createChrome(runtime, actions) {
     state.loaded && actions.renderTimeline();
   }
 
+  // The header as drawn: the first-run page while there are no statements,
+  // and Year/Month only once there is more than one month to show.
+  function renderShell() {
+    const first = !Object.keys(state.batches).length;
+    document.body.classList.toggle("firstrun", first);
+    $("#firstRun").hidden = !first;
+    const months = runtime.derived ? coveredMonths(runtime.derived).length : 0;
+    const year = months > 1 && state.scale !== "month";
+    $("#scaleYear").disabled = months < 2;
+    $("#scaleYear").title =
+      months < 2 ? "Appears when you have more than one month" : "";
+    $("#scaleYear").setAttribute("aria-pressed", year);
+    $("#scaleMonth").setAttribute("aria-pressed", !year);
+    $("#numbersBtn").setAttribute("aria-pressed", state.numbers);
+  }
+
   function renderChrome() {
+    renderShell();
     $("#demoNotice").innerHTML = state.isDemo
       ? html`Demo<span class="wide-only"> · a fictional year</span> · <button class="linkish" id="tourBtn">Take the tour</button>`
       : "Imported data";
@@ -78,6 +96,21 @@ export function createChrome(runtime, actions) {
       if (e.target.closest("#tourBtn")) actions.startTour();
     });
     $("#addBtn").onclick = () => $("#file").click();
+    $("#restoreBtn").onclick = () => $("#backupFile").click();
+    // Until the year and month views of the canvas arrive, Year shows the
+    // whole timeline and Month opens Your month.
+    document.querySelector(".scale").onclick = (e) => {
+      const b = e.target.closest("[data-scale]");
+      if (!b || b.disabled) return;
+      state.scale = b.dataset.scale;
+      if (state.scale === "year") state.range = "all";
+      else openTab("month");
+      actions.refresh();
+    };
+    $("#numbersBtn").onclick = () => {
+      state.numbers = !state.numbers;
+      actions.redraw();
+    };
     $("#file").onchange = (e) => {
       actions.importFiles([...e.target.files]);
       e.target.value = "";

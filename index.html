@@ -4,23 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Transactions</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Instrument+Sans:wght@400;500;600&family=Noto+Sans+Hebrew:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- TRANSACTIONS_STYLES -->
 </head>
 <body>
 <div class="app">
   <header>
-    <h1 class="mark"><svg width="26" height="22" viewBox="0 0 26 22" aria-hidden="true"><line x1="1" y1="5" x2="25" y2="5" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="11" x2="25" y2="11" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="17" x2="25" y2="17" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="5" r="3" fill="#2F6B8F"/><circle cx="13" cy="5" r="2" fill="#2F6B8F"/><circle cx="18" cy="11" r="3.5" fill="#A4502F"/><circle cx="9" cy="17" r="2.5" fill="#5E8237"/><circle cx="21" cy="17" r="2.5" fill="none" stroke="#5E8237" stroke-dasharray="1.5 1.5"/></svg>Transactions</h1>
-    <span class="sub" id="demoNotice">Demo · all example data is fictional</span>
+    <h1 class="mark">Transactions</h1>
+    <div class="scale" role="group" aria-label="Scale">
+      <button id="scaleYear" data-scale="year">Year</button>
+      <button id="scaleMonth" data-scale="month">Month</button>
+    </div>
+    <button class="numbers" id="numbersBtn" aria-pressed="false"><span class="knob" aria-hidden="true"><span></span></span>Numbers</button>
     <div class="spacer"></div>
-    <button class="privchip" id="privacyChip" aria-haspopup="dialog">Private to this device</button>
-    <div class="chips" id="ranges" role="group" aria-label="Time range"></div>
-    <button class="btn" id="addBtn">Add statements</button>
+    <button class="privchip" id="privacyChip" aria-haspopup="dialog"><svg width="14" height="16" viewBox="0 0 14 16" aria-hidden="true"><rect x="1.5" y="7" width="11" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span class="label">Private to this device</span></button>
+    <button class="hbtn" id="restoreBtn">Restore a backup</button>
+    <button class="hbtn primary" id="addBtn">Add statements</button>
     <div class="menu" id="moreMenu">
-      <button class="btn quiet" id="moreBtn" aria-haspopup="true" aria-expanded="false">More</button>
+      <button class="hbtn" id="moreBtn" aria-haspopup="menu" aria-expanded="false">More</button>
       <div role="menu">
+        <div class="menuhead" id="rangesHead">Time range</div>
+        <div class="chips" id="ranges" role="group" aria-labelledby="rangesHead"></div>
         <button role="menuitem" data-act="tour">Take the tour</button>
         <button role="menuitem" data-act="ai">AI assistant settings</button>
         <button role="menuitem" data-act="dl-rules">Download threads as text</button>
@@ -33,6 +36,8 @@
     <input type="file" id="backupFile" class="vh" accept=".json,application/json">
     <input type="file" id="file" multiple class="vh" accept=".xls,.xlsx,.csv,.txt,.html,.htm">
   </header>
+  <p class="sub demoline" id="demoNotice"></p>
+  <tx-first-run id="firstRun" hidden></tx-first-run>
   <main>
     <section class="left" aria-label="Timeline">
       <div class="filterbar">

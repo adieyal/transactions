@@ -364,11 +364,12 @@ A factory lists its refresh renders in a `renders` array in the object it return
 
 New UI is a custom element in `components/` (layer `ui`), and the `ui/` modules move there in steps R13 to R15. The reasons are in [ADR 0009](adr/0009-web-components-as-the-ui-boundary.md).
 
-| Component        | Attributes                                     | Emits                         | Replaces                                |
-| ---------------- | ---------------------------------------------- | ----------------------------- | --------------------------------------- |
-| `<tx-month>`     | `month="YYYY-MM"`; without it, the app's month | `tx-highlight` (hover)        | `ui/month.js` (deleted)                 |
-| `<tx-questions>` | `limit` (default 5, the rest folded)           | `tx-highlight` via the cards  | the Questions pane of `ui/questions.js` |
-| `<tx-lens>`      | `lens` (a lens id), `titled`                   | `tx-highlight`, `tx-lens-ran` | each card body in `ui/lenses.js`        |
+| Component        | Attributes                                     | Emits                                | Replaces                                   |
+| ---------------- | ---------------------------------------------- | ------------------------------------ | ------------------------------------------ |
+| `<tx-month>`     | `month="YYYY-MM"`; without it, the app's month | `tx-highlight` (hover)               | `ui/month.js` (deleted)                    |
+| `<tx-questions>` | `limit` (default 5, the rest folded)           | `tx-highlight` via the cards         | the Questions pane of `ui/questions.js`    |
+| `<tx-lens>`      | `lens` (a lens id), `titled`                   | `tx-highlight`, `tx-lens-ran`        | each card body in `ui/lenses.js`           |
+| `<tx-first-run>` | none                                           | `tx-import-files`, `tx-open-example` | the demo seeded on first load (artboard 1) |
 
 The rules for a component:
 
@@ -400,7 +401,7 @@ When a test fails, check whether it also fails on the base commit before changin
 - **The network boundary.** The only code that may send data is `assistant.js` (`fetch` to the provider the person configured) and calls to `caps.sample` (Claude). Both run only from a handler the person triggered. Nothing is sent on load, on a timer or in a render. The guardrail test fails if `fetch(`, `XMLHttpRequest`, `WebSocket`, `sendBeacon` or `EventSource` appear anywhere else.
 - **What is sent.** Prompt and tool payloads are built by pure functions in `assistant/prompts.js` and `assistant/tools.js`. Tests can therefore check what leaves the browser, for example that `buildIntro` without tools includes at most 1,800 transactions and no AI settings.
 - **Assistant output** is accepted only when every claim cites transaction ids (constitution, anti-goal 4). Generated summaries fall back to the template text, never to unchecked assistant text.
-- **Known exceptions, decided by the user.** Google Fonts stay external (ADR 0007): a request on load, with fallback fonts offline. SheetJS loads only when a spreadsheet is chosen, pinned and hash-checked, from `files.js`. Offline, the person is told to use CSV instead. Lens code runs in a sandboxed frame with no access to the page, its storage or the network, and a 1.5-second limit (`ui/lens-sandbox.js`, ADR 0007). Lenses from an imported backup are labelled as such.
+- **Known exceptions, decided by the user.** The fonts are embedded in the build ([ADR 0010](adr/0010-embedded-fonts.md)), so the page makes no request on load. SheetJS loads only when a spreadsheet is chosen, pinned and hash-checked, from `files.js`. Offline, the person is told to use CSV instead. Lens code runs in a sandboxed frame with no access to the page, its storage or the network, and a 1.5-second limit (`ui/lens-sandbox.js`, ADR 0007). Lenses from an imported backup are labelled as such.
 
 ## 7. Where the story-first modules fit
 

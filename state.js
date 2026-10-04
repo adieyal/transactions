@@ -31,6 +31,9 @@ export function createRuntime({ today = null } = {}) {
     query: "",
     view: { parked: [], panel: true, showParked: false },
     range: "all",
+    // The header's Year/Month switch and Numbers toggle (canvas M1).
+    scale: null,
+    numbers: false,
     selection: new Set(),
     highlight: new Set(),
     statement: null,

@@ -29,6 +29,7 @@ import { contract as lensEditor } from "./ui/lens-editor.js";
 import { contract as txMonth } from "./components/tx-month.js";
 import { contract as txQuestions } from "./components/tx-questions.js";
 import { contract as txLens } from "./components/tx-lens.js";
+import { contract as txFirstRun } from "./components/tx-first-run.js";
 import { coveredMonths } from "./story/moments.js";
 
 const runtime = createRuntime({ today: isoOf(new Date()) });
@@ -57,6 +58,7 @@ const MODULES = [
   txMonth,
   txQuestions,
   txLens,
+  txFirstRun,
 ];
 const registry = createRegistry(runtime, MODULES, {
   derive() {
@@ -67,6 +69,7 @@ const registry = createRegistry(runtime, MODULES, {
   redraw,
   refresh,
   refreshSoon: debounce(() => refresh(), 250),
+  openExample,
   // Storage reports failed writes here, so persistence needs no UI.
   onSaveError: (message) => toast(message),
 });
@@ -91,6 +94,29 @@ document.addEventListener("tx-highlight", (e) =>
     clearSelection: e.detail.clearSelection,
   }),
 );
+
+// The first-run page hands its files to the import flow, and asks for the
+// example year.
+document.addEventListener("tx-import-files", (e) =>
+  actions.importFiles(e.detail.files),
+);
+document.addEventListener("tx-open-example", () => actions.openExample());
+
+// Sam's fictional year, saved as a demo workspace. Importing statements
+// later offers to replace it.
+async function openExample() {
+  Object.assign(runtime.state, createDemoData(runtime.today), {
+    isDemo: true,
+  });
+  for (const key of ["workspace", "rules", "notes", "periods"])
+    await actions.Store.backend.put(
+      key,
+      toDocument(documentFor(key), runtime.state),
+    );
+  for (const batch of Object.values(runtime.state.batches))
+    actions.saveBatch(batch);
+  refresh();
+}
 
 // #lab: the prototype layout from index.html in place of the side panel,
 // with the two latest months side by side and the first lens.
@@ -157,17 +183,9 @@ async function boot() {
       );
     }
   } else docs = await actions.Store.backend.all();
-  // Seed only a new demo workspace. Removed demo statements stay removed on reload.
-  if (!Object.keys(docs).length) {
-    Object.assign(runtime.state, createDemoData(runtime.today));
-    for (const key of ["workspace", "rules", "notes", "periods"])
-      await actions.Store.backend.put(
-        key,
-        toDocument(documentFor(key), runtime.state),
-      );
-    for (const batch of Object.values(runtime.state.batches))
-      actions.saveBatch(batch);
-  }
+  // A new workspace starts empty, on the first-run page; the example year
+  // loads only when the person opens it.
+  if (!Object.keys(docs).length) runtime.state.isDemo = false;
   const { invalid, legacyDemo } = loadDocuments(docs, runtime.state);
   // A workspace seeded before `workspace` existed: record it the current way.
   if (legacyDemo) actions.save("workspace");
