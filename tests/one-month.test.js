@@ -4,7 +4,7 @@ import { createDemoData } from "../demo.js";
 import { createRuntime } from "../state.js";
 import { deriveTransactions } from "../transactions/derive.js";
 import { coveredMonths } from "../story/moment-kit.js";
-import { monthAxis, oneMonthStory } from "../story/one-month.js";
+import { monthAxis, oneMonthStory, periodStrip } from "../story/one-month.js";
 
 const today = "2026-09-30";
 const demo = { ...createRuntime().state, ...createDemoData(today) };
@@ -62,4 +62,51 @@ test("the maybe-regular question is asked only with one or two months", () => {
   const s = oneMonthStory(d, state, coveredMonths(d).at(-1));
   assert.match(s.question.text, /Is it something you pay every month\?$/);
   assert.equal(s.source[0], "Your first statements");
+});
+
+// Only one month of statements: Sam's April, without the periods.
+function onlyMonth(m, periods = []) {
+  const batches = Object.fromEntries(
+    Object.entries(demo.batches)
+      .map(([k, b]) => [
+        k,
+        { ...b, rows: b.rows.filter((r) => r.date.startsWith(m)) },
+      ])
+      .filter(([, b]) => b.rows.length),
+  );
+  const state = { ...demo, batches, periods };
+  return [deriveTransactions(state, { today }), state];
+}
+
+test("with one month, a busy stretch is 3+ payments in 7 days over a third of the month", () => {
+  const [d, s] = onlyMonth("2026-04");
+  const { stretches, periods, days } = periodStrip(d, s, "2026-04");
+  assert.equal(days, 30);
+  assert.deepEqual(periods, []);
+  assert.equal(stretches.length, 1);
+  const [b] = stretches;
+  assert.equal(b.label, "₪2,520 · 9–16 Apr");
+  assert.equal(b.aria, "A busy stretch, 9 to 16 April, not named yet");
+  const paid = d.allTxns.filter((t) => b.txnIds.includes(t.id));
+  const spent = d.allTxns
+    .filter((t) => t.amount > 0 && !t.transfer && !t.inflow)
+    .reduce((a, t) => a + t.amount, 0);
+  assert.ok(paid.length >= 3);
+  assert.ok(paid.reduce((a, t) => a + t.amount, 0) > spent / 3);
+});
+
+test("the strip shows the person's periods clipped to the month, and no stretch inside them", () => {
+  const p = {
+    id: "p1",
+    name: "Moving",
+    start: "2026-03-28",
+    end: "2026-04-16",
+    color: "#000",
+  };
+  const [d, s] = onlyMonth("2026-04", [p]);
+  const strip = periodStrip(d, s, "2026-04");
+  assert.deepEqual(strip.periods, [
+    { id: "p1", name: "Moving", color: "#000", from: 1, to: 16 },
+  ]);
+  assert.deepEqual(strip.stretches, [], "payments in a period are explained");
 });

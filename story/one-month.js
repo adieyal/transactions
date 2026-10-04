@@ -3,7 +3,16 @@ import { STARTER_RULES } from "../defaults.js";
 import { LOOSE, TRANSFERS } from "../transactions/constants.js";
 import { parseRules } from "../transactions/rules.js";
 import { coveredMonths } from "./moment-kit.js";
-import { count, list, money, monthLong, name, ordinal } from "./copy.js";
+import { detectMoments } from "./moments.js";
+import {
+  count,
+  dayShort,
+  list,
+  money,
+  monthLong,
+  name,
+  ordinal,
+} from "./copy.js";
 
 // Artboard 2, one month: the timeline band's rows and axis, and a story told
 // with only what one month can say (Copy rules, section 2): totals and
@@ -297,4 +306,43 @@ function tell(derived, state, month, inMonth) {
     question: maybeRegular(pays, months.length, state.answers),
     loose: looseEnds(pays),
   };
+}
+
+// The Periods strip (Copy rules s3): the person's periods and the busy
+// stretches the app finds, each clipped to the month as a first and last
+// day. A stretch is told by its amount and dates only: "₪720 · 2–6 Jun".
+export function periodStrip(derived, state, month) {
+  const first = `${month}-01`,
+    last = `${month}-${String(daysIn(month)).padStart(2, "0")}`;
+  const span = (from, to) =>
+    from > last || to < first
+      ? null
+      : {
+          from: from < first ? 1 : day({ date: from }),
+          to: to > last ? daysIn(month) : day({ date: to }),
+        };
+  const periods = (state.periods || [])
+    .map((p) => {
+      const s = span(p.start, p.end);
+      return s && { id: p.id, name: p.name, color: p.color, ...s };
+    })
+    .filter(Boolean);
+  const stretches = detectMoments(derived, state)
+    .filter((m) => m.kind === "cluster")
+    .map((m) => {
+      const s = span(m.from, m.to);
+      if (!s) return null;
+      const days = s.from === s.to ? `${s.from}` : `${s.from}–${s.to}`;
+      const [mon, long] = [dayShort(first).split(" ")[1], monthLong(month)];
+      return {
+        id: m.id,
+        ...s,
+        txnIds: m.txnIds,
+        label: `${money(m.facts.total, m.currency)} · ${days} ${mon}`,
+        aria: `A busy stretch, ${s.from === s.to ? s.from : `${s.from} to ${s.to}`} ${long.split(" ")[0]}, not named yet`,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.from - b.from);
+  return { month, days: daysIn(month), periods, stretches };
 }

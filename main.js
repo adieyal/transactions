@@ -112,6 +112,17 @@ document.addEventListener("tx-open-bench", (e) => {
   actions.highlight(e.detail.ids);
 });
 
+// The month view's Periods strip: a drag marks a period, and a period's chip
+// opens it with the timeline, where it can be named.
+document.addEventListener("tx-mark-period", (e) =>
+  actions.addPeriod(e.detail.start, e.detail.end),
+);
+document.addEventListener("tx-open-period", (e) => {
+  runtime.state.bench = true;
+  refresh();
+  actions.openPeriod(e.detail.id);
+});
+
 // Sam's fictional year, saved as a demo workspace. Importing statements
 // later offers to replace it.
 async function openExample() {

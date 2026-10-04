@@ -530,6 +530,14 @@ tx-one-month[hidden]{display:none}
 .om-periodsrow{display:flex; align-items:center; height:36px}
 .om-periodslabel{flex:0 0 150px; font-size:13px; color:var(--ink-label)}
 .om-periods{flex:1; height:28px; display:flex; align-items:center; padding:0 12px; border:1.5px dashed var(--track); border-radius:6px; font-size:13px; color:var(--ink-label)}
+.om-periods{position:relative; cursor:crosshair; touch-action:pan-y; user-select:none}
+.om-periods.filled{padding:0; border-color:transparent}
+.om-pnew{position:absolute; top:0; bottom:0; border:1px dashed #2446C8; background:rgba(36,70,200,.07); border-radius:4px; pointer-events:none}
+.om-pchip{position:absolute; bottom:4px; font:600 14px var(--ui); white-space:nowrap; color:var(--ink); background:none; border:0; padding:0; cursor:pointer}
+.om-schip.sp{position:absolute; bottom:1px; height:25px; display:inline-flex; align-items:center; gap:6px; padding:0 8px; border-radius:6px; font:500 13px var(--ui); white-space:nowrap; color:var(--ink); cursor:pointer; background:#F3F4F0; border:1.5px dashed #7D878A; text-decoration:none}
+.om-q{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:9px; background:#1E2528; color:#F3F4F0; font-size:12px; font-weight:600}
+.om-pband{position:absolute; top:0; bottom:0; background:rgba(201,174,106,.18); border-left:1px solid rgba(166,136,60,.5); border-right:1px solid rgba(166,136,60,.5)}
+.om-sband{position:absolute; top:0; bottom:0; border:1.5px dashed #7D878A; border-radius:4px; box-sizing:border-box}
 .om-rows{position:relative}
 .om-grid{position:absolute; left:150px; right:0; top:0; bottom:0; pointer-events:none}
 .om-gridline{position:absolute; top:0; bottom:0; width:1px; background:var(--gridline)}

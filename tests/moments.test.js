@@ -396,11 +396,20 @@ test("copy helpers and a typical month", () => {
   for (const [id, batch] of Object.entries(short.batches))
     if (batch.periods[0] > "2025-10") delete short.batches[id];
   assert.equal(typicalMonth(derive(short)), null);
-  assert.ok(
-    !findMoments(derive(short), short).some((m) =>
-      ["cluster", "new"].includes(m.kind),
-    ),
-  );
+  const few = findMoments(derive(short), short);
+  assert.ok(!few.some((m) => m.kind === "new"));
+  // Without a typical week, a busy stretch is measured against a third of
+  // its month (Copy rules s3).
+  const spent = (m) =>
+    derive(short)
+      .allTxns.filter(
+        (t) => t.date.startsWith(m) && t.amount > 0 && !t.transfer && !t.inflow,
+      )
+      .reduce((a, t) => a + t.amount, 0);
+  for (const c of few.filter((m) => m.kind === "cluster")) {
+    assert.ok(c.txnIds.length >= 3);
+    assert.ok(c.facts.total > spent(c.month) / 3 - 1);
+  }
 });
 
 test("a regular charge that stops becomes a question, as Worth a look's flags did", () => {

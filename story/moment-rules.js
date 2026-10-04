@@ -26,9 +26,28 @@ import {
 // periods and away from places you go every month. Not one big purchase
 // with small ones around it: the largest is under half the total, and the
 // others alone come to more than a typical week.
+// With fewer than three months there is no typical week, so (Copy rules s3)
+// 3+ purchases within 7 days count when together they exceed a third of
+// their month.
 export function clusters(ctx) {
-  if (ctx.typical == null) return [];
+  const third =
+    ctx.typical == null && ctx.months.length < 3
+      ? new Map(
+          [...groupBy(ctx.spend, (t) => monthOf(t.date))].map(([m, ts]) => [
+            m,
+            sum(ts) / 3,
+          ]),
+        )
+      : null;
+  if (ctx.typical == null && !third) return [];
   const week = (ctx.typical * 12) / 52;
+  const busy = (group, total, largest) =>
+    third
+      ? group.length >= 3 && total > third.get(monthOf(group[0].date))
+      : group.length >= 3 &&
+        total > 2 * week &&
+        largest < total / 2 &&
+        total - largest > week;
   let pool = ctx.spend
     .filter((t) => !t.periods?.length && ctx.monthsSeen.get(t.key).size < 3)
     .sort(byDate);
@@ -45,13 +64,7 @@ export function clusters(ctx) {
         group.push(pool[j]);
       const total = sum(group);
       const largest = Math.max(...group.map((t) => t.amount));
-      if (
-        group.length >= 3 &&
-        total > 2 * week &&
-        largest < total / 2 &&
-        total - largest > week &&
-        (!best || total > best.total)
-      )
+      if (busy(group, total, largest) && (!best || total > best.total))
         best = { group, total };
     }
     if (!best) break;
