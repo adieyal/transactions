@@ -144,6 +144,12 @@ test("Your notes is a table with Date, Payment, Amount and Note", () => {
   );
   assert.match(html, /<td[^>]*>Cobble Lane Garage<\/td>/);
   assert.match(html, /₪120/);
-  assert.equal([...html.matchAll(/class="yr-tag">#/g)].length, 2);
+  // Each tag is a linked reference to every payment carrying it.
+  assert.deepEqual(
+    [...html.matchAll(/class="yr-tag"[^>]*data-ref data-tag="([^"]+)">#/g)].map(
+      (m) => m[1],
+    ),
+    ["#car", "#repair"],
+  );
   assert.match(html, /<span>Tow home after the clutch went\.<\/span>/);
 });
