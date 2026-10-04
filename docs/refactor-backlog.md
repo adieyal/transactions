@@ -24,7 +24,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 |    8 | [R11](#r11-storage-keys-into-storagejs) Storage keys into `storage.js`                                          |      S      |    Low     | `ui/assistant-settings.js uses storage`, `ui/tour.js uses storage`           |       **Done** (`next`)       |
 |    9 | [R9](#r9-split-uichatjs) Split `ui/chat.js`                                                                     |      M      | Low–medium | `ui/chat.js` size ceiling                                                    |       **Done** (`next`)       |
 |   10 | [R8](#r8-timeline-layout-into-a-pure-helper) Timeline layout into a pure helper                                 |      L      |   Medium   | `ui/timeline.js` size ceiling                                                |       **Done** (`next`)       |
-|   11 | [R10](#r10-escaped-html-tag-and-delegated-events) Escaped `html` tag and delegated events                       |   S each    |    Low     | none (adds a guardrail)                                                      |          Per module           |
+|   11 | [R10](#r10-escaped-html-tag-and-delegated-events) Escaped `html` tag and delegated events                       |   S each    |    Low     | none (adds a guardrail)                                                      |   Started (`next`): 5 of 13   |
 |   12 | [R12](#r12-fonts-and-sheetjs) Fonts and SheetJS                                                                 |     S–M     |   Medium   | none                                                                         |   Needs the user's decision   |
 
 Items that can start now: R6, R11 for the settings, and R4d.
@@ -222,6 +222,16 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Size:** S per module. **Risk:** low.
 - **Removes:** no allowlist entries; it adds a guardrail with its own allowlist of not-yet-converted modules.
 - **Wait:** per module.
+- **Started** on branch `next`, 4 October 2026:
+  - **The tag.** `html` and `raw` are in `ui/dom.js`. Every value is escaped; an `html` result or a `raw` value goes in as it is; arrays are joined; `null` and `undefined` add nothing; booleans print as in a plain template. `tests/html.test.js` covers it.
+  - **Formatting.** `.prettierrc` sets `embeddedLanguageFormatting: "off"`, because Prettier otherwise reformats `html` templates as HTML and adds whitespace inside buttons and spans.
+  - **Assistant label.** All seven places that put the assistant's name into HTML unescaped are converted (`ui/chat.js`, `ui/threads.js`, `ui/lenses.js`, `ui/periods.js`). The review counted 14 sites, but the rest set `textContent`, which can't inject markup.
+  - **Converted render sites.**
+    - `ui/filter.js` (match count, tag chips), `ui/chrome.js` (demo notice, ranges), `ui/month.js`, `ui/timeline.js` (empty states, parkbar) and `ui/timeline-text.js` (tooltip).
+    - Their per-render listeners (`#tourBtn`, the "Tag all" form, `#emptyClear`, `#emptyAdd`, `#ctxClear`, `#newChat`) are now delegated once in each module's `wireX`.
+    - The rendered HTML of each converted area is identical to the previous build.
+  - **Guardrail.** "UI markup goes through the escaping html tag" fails when a `ui/` module sets `innerHTML` from a plain template. Eight modules are allowlisted under R10: `ui/chat.js` (the Ask log), `ui/import.js`, `ui/inspector.js`, `ui/lens-editor.js`, `ui/periods.js`, `ui/questions.js`, `ui/thread-summary.js` and `ui/tour.js`.
+  - **Limit.** The guardrail sees templates in the `innerHTML` statement itself, not markup built in a variable first, as `ui/lenses.js` and `renderTimeline` do.
 
 ### R12. Fonts and SheetJS
 

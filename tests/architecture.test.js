@@ -85,6 +85,23 @@ const BOUNDARY_ALLOW = [];
 // Saved documents (documents.js) that the code does not fully handle yet.
 const DOCUMENT_ALLOW = [];
 
+// UI modules that still set innerHTML from a plain template literal. New
+// markup uses the escaping html tag from ui/dom.js (ADR 0005).
+const HTML_ALLOW = [
+  // R10: converted module by module as each is next touched.
+  { v: "ui/chat.js sets innerHTML from a plain template", fix: "R10" },
+  { v: "ui/import.js sets innerHTML from a plain template", fix: "R10" },
+  { v: "ui/inspector.js sets innerHTML from a plain template", fix: "R10" },
+  { v: "ui/lens-editor.js sets innerHTML from a plain template", fix: "R10" },
+  { v: "ui/periods.js sets innerHTML from a plain template", fix: "R10" },
+  { v: "ui/questions.js sets innerHTML from a plain template", fix: "R10" },
+  {
+    v: "ui/thread-summary.js sets innerHTML from a plain template",
+    fix: "R10",
+  },
+  { v: "ui/tour.js sets innerHTML from a plain template", fix: "R10" },
+];
+
 // Lines per module: warn above SIZE_WARN, fail above SIZE_FAIL.
 const SIZE_WARN = 400;
 const SIZE_FAIL = 700;
@@ -549,6 +566,26 @@ test("saved documents match documents.js in boot, saving and backups", async () 
   expectAllowlist("Saved documents", found, DOCUMENT_ALLOW);
 });
 
+test("UI markup goes through the escaping html tag", () => {
+  // Each statement that sets innerHTML: an html-tagged template leaves one
+  // backtick once its opening "html`" is taken out, a plain template two.
+  const found = [];
+  for (const file of FILES.filter((f) => layerOf(f) === "ui")) {
+    const src = SOURCE[file];
+    for (const m of src.matchAll(/\.innerHTML\s*\+?=/g)) {
+      const end = src.indexOf(";\n", m.index);
+      const stmt = src.slice(m.index, end < 0 ? undefined : end);
+      const tagged = (stmt.match(/\bhtml`/g) || []).length;
+      const ticks = (stmt.replace(/\bhtml`/g, "").match(/`/g) || []).length;
+      if (ticks - tagged > 0) {
+        found.push(`${file} sets innerHTML from a plain template`);
+        break;
+      }
+    }
+  }
+  expectAllowlist("Markup", found, HTML_ALLOW);
+});
+
 test("modules stay within their size budget", (t) => {
   const found = [];
   for (const file of FILES) {
@@ -578,6 +615,7 @@ test("every allowlist entry names a step that exists", () => {
     ...BOUNDARY_ALLOW,
     ...DOCUMENT_ALLOW,
     ...SIZE_ALLOW,
+    ...HTML_ALLOW,
   ]
     .filter((a) => a.fix !== "story-first" && !steps.has(a.fix))
     .map((a) => `${a.v} -> ${a.fix}`);

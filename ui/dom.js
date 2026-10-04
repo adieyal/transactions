@@ -1,3 +1,4 @@
+import { esc } from "../helpers.js";
 // The first element matching a selector, in the document or under el.
 const $ = (s, el = document) => el.querySelector(s);
 
@@ -28,4 +29,31 @@ function toast(msg, t = 4200, action) {
 const paneShown = (name) =>
   !!document.getElementById("pane-" + name)?.classList.contains("on");
 
-export { $, paneShown, toast };
+// HTML with every interpolated value escaped. A value made by html (or
+// wrapped in raw, for markup built elsewhere such as markdown output) goes in
+// as it is; an array is joined; null and undefined add nothing. Booleans
+// print as true or false, as in a plain template (aria-pressed="false").
+class Raw {
+  constructor(text) {
+    this.text = text;
+  }
+  toString() {
+    return this.text;
+  }
+}
+const raw = (text) => new Raw(String(text));
+const part = (v) =>
+  v instanceof Raw
+    ? v.text
+    : Array.isArray(v)
+      ? v.map(part).join("")
+      : v == null
+        ? ""
+        : esc(v);
+function html(strings, ...values) {
+  let out = strings[0];
+  values.forEach((v, i) => (out += part(v) + strings[i + 1]));
+  return new Raw(out);
+}
+
+export { $, html, paneShown, raw, toast };

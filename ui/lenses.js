@@ -1,5 +1,5 @@
 import { debounce, esc, fmt, monthName } from "../helpers.js";
-import { $, paneShown, toast } from "./dom.js";
+import { $, html, paneShown, toast } from "./dom.js";
 import { runLens as runLensCode } from "../lens-api.js";
 
 export function createLenses(runtime, actions) {
@@ -60,11 +60,11 @@ export function createLenses(runtime, actions) {
         body = "";
       }
       h += `<article class="lens" data-lens="${l.id}"><h3><span contenteditable="true" spellcheck="false" data-title="${l.id}">${esc(l.title)}</span></h3>${body}${err ? `<div class="err">${esc(err)}</div>` : ""}
-      <div class="foot"><button data-edit="${l.id}">Edit code</button>${caps.sample ? `<button data-fix="${l.id}">${err ? "Fix with " + actions.AI() : "Change with " + actions.AI()}</button>` : ""}<button data-del="${l.id}">Remove</button></div></article>`;
+      <div class="foot"><button data-edit="${l.id}">Edit code</button>${caps.sample ? html`<button data-fix="${l.id}">${err ? "Fix with " : "Change with "}${actions.AI()}</button>` : ""}<button data-del="${l.id}">Remove</button></div></article>`;
     });
     h += `<div class="newlens">${
       caps.sample
-        ? `<label class="sub" for="lensBrief">Describe a new lens and ${actions.AI()} will write it. You can read and edit the result.</label><textarea id="lensBrief" placeholder="e.g. Pet costs month by month, vet vs everything else"></textarea><div class="row-actions" style="margin:0"><button class="btn small" id="lensGo">Write the lens</button><span class="sub" id="lensNote"></span></div>`
+        ? `${html`<label class="sub" for="lensBrief">Describe a new lens and ${actions.AI()} will write it. You can read and edit the result.</label>`}<textarea id="lensBrief" placeholder="e.g. Pet costs month by month, vet vs everything else"></textarea><div class="row-actions" style="margin:0"><button class="btn small" id="lensGo">Write the lens</button><span class="sub" id="lensNote"></span></div>`
         : `<p class="sub" style="margin:0">No AI assistant is set up here (see More → AI assistant settings), but you can still write lenses by hand.</p>`
     }<button class="btn small quiet" id="lensBlank">Start a blank lens</button></div></div>`;
     el.innerHTML = h;

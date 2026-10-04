@@ -1,5 +1,5 @@
 import { esc, fmt } from "../helpers.js";
-import { $, paneShown } from "./dom.js";
+import { $, html, paneShown } from "./dom.js";
 import { PALETTE } from "../transactions/constants.js";
 import {
   compactTxn,
@@ -272,12 +272,8 @@ export function createChat(runtime, actions) {
       runtime.derived?.byId.has(id),
     ).length;
     $("#askctx").innerHTML = n
-      ? `About the ${n} selected bead${n > 1 ? "s" : ""} <button class="linkish" id="ctxClear">(ask about everything instead)</button>`
+      ? html`About the ${n} selected bead${n > 1 ? "s" : ""} <button class="linkish" id="ctxClear">(ask about everything instead)</button>`
       : "";
-    $("#ctxClear")?.addEventListener("click", () => {
-      state.selection.clear();
-      actions.refresh();
-    });
   }
 
   const md = (text) => markdown(text, runtime.derived.byId);
@@ -285,13 +281,8 @@ export function createChat(runtime, actions) {
   function renderAskMem() {
     const n = state.turns.filter((t) => !t.pending).length;
     $("#askmem").innerHTML = n
-      ? `${actions.AI()} sees the last ${Math.min(n, 16)} messages below with each new question. <button class="linkish" id="newChat">Start a new conversation</button>`
+      ? html`${actions.AI()} sees the last ${Math.min(n, 16)} messages below with each new question. <button class="linkish" id="newChat">Start a new conversation</button>`
       : "";
-    $("#newChat")?.addEventListener("click", () => {
-      state.turns = [];
-      actions.save("chat");
-      renderLog();
-    });
   }
 
   function renderLog() {
@@ -316,7 +307,7 @@ export function createChat(runtime, actions) {
             "Translate all the merchant names into English",
           ]
         : [];
-      log.innerHTML = `<p class="sub" style="margin:0 0 8px">${actions.AI()} can look things up across all your statements and points at the beads it's talking about.</p><div class="suggestions">${sug.map((s) => `<button data-sug="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
+      log.innerHTML = html`<p class="sub" style="margin:0 0 8px">${actions.AI()} can look things up across all your statements and points at the beads it's talking about.</p><div class="suggestions">${sug.map((s) => html`<button data-sug="${s}">${s}</button>`)}</div>`;
       return;
     }
     log.innerHTML = state.turns
@@ -430,6 +421,18 @@ export function createChat(runtime, actions) {
   }
 
   function wireAsk() {
+    // The context and memory lines are redrawn often; their buttons are
+    // handled here, once, for the whole pane.
+    $("#pane-ask").addEventListener("click", (e) => {
+      if (e.target.closest("#ctxClear")) {
+        state.selection.clear();
+        actions.refresh();
+      } else if (e.target.closest("#newChat")) {
+        state.turns = [];
+        actions.save("chat");
+        renderLog();
+      }
+    });
     $("#sendBtn").onclick = () => {
       const v = $("#askInput").value;
       $("#askInput").value = "";

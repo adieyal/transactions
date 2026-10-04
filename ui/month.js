@@ -4,7 +4,7 @@ import { summarizeMonth } from "../story/summary.js";
 import { polishFacts, polishSummary } from "../story/assist.js";
 import { monthLong } from "../story/copy.js";
 import { phraseHTML, wireHoverHighlight } from "./highlight.js";
-import { $, paneShown } from "./dom.js";
+import { $, html, paneShown, raw } from "./dom.js";
 import { markdown } from "./markdown.js";
 
 export function createMonth(runtime, actions) {
@@ -41,7 +41,7 @@ export function createMonth(runtime, actions) {
     if (!el || !state.loaded || !paneShown("month")) return;
     const ms = months();
     if (!ms.length) {
-      el.innerHTML = `<p class="sub">No statements yet. Add some and a summary of each month appears here.</p>`;
+      el.innerHTML = html`<p class="sub">No statements yet. Add some and a summary of each month appears here.</p>`;
       return;
     }
     const m = current();
@@ -70,13 +70,13 @@ export function createMonth(runtime, actions) {
             : `<button class="btn small quiet" data-mpolish title="Sends this month's figures and transaction ids to ${esc(actions.AI())}"${polishing === m ? " disabled" : ""}>${polishing === m ? "Polishing…" : "Polish this summary"}</button>`
         }${p && !usePolish ? `<button class="linkish" data-mpolished>Show the polished version</button>` : ""}</div>${notes[m] ? `<p class="sub mpnote">${esc(notes[m])}</p>` : ""}`
       : "";
-    el.innerHTML = `<div class="mnav">
+    el.innerHTML = html`<div class="mnav">
         <button class="mstep" data-mstep="-1" aria-label="Previous month"${i <= 0 ? " disabled" : ""}>‹</button>
         <span class="mkick">Your month</span>
         <button class="mstep" data-mstep="1" aria-label="Next month"${i >= ms.length - 1 ? " disabled" : ""}>›</button>
       </div>
-      <h2 class="mtitle">${esc(monthLong(m))}</h2>
-      <div class="msum">${body}</div>${controls}
+      <h2 class="mtitle">${monthLong(m)}</h2>
+      <div class="msum">${raw(body)}</div>${raw(controls)}
       <p class="sub">Hover or tab to underlined text to find it on the timeline.</p>`;
   }
 

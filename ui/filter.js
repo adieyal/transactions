@@ -1,5 +1,5 @@
-import { debounce, esc, fmt } from "../helpers.js";
-import { $ } from "./dom.js";
+import { debounce, fmt } from "../helpers.js";
+import { $, html } from "./dom.js";
 
 export function createFilter(runtime, actions) {
   const { state } = runtime;
@@ -16,37 +16,16 @@ export function createFilter(runtime, actions) {
     const qi = $("#qInfo");
     if (!q) qi.innerHTML = "";
     else if (!qi.querySelector("#qTagForm input:focus")) {
-      qi.innerHTML = `${runtime.derived.txns.length} of ${runtime.derived.allTxns.length} match, ${fmt(sum, 0)}${
-        runtime.derived.txns.length
-          ? ` · <span id="qTagForm"><input placeholder="#tag" aria-label="Tag everything that matches" list="allTags2"><datalist id="allTags2">${Object.keys(
+      const n = runtime.derived.txns.length;
+      qi.innerHTML = html`${n} of ${runtime.derived.allTxns.length} match, ${fmt(sum, 0)}${
+        n
+          ? html` · <span id="qTagForm"><input placeholder="#tag" aria-label="Tag everything that matches" list="allTags2"><datalist id="allTags2">${Object.keys(
               runtime.derived.tags,
-            )
-              .map((t) => `<option value="${esc(t)}">`)
-              .join(
-                "",
-              )}</datalist><button class="btn small quiet">Tag all ${runtime.derived.txns.length}</button></span>`
+            ).map(
+              (t) => html`<option value="${t}">`,
+            )}</datalist><button class="btn small quiet">Tag all ${n}</button></span>`
           : ""
       }`;
-      const f = $("#qTagForm");
-      if (f) {
-        const inp = f.querySelector("input");
-        const go = () => {
-          const tags = actions.parseTags(inp.value);
-          if (!tags.length) {
-            inp.focus();
-            return;
-          }
-          const ids = runtime.derived.txns.map((t) => t.id);
-          actions.bulkTag(ids, tags, []);
-        };
-        f.querySelector("button").onclick = go;
-        inp.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            go();
-          }
-        });
-      }
     }
     const active = new Set(
       q
@@ -59,12 +38,35 @@ export function createFilter(runtime, actions) {
       .slice(0, 12)
       .map(
         ([t, n]) =>
-          `<button class="tag" data-tag="${esc(t)}" aria-pressed="${active.has(t)}" title="${n} note${n > 1 ? "s" : ""}" dir="auto">${esc(t)}</button>`,
+          html`<button class="tag" data-tag="${t}" aria-pressed="${active.has(t)}" title="${n} note${n > 1 ? "s" : ""}" dir="auto">${t}</button>`,
       )
       .join("");
   }
 
   function wireFilter() {
+    // "Tag all" beside the match count, which is redrawn as the filter changes.
+    const tagAll = () => {
+      const inp = $("#qTagForm input");
+      const tags = actions.parseTags(inp.value);
+      if (!tags.length) {
+        inp.focus();
+        return;
+      }
+      actions.bulkTag(
+        runtime.derived.txns.map((t) => t.id),
+        tags,
+        [],
+      );
+    };
+    $("#qInfo").addEventListener("click", (e) => {
+      if (e.target.closest("#qTagForm button")) tagAll();
+    });
+    $("#qInfo").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target.closest("#qTagForm input")) {
+        e.preventDefault();
+        tagAll();
+      }
+    });
     const input = $("#q");
     const redraw = debounce(() => {
       state.selection.clear();

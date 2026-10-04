@@ -1,5 +1,5 @@
 import { esc, fmtShort } from "../helpers.js";
-import { $, paneShown } from "./dom.js";
+import { $, html, paneShown } from "./dom.js";
 
 export function createThreads(runtime, actions) {
   const { state } = runtime;
@@ -13,7 +13,7 @@ export function createThreads(runtime, actions) {
     $("#previewbar").classList.toggle("on", state.previewRules != null);
     $("#previewmsg").innerHTML =
       state.previewRules != null
-        ? `<b>${actions.AI()}'s suggestion is showing on the timeline.</b> ${esc(state.previewSummary)}`
+        ? html`<b>${actions.AI()}'s suggestion is showing on the timeline.</b> ${state.previewSummary}`
         : "";
     const lines = text.split("\n");
     const counts = {};

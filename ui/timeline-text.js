@@ -1,5 +1,5 @@
-import { esc, fmt, fmtDate, monthName } from "../helpers.js";
-import { $ } from "./dom.js";
+import { fmt, fmtDate, monthName } from "../helpers.js";
+import { $, html } from "./dom.js";
 
 // What the timeline says about a bead: its tooltip, and how a transfer is
 // described (also used by the assistant's transaction details).
@@ -40,7 +40,7 @@ function describe(t, byId) {
 export function showBeadTip(t, ev, byId) {
   const tip = $("#tip");
   const wrap = $("#tlwrap").getBoundingClientRect();
-  tip.innerHTML = `<div class="m" dir="auto">${esc(t.merchant)}</div>${t.renamed ? `<div class="s" dir="auto">${esc(t.original)}</div>` : ""}<div><b>${fmt(t.amount)}</b> <span class="s">${esc(describe(t, byId))}</span></div>${t.note ? `<div class="s" dir="auto">${esc(t.note)}</div>` : ""}`;
+  tip.innerHTML = html`<div class="m" dir="auto">${t.merchant}</div>${t.renamed ? html`<div class="s" dir="auto">${t.original}</div>` : ""}<div><b>${fmt(t.amount)}</b> <span class="s">${describe(t, byId)}</span></div>${t.note ? html`<div class="s" dir="auto">${t.note}</div>` : ""}`;
   tip.style.display = "block";
   let x = ev.clientX - wrap.left + 14,
     y = ev.clientY - wrap.top + 14;

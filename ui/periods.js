@@ -1,5 +1,5 @@
 import { esc, fmt } from "../helpers.js";
-import { $, toast } from "./dom.js";
+import { $, html, toast } from "./dom.js";
 import { PALETTE } from "../transactions/constants.js";
 import { periodStats as statsFor } from "../transactions/period-stats.js";
 import { periodNotes, summarizePeriod } from "../story/summary.js";
@@ -63,7 +63,7 @@ export function createPeriods(runtime, actions) {
           ? `<textarea class="note story" id="pStory" dir="auto" placeholder="e.g. Moved into the new flat. Most of the Home Center and IKEA runs are furniture and fixing up.">${esc(p.story || "")}</textarea>`
           : `<div class="storyview" dir="auto">${markdown(p.story, runtime.derived.byId)}</div>`
       }
-      <div class="row-actions">${!editing ? `<button class="btn small quiet" id="pEdit">Edit</button>` : ""}${caps.sample ? `<button class="btn small quiet" id="pDraftStory">${p.story ? "Rework it with " : "Draft it with "}${actions.AI()}</button>` : ""}</div>
+      <div class="row-actions">${!editing ? `<button class="btn small quiet" id="pEdit">Edit</button>` : ""}${caps.sample ? html`<button class="btn small quiet" id="pDraftStory">${p.story ? "Rework it with " : "Draft it with "}${actions.AI()}</button>` : ""}</div>
       <p class="sub" id="pNote"></p>
       <div class="ins-label">Summary</div>
       <div class="psum">${summarizePeriod(runtime.derived, state, p, {

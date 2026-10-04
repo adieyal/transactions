@@ -1,6 +1,6 @@
 import { createBackup } from "../backup.js";
 import { debounce } from "../helpers.js";
-import { $, toast } from "./dom.js";
+import { $, html, toast } from "./dom.js";
 import { STARTER_LENSES } from "../defaults.js";
 
 export function createChrome(runtime, actions) {
@@ -15,9 +15,8 @@ export function createChrome(runtime, actions) {
 
   function renderChrome() {
     $("#demoNotice").innerHTML = state.isDemo
-      ? `Demo<span class="wide-only"> · a fictional year</span> · <button class="linkish" id="tourBtn">Take the tour</button>`
+      ? html`Demo<span class="wide-only"> · a fictional year</span> · <button class="linkish" id="tourBtn">Take the tour</button>`
       : "Imported data";
-    $("#tourBtn")?.addEventListener("click", actions.startTour);
     $("#ranges").innerHTML = [
       ["all", "All"],
       ["12", "12 months"],
@@ -26,7 +25,7 @@ export function createChrome(runtime, actions) {
     ]
       .map(
         ([v, l]) =>
-          `<button class="chip" aria-pressed="${state.range === v}" data-range="${v}">${l}</button>`,
+          html`<button class="chip" aria-pressed="${state.range === v}" data-range="${v}">${l}</button>`,
       )
       .join("");
     $("#suggestBtn").hidden = !caps.sample || !runtime.derived?.allTxns.length;
@@ -75,6 +74,9 @@ export function createChrome(runtime, actions) {
   }
 
   function wireChrome() {
+    $("#demoNotice").addEventListener("click", (e) => {
+      if (e.target.closest("#tourBtn")) actions.startTour();
+    });
     $("#addBtn").onclick = () => $("#file").click();
     $("#file").onchange = (e) => {
       actions.importFiles([...e.target.files]);

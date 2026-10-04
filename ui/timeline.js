@@ -13,7 +13,7 @@ import { TRANSFERS } from "../transactions/constants.js";
 import { layoutTimeline, niceBudget } from "./timeline-layout.js";
 import { wireTimelineDrag } from "./timeline-drag.js";
 import { describeTransfer, showBeadTip } from "./timeline-text.js";
-import { $, toast } from "./dom.js";
+import { $, html, toast } from "./dom.js";
 import { setBudget as setThreadBudget } from "../transactions/rules-edit.js";
 import { name as bidi } from "../story/copy.js";
 import {
@@ -34,19 +34,17 @@ export function createTimeline(runtime, actions) {
   function renderTimeline() {
     const host = $("#tl");
     if (!state.loaded) {
-      host.innerHTML = `<div class="empty"><div><p>Opening your ledger…</p></div></div>`;
+      host.innerHTML = html`<div class="empty"><div><p>Opening your ledger…</p></div></div>`;
       return;
     }
     if (!runtime.derived.txns.length && runtime.derived.allTxns?.length) {
-      host.innerHTML = `<div class="empty" style="min-height:220px"><div><p>Nothing matches “${esc(state.query.trim())}”.</p><button class="btn quiet" id="emptyClear">Clear the filter</button></div></div>`;
-      $("#emptyClear").onclick = () => $("#qClear").click();
+      host.innerHTML = html`<div class="empty" style="min-height:220px"><div><p>Nothing matches “${state.query.trim()}”.</p><button class="btn quiet" id="emptyClear">Clear the filter</button></div></div>`;
       POS = [];
       TL = null;
       return;
     }
     if (!runtime.derived.txns.length) {
-      host.innerHTML = `<div class="empty"><div><h2>Drop statements here</h2><p>Leumi card exports are read as they are. For any other bank, you show Transactions the columns once and it remembers that format.</p><button class="btn" id="emptyAdd">Choose files</button></div></div>`;
-      $("#emptyAdd").onclick = () => $("#file").click();
+      host.innerHTML = html`<div class="empty"><div><h2>Drop statements here</h2><p>Leumi card exports are read as they are. For any other bank, you show Transactions the columns once and it remembers that format.</p><button class="btn" id="emptyAdd">Choose files</button></div></div>`;
       POS = [];
       TL = null;
       return;
@@ -334,6 +332,9 @@ export function createTimeline(runtime, actions) {
       () => ($("#tip").style.display = "none"),
     );
     host.addEventListener("click", (ev) => {
+      // The empty states' buttons.
+      if (ev.target.closest("#emptyClear")) return $("#qClear").click();
+      if (ev.target.closest("#emptyAdd")) return $("#file").click();
       const c = ev.target.closest("circle[data-id]");
       if (c) {
         const id = c.dataset.id;
@@ -488,9 +489,7 @@ export function createTimeline(runtime, actions) {
       el.innerHTML = "";
       return;
     }
-    el.innerHTML =
-      `<span>Parked:</span>${parked.map((n) => `<button data-unpark="${esc(n)}" title="Unpark" dir="auto">${esc(n)} ↩</button>`).join("")}` +
-      `<button data-showparked>${state.view.showParked ? "Fold them back" : "Show them for now"}</button>`;
+    el.innerHTML = html`<span>Parked:</span>${parked.map((n) => html`<button data-unpark="${n}" title="Unpark" dir="auto">${n} ↩</button>`)}<button data-showparked>${state.view.showParked ? "Fold them back" : "Show them for now"}</button>`;
   }
 
   function wireParkbar() {

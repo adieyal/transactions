@@ -337,7 +337,7 @@ flowchart LR
   // ids, colours and labels are escaped too: no reliance on validation elsewhere
   ```
 
-- Existing code keeps `esc()` until it is touched. When a template is edited, the whole template moves to `html`. This includes the assistant label `actions.AI()`, which today is inserted unescaped at 14 sites.
+- Existing code keeps `esc()` until it is touched. When a template is edited, the whole template moves to `html`. The assistant label `actions.AI()` is now escaped everywhere it reaches HTML. A guardrail lists the modules not yet converted, and `.prettierrc` keeps Prettier from reformatting the markup inside `html` templates.
 - Text the person wrote is shown apart from generated text and labelled as theirs (constitution, voice). Generated sentences carry `data-ids` so hovering them can highlight their transactions.
 
 ### Events
@@ -425,7 +425,7 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | R7   | `persistence.js` stops importing `ui/dom.js` (done; `suggestions.js` waits for R4b)                                        | 7                      |
 | R8   | `renderTimeline` layout to a pure `ui/timeline-layout.js` (done)                                                           | 6                      |
 | R9   | Split `ui/chat.js` into tools, prompts and log rendering (done)                                                            | 6                      |
-| R10  | `html` tag and delegated events, adopted as modules are touched                                                            | 8                      |
+| R10  | `html` tag and delegated events, adopted as modules are touched (started: tag, guardrail, 5 modules)                       | 8                      |
 | R11  | `localStorage` keys into `storage.js` (done)                                                                               | 8                      |
 | R12  | Fonts and SheetJS bundled or lazy-loaded (needs the user's decision)                                                       | 10                     |
 
