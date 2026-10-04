@@ -7,6 +7,7 @@ import { toast } from "./ui/dom.js";
 import { createRuntime } from "./state.js";
 import { deriveTransactions } from "./transactions/derive.js";
 import { createPersistence } from "./persistence.js";
+import { documentFor, loadDocuments, toDocument } from "./documents.js";
 import { createFilter } from "./ui/filter.js";
 import { createTimeline } from "./ui/timeline.js";
 import { createTags } from "./ui/tags.js";
@@ -136,58 +137,25 @@ async function boot() {
   // Seed only a new demo workspace. Removed demo statements stay removed on reload.
   if (!Object.keys(docs).length) {
     Object.assign(runtime.state, createDemoData());
-    await actions.Store.backend.put("demo", { version: 1 });
-    await actions.Store.backend.put("rules", { text: runtime.state.rules });
-    await actions.Store.backend.put("notes", { map: runtime.state.notes });
-    await actions.Store.backend.put("periods", {
-      items: runtime.state.periods,
-    });
+    for (const key of ["workspace", "rules", "notes", "periods"])
+      await actions.Store.backend.put(
+        key,
+        toDocument(documentFor(key), runtime.state),
+      );
     for (const batch of Object.values(runtime.state.batches))
       actions.saveBatch(batch);
   }
-  if (docs.workspace?.demo !== undefined)
-    runtime.state.isDemo = docs.workspace.demo;
-  if (docs.rules?.text != null) runtime.state.rules = docs.rules.text;
-  if (docs.notes?.map) runtime.state.notes = docs.notes.map;
-  if (Array.isArray(docs.lenses?.items))
-    runtime.state.lenses = docs.lenses.items;
-  if (docs.adapters?.items) runtime.state.adapters = docs.adapters.items;
-  if (docs.names?.map) runtime.state.names = docs.names.map;
-  if (docs.transfers?.map) runtime.state.transferOv = docs.transfers.map;
-  if (docs.dismissed?.map) runtime.state.dismissed = docs.dismissed.map;
-  if (Array.isArray(docs.periods?.items))
-    runtime.state.periods = docs.periods.items;
-  if (Array.isArray(docs.reports?.items))
-    runtime.state.reports = docs.reports.items;
-  if (docs.answers?.map) runtime.state.answers = docs.answers.map;
-  if (docs.merchantAnswers?.map)
-    runtime.state.merchantAnswers = docs.merchantAnswers.map;
-  if (docs.view) {
-    runtime.state.view.parked = Array.isArray(docs.view.parked)
-      ? docs.view.parked
-      : [];
-    runtime.state.view.panel = docs.view.panel !== false;
+  const { invalid, legacyDemo } = loadDocuments(docs, runtime.state);
+  // A workspace seeded before `workspace` existed: record it the current way.
+  if (legacyDemo) actions.save("workspace");
+  if (invalid.length) {
+    actions.blockSaves(invalid);
+    console.warn("Saved documents that failed their check:", invalid);
+    toast(
+      `Some saved data couldn't be read (${invalid.join(", ")}), so it was left as it is and not loaded.`,
+    );
   }
-  if (Array.isArray(docs.chat?.turns)) runtime.state.turns = docs.chat.turns;
   actions.applyPanel();
-  const parts = Object.entries(docs)
-    .filter(([k]) => k.startsWith("batch_"))
-    .map(([, v]) => v)
-    .sort((a, b) => a.batchId.localeCompare(b.batchId) || a.part - b.part);
-  for (const p of parts) {
-    const b = (runtime.state.batches[p.batchId] ||= {
-      id: p.batchId,
-      kind: p.kind,
-      card: !!p.card,
-      account: p.account,
-      periods: p.periods,
-      file: p.file,
-      added: p.added,
-      parts: p.parts,
-      rows: [],
-    });
-    b.rows.push(...(p.rows || []));
-  }
   runtime.state.loaded = true;
   renderAll();
   actions.maybeStartTour();

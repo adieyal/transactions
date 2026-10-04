@@ -70,7 +70,7 @@ export function createReports(runtime, actions) {
     }
     r.running = false;
     r.draft = "";
-    actions.saveReports();
+    actions.save("reports");
     renderReports();
   }
 
@@ -87,7 +87,7 @@ export function createReports(runtime, actions) {
       dataKey: answer ? dataKey() : "",
       coverage: answer ? actions.coverageText() : "",
     });
-    actions.saveReports();
+    actions.save("reports");
     actions.openTab("reports");
   }
 
@@ -112,13 +112,13 @@ export function createReports(runtime, actions) {
       if (rm) {
         const i = state.reports.findIndex((r) => r.id === rm.dataset.rmrep);
         const [r] = state.reports.splice(i, 1);
-        actions.saveReports();
+        actions.save("reports");
         renderReports();
         toast("Report removed.", 9000, {
           label: "Undo",
           fn: () => {
             state.reports.splice(i, 0, r);
-            actions.saveReports();
+            actions.save("reports");
             renderReports();
           },
         });

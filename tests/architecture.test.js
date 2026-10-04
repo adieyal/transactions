@@ -91,15 +91,7 @@ const BOUNDARY_ALLOW = [
 ];
 
 // Saved documents (documents.js) that the code does not fully handle yet.
-const DOCUMENT_ALLOW = [
-  // R2: `dismissed` is legacy from Worth a look, which no longer writes it.
-  // It is still loaded, backed up and restored, because it hides the flags
-  // a person dismissed, and story/moments.js turns flags into questions.
-  { v: "dismissed is missing from: save", fix: "R2" },
-  // R2: only a backup restore writes `workspace`, and the seed writes `demo`.
-  { v: "workspace is missing from: save", fix: "R2" },
-  { v: "main.js writes undeclared document demo", fix: "R2" },
-];
+const DOCUMENT_ALLOW = [];
 
 // Lines per module: warn above SIZE_WARN, fail above SIZE_FAIL.
 const SIZE_WARN = 400;
@@ -426,7 +418,7 @@ test("every actions.X call has exactly one provider", async () => {
 });
 
 test("saved documents match documents.js in boot, saving and backups", async () => {
-  const { DOCUMENTS, BATCH_PREFIX } = await import(
+  const { DOCUMENTS, BATCH_PREFIX, loadDocuments, toDocument } = await import(
     pathToFileURL(path.join(root, "documents.js"))
   );
   const { createRuntime } = await import(
@@ -441,23 +433,25 @@ test("saved documents match documents.js in boot, saving and backups", async () 
   const keys = new Set(DOCUMENTS.map((d) => d.key));
   const found = [];
 
-  // Keys written (saveSoon / backend.put) and read at boot, with the wrapper
-  // property they use, e.g. saveSoon("notes", () => ({ map: … })).
-  const writes = [];
-  for (const file of FILES.filter((f) => f !== "backup.js"))
-    for (const m of SOURCE[file].matchAll(
-      /(?:saveSoon|backend\.put)\(\s*"(\w+)",\s*(?:\(\)\s*=>\s*\(?)?\{\s*(\w+)/g,
-    ))
-      writes.push({ file, key: m[1], wrap: m[2] });
-  const reads = [
-    ...SOURCE["main.js"].matchAll(/\bdocs\.(\w+)(?:\?\.|\.)(\w+)/g),
-  ].map((m) => ({ key: m[1], wrap: m[2] }));
-  for (const w of writes)
-    if (!keys.has(w.key))
-      found.push(`${w.file} writes undeclared document ${w.key}`);
-  for (const r of reads)
-    if (!keys.has(r.key))
-      found.push(`main.js reads undeclared document ${r.key}`);
+  // Saving goes through actions.save(key), which builds the document from
+  // DOCUMENTS. Only persistence.js debounces writes, and nothing writes a
+  // literal key to a backend, so no module can save a shape of its own.
+  for (const file of FILES) {
+    const code = CODE[file];
+    if (file !== "persistence.js" && /\bsaveSoon\(/.test(code))
+      found.push(`${file} calls saveSoon instead of actions.save(key)`);
+    for (const m of SOURCE[file].matchAll(/backend\.put\(\s*"(\w+)"/g))
+      found.push(`${file} writes the document ${m[1]} by hand`);
+    for (const m of SOURCE[file].matchAll(/\bsave\(((?:\s*"\w+",?)+)\s*\)/g))
+      for (const [, key] of m[1].matchAll(/"(\w+)"/g))
+        if (!keys.has(key))
+          found.push(`${file} saves undeclared document ${key}`);
+  }
+  // Boot reads every document through loadDocuments, never field by field.
+  if (!/\bloadDocuments\(/.test(CODE["main.js"]))
+    found.push("main.js doesn't load saved documents with loadDocuments");
+  if (/\bdocs\.\w+/.test(CODE["main.js"]))
+    found.push("main.js reads a saved document by hand");
 
   // A demo workspace taken through createBackup, parseBackup and a restore.
   const state = Object.assign(
@@ -479,29 +473,28 @@ test("saved documents match documents.js in boot, saving and backups", async () 
     if (!keys.has(k) && !k.startsWith(BATCH_PREFIX))
       found.push(`backup.js writes undeclared document ${k}`);
 
+  // Every entry has a state field, survives saving and loading at boot, and
+  // goes through backups and restores in its declared wrapper.
   const fresh = createRuntime().state;
+  const reloaded = createRuntime().state;
+  const { invalid } = loadDocuments(
+    JSON.parse(
+      JSON.stringify(
+        Object.fromEntries(DOCUMENTS.map((d) => [d.key, toDocument(d, state)])),
+      ),
+    ),
+    reloaded,
+  );
   for (const d of DOCUMENTS) {
     const gaps = [];
     if (!(d.field in fresh)) gaps.push("state");
-    const read = reads.filter((r) => r.key === d.key);
-    if (!read.length) gaps.push("boot");
-    if (!writes.some((w) => w.key === d.key)) gaps.push("save");
+    if (invalid.includes(d.key)) gaps.push("boot");
     if (d.backup && (!(d.backup in backup) || !(d.field in parsed)))
       gaps.push("backup");
     if (!(d.key in stored)) gaps.push("restore");
     if (gaps.length) found.push(`${d.key} is missing from: ${gaps.join(", ")}`);
-
-    // Every writer and reader uses the declared wrapper.
-    if (d.wrap !== "self") {
-      for (const w of writes.filter(
-        (w) => w.key === d.key && w.wrap !== d.wrap,
-      ))
-        found.push(`${w.file} saves ${d.key} as {${w.wrap}}, not {${d.wrap}}`);
-      for (const r of read.filter((r) => r.wrap !== d.wrap))
-        found.push(`main.js reads ${d.key}.${r.wrap}, not ${d.key}.${d.wrap}`);
-      if (d.key in stored && !(d.wrap in stored[d.key]))
-        found.push(`backup.js restores ${d.key} without {${d.wrap}}`);
-    }
+    if (d.wrap !== "self" && d.key in stored && !(d.wrap in stored[d.key]))
+      found.push(`backup.js restores ${d.key} without {${d.wrap}}`);
   }
   expectAllowlist("Saved documents", found, DOCUMENT_ALLOW);
 });

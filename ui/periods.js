@@ -93,7 +93,7 @@ export function createPeriods(runtime, actions) {
       <div class="row-actions"><button class="btn small quiet" id="pFilter">Show only this period</button><button class="btn small quiet" id="pRemove">Remove period</button></div>
     </div></div>`;
     const upd = () => {
-      actions.savePeriods();
+      actions.save("periods");
       actions.refreshSoon();
     };
     $("#pName").addEventListener("input", (e) => {
@@ -118,7 +118,7 @@ export function createPeriods(runtime, actions) {
     });
     $("#pStory")?.addEventListener("input", (e) => {
       p.story = e.target.value;
-      actions.savePeriods();
+      actions.save("periods");
     });
     $("#pStory")?.addEventListener("blur", () => {
       if (p.story) {
@@ -199,13 +199,13 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
       });
       p.story = r.text.trim();
       state.storyEdit = null;
-      actions.savePeriods();
+      actions.save("periods");
       actions.renderInspector();
       toast("Story drafted. Edit it however you like.", 9000, {
         label: "Undo",
         fn: () => {
           p.story = before;
-          actions.savePeriods();
+          actions.save("periods");
           actions.renderInspector();
         },
       });
@@ -220,14 +220,14 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
     if (i < 0) return;
     const [p] = state.periods.splice(i, 1);
     if (state.periodSel === id) state.periodSel = null;
-    actions.savePeriods();
+    actions.save("periods");
     actions.refresh();
     toast(`Removed “${p.name}”.`, 9000, {
       label: "Undo",
       fn: () => {
         state.periods.splice(i, 0, p);
         state.periodSel = p.id;
-        actions.savePeriods();
+        actions.save("periods");
         actions.refresh();
       },
     });
@@ -248,7 +248,7 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
     state.selection.clear();
     state.statement = null;
     if (!name) state.periodSel = p.id;
-    actions.savePeriods();
+    actions.save("periods");
     actions.refresh();
     const n = !name && $("#pName");
     if (n) {

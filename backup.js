@@ -1,28 +1,17 @@
-import { STARTER_LENSES } from "./defaults.js";
+import { DOCUMENTS, isDate, isId, toDocument } from "./documents.js";
 import { TODAY } from "./helpers.js";
 
 export const BATCH_CHUNK_SIZE = 350;
 
 export function createBackup(state) {
-  return {
+  const backup = {
     format: "transactions-backup",
     version: 1,
     exported: TODAY,
-    demo: state.isDemo,
-    rules: state.rules,
-    notes: state.notes,
-    names: state.names,
-    periods: state.periods,
-    reports: state.reports,
-    transfers: state.transferOv,
-    lenses: state.lenses,
-    adapters: state.adapters,
-    dismissed: state.dismissed,
-    answers: state.answers,
-    merchantAnswers: state.merchantAnswers,
-    view: state.view,
-    batches: Object.values(state.batches),
   };
+  for (const d of DOCUMENTS) if (d.backup) backup[d.backup] = state[d.field];
+  backup.batches = Object.values(state.batches);
+  return backup;
 }
 
 function requireValue(ok, field) {
@@ -32,12 +21,8 @@ const record = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 const text = (value) => typeof value === "string";
 const identifier = (value) => text(value) && value.length > 0;
-const id = (value) => text(value) && /^[A-Za-z0-9_-]+$/.test(value);
-function date(value) {
-  if (!text(value) || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const d = new Date(value + "T00:00:00Z");
-  return !isNaN(d) && d.toISOString().slice(0, 10) === value;
-}
+const id = isId;
+const date = isDate;
 function safeKeys(value) {
   if (!value || typeof value !== "object") return;
   for (const [key, child] of Object.entries(value)) {
@@ -127,137 +112,17 @@ export function parseBackup(source) {
       parts: Math.max(1, Math.ceil(batch.rows.length / BATCH_CHUNK_SIZE)),
     };
   }
-  const maps = {};
-  for (const key of ["notes", "names", "transfers", "adapters", "dismissed"]) {
-    maps[key] = data[key] ?? {};
-    requireValue(record(maps[key]), key);
+  // Every saved document, through the same checks as loading at boot. A
+  // field an older backup lacks gets the value it had before the field existed.
+  const out = { batches };
+  for (const d of DOCUMENTS) {
+    if (!d.backup) continue;
+    const value =
+      data[d.backup] === undefined && d.older ? d.older() : data[d.backup];
+    requireValue(d.check(value), d.label);
+    out[d.field] = d.in ? d.in(value, { [d.field]: d.older?.() }) : value;
   }
-  requireValue(Object.values(maps.notes).every(text), "transaction notes");
-  requireValue(
-    Object.values(maps.names).every((n) => record(n) && text(n.name)),
-    "merchant names",
-  );
-  requireValue(
-    Object.values(maps.transfers).every((v) => typeof v === "boolean"),
-    "transfer overrides",
-  );
-  requireValue(
-    Object.values(maps.dismissed).every((v) => typeof v === "boolean"),
-    "dismissed changes",
-  );
-  requireValue(
-    Object.values(maps.adapters).every(record),
-    "statement mappings",
-  );
-  const lenses = data.lenses ?? STARTER_LENSES.map((l) => ({ ...l }));
-  requireValue(
-    Array.isArray(lenses) &&
-      lenses.every(
-        (l) => record(l) && id(l.id) && text(l.title) && text(l.code),
-      ),
-    "saved lenses",
-  );
-  const periods = data.periods ?? [];
-  requireValue(
-    Array.isArray(periods) &&
-      periods.every(
-        (p) =>
-          record(p) &&
-          id(p.id) &&
-          identifier(p.name) &&
-          date(p.start) &&
-          date(p.end) &&
-          p.start <= p.end &&
-          (p.story == null || text(p.story)),
-      ),
-    "saved periods",
-  );
-  for (const period of periods) {
-    if (period.color == null) period.color = "#2F6B8F";
-    requireValue(
-      text(period.color) && /^#[0-9a-f]{3,8}$/i.test(period.color),
-      "period color",
-    );
-  }
-  const reports = data.reports ?? [];
-  requireValue(
-    Array.isArray(reports) &&
-      reports.every(
-        (r) =>
-          record(r) &&
-          id(r.id) &&
-          text(r.q) &&
-          ["answer", "ranAt", "dataKey", "coverage"].every(
-            (k) => r[k] == null || text(r[k]),
-          ),
-      ),
-    "saved reports",
-  );
-  const answers = data.answers ?? {};
-  const optionalText = (v) => v == null || text(v);
-  requireValue(
-    record(answers) &&
-      Object.values(answers).every(
-        (a) =>
-          record(a) &&
-          ["answered", "skipped"].includes(a.status) &&
-          optionalText(a.choice) &&
-          optionalText(a.note) &&
-          optionalText(a.at) &&
-          (a.created == null ||
-            (record(a.created) &&
-              optionalText(a.created.periodId) &&
-              (a.created.noteIds == null ||
-                (Array.isArray(a.created.noteIds) &&
-                  a.created.noteIds.every(text))))),
-      ),
-    "saved answers",
-  );
-  const merchantAnswers = data.merchantAnswers ?? {};
-  requireValue(
-    record(merchantAnswers) &&
-      Object.values(merchantAnswers).every(
-        (a) =>
-          record(a) &&
-          text(a.choice) &&
-          optionalText(a.action) &&
-          optionalText(a.at),
-      ),
-    "saved merchant answers",
-  );
-  const view = data.view ?? { parked: [], panel: true, showParked: false };
-  requireValue(
-    record(view) &&
-      Array.isArray(view.parked) &&
-      view.parked.every(text) &&
-      typeof view.panel === "boolean",
-    "view settings",
-  );
-  if (data.demo !== undefined)
-    requireValue(typeof data.demo === "boolean", "demo flag");
-  return {
-    batches,
-    rules: data.rules,
-    notes: maps.notes,
-    names: maps.names,
-    transferOv: maps.transfers,
-    adapters: maps.adapters,
-    dismissed: maps.dismissed,
-    lenses,
-    periods,
-    reports: reports.map((r) => ({
-      id: r.id,
-      q: r.q,
-      answer: r.answer ?? "",
-      ranAt: r.ranAt ?? "",
-      dataKey: r.dataKey ?? "",
-      coverage: r.coverage ?? "",
-    })),
-    answers,
-    merchantAnswers,
-    view,
-    isDemo: data.demo === true,
-  };
+  return out;
 }
 
 export function batchDocuments(batch) {
@@ -286,20 +151,7 @@ export function batchDocuments(batch) {
 
 function workspaceDocuments(state) {
   return {
-    workspace: { demo: state.isDemo },
-    rules: { text: state.rules },
-    notes: { map: state.notes },
-    names: { map: state.names },
-    transfers: { map: state.transferOv },
-    dismissed: { map: state.dismissed },
-    lenses: { items: state.lenses },
-    adapters: { items: state.adapters },
-    periods: { items: state.periods },
-    reports: { items: state.reports },
-    answers: { map: state.answers },
-    merchantAnswers: { map: state.merchantAnswers },
-    view: state.view,
-    chat: { turns: [] },
+    ...Object.fromEntries(DOCUMENTS.map((d) => [d.key, toDocument(d, state)])),
     ...Object.assign({}, ...Object.values(state.batches).map(batchDocuments)),
   };
 }

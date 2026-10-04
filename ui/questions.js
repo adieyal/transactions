@@ -143,22 +143,21 @@ export function createQuestions(runtime, actions) {
     state.merchantAnswers = result.merchantAnswers;
     if (result.notes !== state.notes) {
       state.notes = result.notes;
-      actions.saveSoon("notes", () => ({ map: state.notes }), 200);
+      actions.save("notes");
     }
-    actions.saveAnswers();
+    actions.save("answers", "merchantAnswers");
     if (sameIds(m.txnIds)) state.highlight = new Set();
     actions.refresh();
     toast(result.message, 9000, {
       label: "Undo",
       fn: () => {
         Object.assign(state, before);
-        actions.saveAnswers();
-        if (result.notes !== before.notes)
-          actions.saveSoon("notes", () => ({ map: state.notes }), 200);
+        actions.save("answers", "merchantAnswers");
+        if (result.notes !== before.notes) actions.save("notes");
         if (period) {
           state.periods = state.periods.filter((p) => p.id !== period.id);
           if (state.periodSel === period.id) state.periodSel = null;
-          actions.savePeriods();
+          actions.save("periods");
         }
         actions.refresh();
       },

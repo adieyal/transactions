@@ -148,7 +148,7 @@ export function createChat(runtime, actions) {
       }
     }
     if (changed) {
-      actions.saveSoon("notes", () => ({ map: state.notes }), 300);
+      actions.save("notes");
       actions.refreshSoon();
     }
     reply.changedCount = Object.keys(reply.undo).length;
@@ -197,7 +197,7 @@ export function createChat(runtime, actions) {
       }
     }
     if (changed) {
-      actions.saveSoon("names", () => ({ map: state.names }), 300);
+      actions.save("names");
       actions.refreshSoon();
     }
     reply.renamedCount = Object.keys(reply.undoNames).length;
@@ -361,7 +361,7 @@ export function createChat(runtime, actions) {
         if (typeof q.story === "string") p.story = q.story;
         if (q.rename_to) p.name = String(q.rename_to);
         reply.periods = [...new Set([...(reply.periods || []), p.id])];
-        actions.savePeriods();
+        actions.save("periods");
         actions.refreshSoon();
         return { saved: { name: p.name, start: p.start, end: p.end } };
       },
@@ -477,7 +477,7 @@ export function createChat(runtime, actions) {
       : "";
     $("#newChat")?.addEventListener("click", () => {
       state.turns = [];
-      actions.saveChat();
+      actions.save("chat");
       renderLog();
     });
   }
@@ -636,7 +636,7 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
     $("#stopBtn").hidden = true;
     $("#sendBtn").disabled = false;
     renderLog();
-    actions.saveChat();
+    actions.save("chat");
   }
 
   function wireAsk() {
@@ -667,8 +667,8 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
           else delete state.names[k];
         }
         t.namesUndone = true;
-        actions.saveSoon("names", () => ({ map: state.names }), 200);
-        actions.saveChat();
+        actions.save("names");
+        actions.save("chat");
         actions.refresh();
         renderLog();
         return;
@@ -681,8 +681,8 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
           else delete state.notes[id];
         }
         t.undone = true;
-        actions.saveSoon("notes", () => ({ map: state.notes }), 200);
-        actions.saveChat();
+        actions.save("notes");
+        actions.save("chat");
         actions.refresh();
         renderLog();
         return;
@@ -737,7 +737,7 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
             title: r.title || turn.q.slice(0, 40),
             code: r.code,
           });
-          actions.saveLenses();
+          actions.save("lenses");
           actions.renderLenses();
           l.textContent = "Added to Lenses";
           actions.openTab("lenses");

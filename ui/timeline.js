@@ -518,7 +518,7 @@ export function createTimeline(runtime, actions) {
     if (value > 0) l += `  [budget ${Math.round(value)}]`;
     lines[th.line] = l;
     state.rules = lines.join("\n");
-    actions.saveSoon("rules", () => ({ text: state.rules }), 300);
+    actions.save("rules");
     actions.refresh();
   }
 
@@ -730,7 +730,7 @@ export function createTimeline(runtime, actions) {
       if (md0.kind === "move" || md0.kind === "resize") {
         if (md0.moved) {
           state.periodSel = md0.id;
-          actions.savePeriods();
+          actions.save("periods");
           actions.refresh();
         } else {
           state.periodSel = state.periodSel === md0.id ? null : md0.id;
@@ -899,7 +899,7 @@ export function createTimeline(runtime, actions) {
     state.view.parked = has
       ? state.view.parked.filter((n) => n.toLowerCase() !== k)
       : [...state.view.parked, name];
-    actions.saveView();
+    actions.save("view");
     renderTimeline();
     renderParkbar();
     if (!has)

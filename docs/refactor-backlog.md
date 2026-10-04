@@ -14,7 +14,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 | Rank | Item                                                                                                            |    Size     |    Risk    | Removes allowlist entries                                                    |      Wait for story-first?       |
 | ---: | --------------------------------------------------------------------------------------------------------------- | :---------: | :--------: | ---------------------------------------------------------------------------- | :------------------------------: |
 |    0 | [M0](#m0-merge-tasks-for-story-first) Merge tasks                                                               |      S      |    Low     | `answers`, `merchantAnswers` (done; adds `dismissed` under R2)               |           is the merge           |
-|    1 | [R2](#r2-derive-boot-saves-and-backups-from-documentsjs) Derive boot, saves and backups from `documents.js`     |      M      |   Medium   | `workspace is missing from: save`, `main.js writes undeclared document demo` |               Yes                |
+|    1 | [R2](#r2-derive-boot-saves-and-backups-from-documentsjs) Derive boot, saves and backups from `documents.js`     |      M      |   Medium   | `workspace is missing from: save`, `main.js writes undeclared document demo` |        **Done** (`next`)         |
 |    2 | [R3](#r3-one-refresh-path) One refresh path                                                                     |      M      |   Medium   | none (removes the duplicate `renderReports` call)                            |               Yes                |
 |    3 | [R1](#r1-declared-module-contracts-and-registry) Declared module contracts and registry                         |      M      |    Low     | none (turns the provider test into a contract test)                          |               Yes                |
 |    4 | [R4](#r4-pure-logic-out-of-the-ui) Pure logic out of the UI                                                     | L (4 × S/M) | Low–medium | none directly; shrinks `ui/chat.js` and `ui/timeline.js`                     |        Mostly yes; R4d no        |
@@ -63,6 +63,15 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Size:** M. **Risk:** medium. Boot touches saved user data, so add a test that loads today's demo workspace documents unchanged.
 - **Removes:** `workspace is missing from: save`, `main.js writes undeclared document demo`, and `dismissed is missing from: save` (kept by M0).
 - **Wait:** yes.
+- **Done** on branch `next`, 4 October 2026:
+  - Each `DOCUMENTS` entry now has `check`, `delay` and `label`, and optionally `in`, `out` and `older`. The checks moved there from `parseBackup`.
+  - `loadDocuments(docs, state)` loads every document and reassembles the statements. `toDocument(entry, state)` builds a stored document. `createBackup`, `parseBackup` and `workspaceDocuments` loop over `DOCUMENTS`.
+  - `actions.save(...keys)` replaced the 16 literal `saveSoon` calls and the 33 calls to `savePeriods`, `saveReports`, `saveAnswers`, `saveLenses`, `saveView` and `saveChat`.
+  - The seed writes `workspace`. A workspace with only the old `demo` marker loads as a demo and gets a `workspace` document; the marker itself is left in place.
+  - A document that fails its check at boot is named in a toast and the console. It is not loaded, and nothing in that session saves over it.
+  - `dismissed` needs no entry: nothing changes it in a session, and it is loaded, backed up and restored like every other document.
+  - The guardrail now checks the derived design: only `persistence.js` debounces saves, no module writes a literal key, boot uses `loadDocuments`, and every entry round-trips through boot, backup and restore. `tests/documents.test.js` covers the old-key migration, both round trips and invalid documents. All three allowlist entries are deleted.
+  - The `view` document now has one shape (`parked`, `panel`) in saves and restores.
 
 ### R3. One refresh path
 

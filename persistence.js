@@ -1,4 +1,5 @@
 import { batchDocuments, restoreBackupDocuments } from "./backup.js";
+import { documentFor, toDocument } from "./documents.js";
 import { toast } from "./ui/dom.js";
 import { localBackend } from "./storage.js";
 import { $ } from "./helpers.js";
@@ -29,6 +30,7 @@ export function createPersistence(runtime, actions) {
       ),
     );
     await restoreBackupDocuments(Store.backend, backup);
+    blocked.clear();
   }
 
   function setStatus() {
@@ -49,77 +51,27 @@ export function createPersistence(runtime, actions) {
     delete state.batches[b.id];
   }
 
-  const savePeriods = () =>
-    saveSoon("periods", () => ({ items: state.periods }), 400);
+  // Documents that failed their check at boot. They stay as they are in
+  // storage, so nothing in this session saves over them.
+  const blocked = new Set();
+  const blockSaves = (keys) => keys.forEach((k) => blocked.add(k));
 
-  const saveReports = () =>
-    saveSoon(
-      "reports",
-      () => ({
-        items: state.reports.map((r) => ({
-          id: r.id,
-          q: r.q,
-          answer: r.answer || "",
-          ranAt: r.ranAt || "",
-          dataKey: r.dataKey || "",
-          coverage: r.coverage || "",
-        })),
-      }),
-      400,
-    );
-
-  const saveAnswers = () => {
-    saveSoon("answers", () => ({ map: state.answers }), 300);
-    saveSoon("merchantAnswers", () => ({ map: state.merchantAnswers }), 300);
-  };
-
-  const saveLenses = () => saveSoon("lenses", () => ({ items: state.lenses }));
-
-  const saveView = () =>
-    saveSoon(
-      "view",
-      () => ({ parked: state.view.parked, panel: state.view.panel }),
-      300,
-    );
-
-  const saveChat = () =>
-    saveSoon(
-      "chat",
-      () => ({
-        turns: state.turns
-          .filter((t) => !t.pending)
-          .slice(-40)
-          .map((t) => ({
-            role: t.role,
-            content: t.content,
-            shown: t.shown || "",
-            q: t.q || "",
-            error: t.error || "",
-            undo: t.undo || null,
-            changedCount: t.changedCount || 0,
-            undone: !!t.undone,
-            proposed: !!t.proposed,
-            undoNames: t.undoNames || null,
-            renamedCount: t.renamedCount || 0,
-            namesUndone: !!t.namesUndone,
-            periods: t.periods || null,
-          })),
-      }),
-      500,
-    );
+  // Saves documents by key, each after its own short wait for more changes.
+  function save(...keys) {
+    for (const key of keys) {
+      const entry = documentFor(key);
+      if (blocked.has(key)) continue;
+      saveSoon(key, () => toDocument(entry, state), entry.delay);
+    }
+  }
 
   return {
     Store,
+    blockSaves,
     restoreBackup,
     removeBatch,
-    saveAnswers,
+    save,
     saveBatch,
-    saveChat,
-    saveLenses,
-    savePeriods,
-    saveReports,
-    saveSoon,
-    saveView,
     setStatus,
   };
 }

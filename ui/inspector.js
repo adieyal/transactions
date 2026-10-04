@@ -10,7 +10,7 @@ export function createInspector(runtime, actions) {
     if (on) state.transferOv[id] = true;
     else state.transferOv[id] = false;
     if (on && auto) delete state.transferOv[id];
-    actions.saveSoon("transfers", () => ({ map: state.transferOv }), 200);
+    actions.save("transfers");
     actions.refresh();
   }
 
@@ -190,7 +190,7 @@ export function createInspector(runtime, actions) {
         if (v && v !== (t.original || t.merchant))
           state.names[nk] = { name: v, by: "you" };
         else delete state.names[nk];
-        actions.saveSoon("names", () => ({ map: state.names }));
+        actions.save("names");
         actions.refreshSoon();
       };
       $("#nameBox")?.addEventListener("input", (e) => setName(e.target.value));
@@ -203,7 +203,7 @@ export function createInspector(runtime, actions) {
           const v = e.target.value;
           if (v.trim()) state.notes[realId] = v;
           else delete state.notes[realId];
-          actions.saveSoon("notes", () => ({ map: state.notes }));
+          actions.save("notes");
           actions.refreshSoon();
         });
     } else {
@@ -282,7 +282,7 @@ export function createInspector(runtime, actions) {
     }
     state.rules = lines.join("\n");
     state.previewRules = null;
-    actions.saveSoon("rules", () => ({ text: state.rules }), 300);
+    actions.save("rules");
     state.selection.clear();
     actions.openTab("threads");
     actions.refresh();

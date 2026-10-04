@@ -41,7 +41,7 @@ export function createImport(runtime, actions) {
           if (!map) continue;
           batch = applyMapping(m, map, f.name);
           state.adapters[fnv(sigOf(m[map.headerRow]))] = { ...map };
-          actions.saveSoon("adapters", () => ({ items: state.adapters }), 100);
+          actions.save("adapters");
         }
         if (!batch.rows.length) {
           toast(`Nothing to import from ${f.name}.`);

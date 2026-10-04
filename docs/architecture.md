@@ -279,7 +279,8 @@ export const DOCUMENTS = [
     wrap: "self",
     backup: "view",
     check: isView,
-    pick: ["parked", "panel"],
+    in: (v, state) => ({ ...state.view, parked: v.parked, panel: v.panel }),
+    out: (v) => ({ parked: v.parked, panel: v.panel }),
   },
   {
     key: "workspace",
@@ -312,10 +313,11 @@ flowchart LR
   T[tests: round trip every entry] --> D
 ```
 
-- **Loading at boot** goes through the same `check` functions as `parseBackup`. A document that fails its check is reported by name (in a toast and the console) and left untouched in storage. It is not silently replaced by a default (constitution anti-goal 2).
+- **Loading at boot** goes through the same `check` functions as `parseBackup`. A document that fails its check is reported by name (in a toast and the console) and left untouched in storage. `actions.blockSaves` stops the session from saving over it. It is not silently replaced by a default (constitution anti-goal 2).
+- **Optional fields of an entry.** `in(value, state)` turns a checked stored value into state, `out(value)` drops transient fields before saving (reports, chat turns, the view), `older()` gives the value for a backup made before the field existed, and `label` names the field in an invalid-backup message.
 - **The planned documents.** `answers` is `{ [momentId]: { status: "answered" | "skipped", choice?, note?, created?: { periodId?, noteIds? }, at? } }`. `merchantAnswers` is `{ [merchantKey]: { choice, action?, at? } }`. Their shapes match the checks story-first added to `parseBackup`, which move into `isAnswer` and `isMerchantAnswer`.
 - **Compatibility.** Backup field names (`transfers`, `demo`) and storage keys stay as they are, so existing backups and saved workspaces keep loading. The seed's `demo` marker document is read as a legacy marker; new code writes `workspace`. The open product question of when a workspace stops being a demo is outside this design.
-- **Keeping backups in sync.** `tests/documents.test.js` checks the following for every entry: state → backup → `parseBackup` → state is lossless; state → `workspaceDocuments` → `loadDocuments` → state is lossless; every saved field in `state.js` has an entry. Adding a document is then one entry plus its check function.
+- **Keeping backups in sync.** `tests/documents.test.js` checks the following for every entry: state → backup → `parseBackup` → state is lossless; state → `toDocument` → `loadDocuments` → state is lossless; a workspace saved under the old keys loads unchanged. The guardrail in `tests/architecture.test.js` checks that only `persistence.js` debounces saves, that no module writes a literal key, and that boot uses `loadDocuments`. Adding a document is then one entry plus its check function.
 
 ## 4. Rendering conventions
 
@@ -409,7 +411,7 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | Step | Change                                                                                                              | Answers review finding |
 | ---- | ------------------------------------------------------------------------------------------------------------------- | ---------------------- |
 | R1   | `contract` exports, `registry.js`, the scoped `actions` proxy, the contract test                                    | 1                      |
-| R2   | Boot, saves and backups derived from `documents.js` (today a checked list); the `demo`/`workspace` key reconciled   | 2                      |
+| R2   | Boot, saves and backups derived from `documents.js`; the `demo`/`workspace` key reconciled (done)                   | 2                      |
 | R3   | One refresh path: registered renders, `highlight`/`select`/`clearFocus` commands, duplicate `renderReports` removed | 3, 5                   |
 | R4   | Pure logic out of UI: rules-text editing, assistant tools, period statistics, tags, the lens runner                 | 4                      |
 | R5   | Split `helpers.js`: `$` to `ui/dom.js`, `TODAY` injected                                                            | 7                      |
@@ -510,4 +512,4 @@ actual: { unexpected: [], stale: [ 'main.js writes undeclared document demo' ] }
 Done on the `integration` branch (backlog M0, 4 October 2026):
 
 - **The allowlist entries for `answers` and `merchantAnswers` are deleted.** story-first covers both documents in state, boot, saving, backups and restores.
-- **`dismissed` stays as read-only legacy data, with an R2 allowlist entry.** story-first removed `ui/changes.js`, so nothing writes it any more. It is still used: `transactions/derive.js` drops the flags a person dismissed in Worth a look, and `story/moments.js` turns flags into price and stopped-charge questions. Removing it would bring those dismissed items back as questions. R2 decides how legacy documents are read.
+- **`dismissed` stays as read-only legacy data, with an R2 allowlist entry.** story-first removed `ui/changes.js`, so nothing writes it any more. It is still used: `transactions/derive.js` drops the flags a person dismissed in Worth a look, and `story/moments.js` turns flags into price and stopped-charge questions. Removing it would bring those dismissed items back as questions. R2 decides how legacy documents are read. (R2 has since removed the entry: `dismissed` loads, backs up and restores through `DOCUMENTS` like the rest.)

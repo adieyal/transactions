@@ -288,7 +288,7 @@ export function createLensEditor(runtime, actions) {
     const l = lens();
     if (!l) return;
     l.code = view.state.doc.toString();
-    actions.saveLenses();
+    actions.save("lenses");
     renderPreview();
     actions.rerunLens(l.id);
   }, 250);
@@ -336,7 +336,7 @@ export function createLensEditor(runtime, actions) {
     const l = lens();
     if (l && view) {
       l.code = view.state.doc.toString();
-      actions.saveLenses();
+      actions.save("lenses");
     }
     view?.destroy();
     view = null;
@@ -361,7 +361,7 @@ export function createLensEditor(runtime, actions) {
       const l = lens();
       if (!l) return;
       l.title = $("#lensTitle").value.trim() || "Untitled lens";
-      actions.saveLenses();
+      actions.save("lenses");
       actions.rerunLens(l.id);
     });
     $("#lensRef").addEventListener("click", (e) => {

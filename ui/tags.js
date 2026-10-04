@@ -61,7 +61,7 @@ export function createTags(runtime, actions) {
       );
       return;
     }
-    actions.saveSoon("notes", () => ({ map: state.notes }), 200);
+    actions.save("notes");
     actions.refresh();
     const what = [
       add.length ? `added ${add.join(" ")}` : "",
@@ -79,7 +79,7 @@ export function createTags(runtime, actions) {
             if (before) state.notes[id] = before;
             else delete state.notes[id];
           }
-          actions.saveSoon("notes", () => ({ map: state.notes }), 200);
+          actions.save("notes");
           actions.refresh();
           toast("Tags put back as they were.");
         },

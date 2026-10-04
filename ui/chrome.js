@@ -53,7 +53,7 @@ export function createChrome(runtime, actions) {
       resetPanelScroll();
     if (!state.view.panel) {
       state.view.panel = true;
-      actions.saveView();
+      actions.save("view");
       applyPanel();
     }
     ["month", "lenses", "questions", "threads", "ask", "reports"].forEach(
@@ -103,7 +103,7 @@ export function createChrome(runtime, actions) {
     };
     $("#hidePanel").onclick = () => {
       state.view.panel = !state.view.panel;
-      actions.saveView();
+      actions.save("view");
       applyPanel();
     };
     $("#tab-month").onclick = () => openTab("month");
@@ -116,7 +116,7 @@ export function createChrome(runtime, actions) {
     ta.addEventListener("input", () => {
       if (state.previewRules != null) return;
       state.rules = ta.value;
-      actions.saveSoon("rules", () => ({ text: state.rules }));
+      actions.save("rules");
       actions.derive();
       actions.renderTimeline();
       actions.renderEditor();
@@ -147,7 +147,7 @@ export function createChrome(runtime, actions) {
     $("#keepPreview").onclick = () => {
       state.rules = state.previewRules;
       state.previewRules = null;
-      actions.saveSoon("rules", () => ({ text: state.rules }), 100);
+      actions.save("rules");
       actions.refresh();
       toast("Threads updated. Edit them any time.");
     };
@@ -190,7 +190,7 @@ export function createChrome(runtime, actions) {
         STARTER_LENSES.forEach((l) => {
           if (!have.has(l.id)) state.lenses.push({ ...l });
         });
-        actions.saveLenses();
+        actions.save("lenses");
         actions.renderLenses();
         return;
       }

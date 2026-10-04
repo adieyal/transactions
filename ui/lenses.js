@@ -156,7 +156,7 @@ export function createLenses(runtime, actions) {
         const l = state.lenses.find((x) => x.id === d.dataset.del);
         if (!confirm(`Remove “${l.title}”?`)) return;
         state.lenses = state.lenses.filter((x) => x !== l);
-        actions.saveLenses();
+        actions.save("lenses");
         renderLenses();
         return;
       }
@@ -181,7 +181,7 @@ export function createLenses(runtime, actions) {
           });
           l.code = r.code;
           if (r.title && !brief) l.title = l.title || r.title;
-          actions.saveLenses();
+          actions.save("lenses");
         } catch (e) {
           toast(actions.sampleErr(e));
         }
@@ -195,7 +195,7 @@ export function createLenses(runtime, actions) {
           code: `// txns: your transactions. lib: sum, groupBy, month, fmt, expected, threads.\nreturn { kind: "number", value: lib.sum(txns, t => t.amount), label: "Everything on your statements" };`,
         };
         state.lenses.push(l);
-        actions.saveLenses();
+        actions.save("lenses");
         renderLenses();
         actions.openLensEditor(l.id);
         return;
@@ -218,7 +218,7 @@ export function createLenses(runtime, actions) {
             code: r.code,
           };
           state.lenses.push(l);
-          actions.saveLenses();
+          actions.save("lenses");
           renderLenses();
         } catch (e) {
           $("#lensNote").textContent = actions.sampleErr(e);
@@ -231,7 +231,7 @@ export function createLenses(runtime, actions) {
       if (t) {
         const l = state.lenses.find((x) => x.id === t.dataset.title);
         l.title = t.textContent.trim() || "Untitled lens";
-        actions.saveLenses();
+        actions.save("lenses");
       }
     });
   }
