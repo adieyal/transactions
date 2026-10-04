@@ -90,7 +90,6 @@ const SIZE_WARN = 400;
 const SIZE_FAIL = 700;
 const SIZE_ALLOW = [
   // A ceiling, not a target: these may not grow past it while being split.
-  { v: "ui/timeline.js", max: 1000, fix: "R8" },
 ];
 
 // ---- Reading the source ---------------------------------------------------

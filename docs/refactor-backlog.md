@@ -23,7 +23,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 |    7 | [R5](#r5-split-helpersjs) Split `helpers.js`                                                                    |      S      |    Low     | `helpers.js uses document`, `helpers.js uses new Date()`                     |       **Done** (`next`)       |
 |    8 | [R11](#r11-storage-keys-into-storagejs) Storage keys into `storage.js`                                          |      S      |    Low     | `ui/assistant-settings.js uses storage`, `ui/tour.js uses storage`           |       **Done** (`next`)       |
 |    9 | [R9](#r9-split-uichatjs) Split `ui/chat.js`                                                                     |      M      | Low–medium | `ui/chat.js` size ceiling                                                    |       **Done** (`next`)       |
-|   10 | [R8](#r8-timeline-layout-into-a-pure-helper) Timeline layout into a pure helper                                 |      L      |   Medium   | `ui/timeline.js` size ceiling                                                |       Yes (milestone 4)       |
+|   10 | [R8](#r8-timeline-layout-into-a-pure-helper) Timeline layout into a pure helper                                 |      L      |   Medium   | `ui/timeline.js` size ceiling                                                |       **Done** (`next`)       |
 |   11 | [R10](#r10-escaped-html-tag-and-delegated-events) Escaped `html` tag and delegated events                       |   S each    |    Low     | none (adds a guardrail)                                                      |          Per module           |
 |   12 | [R12](#r12-fonts-and-sheetjs) Fonts and SheetJS                                                                 |     S–M     |   Medium   | none                                                                         |   Needs the user's decision   |
 
@@ -206,6 +206,12 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Size:** L. **Risk:** medium, because the output is visual. Compare headless Chrome screenshots of the demo year before and after.
 - **Removes:** the `ui/timeline.js` size ceiling.
 - **Wait:** yes. Story-first milestone 4 adds the thread inspector, which is reached from timeline row labels.
+- **Done** on branch `next`, 4 October 2026. `ui/timeline.js` is down from 986 to 558 lines, and its size ceiling is deleted (`SIZE_ALLOW` is empty).
+  - **Layout.** `ui/timeline-layout.js` (`layoutTimeline`, `timeDomain`, `niceBudget`) works out the time scale, statement bars, period lanes, rows, budget bands, bead lanes, arcs and period bands. It is pure, and `tests/timeline-layout.test.js` tests it against the demo year.
+  - **Rendering.** `renderTimeline` only writes SVG from the layout, through `rowSVG` and `beadSVG`.
+  - **Dragging and text.** The five drag modes are in `ui/timeline-drag.js`. The tooltip and transfer wording are in `ui/timeline-text.js`.
+  - **Checks.** The timeline SVG for the demo and the realistic fixture, at 1440, 1024 and 390 px with a period selected, is byte-identical before and after, apart from the sticky period names' `y`, which follows the scroll position at capture. Budget dragging, the selection box and resizing a period behave identically in both builds.
+  - **Not done.** The whole SVG is still rebuilt on each pointer move during a drag. That cost is unchanged, and it is now easier to address.
 
 ### R10. Escaped `html` tag and delegated events
 
