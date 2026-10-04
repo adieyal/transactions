@@ -249,17 +249,25 @@ function regularItems(ctx) {
 }
 
 // Whether charges look like a standing payment rather than a shop someone
-// happens to visit most months: at least three in four are within 20% of the
-// usual amount and within five days of the usual day of the month.
+// happens to visit most months: at least three in four fall on a steady day
+// of the month, or at least three in four are steady in amount. A steady day
+// is within five days of the usual one, counted across the turn of the month,
+// so the 30th and the 1st are close; that keeps variable bills. A steady
+// amount is within 20% of the charge before or after it, so a single price
+// rise still counts.
 function steady(ts) {
-  const usual = median(ts.map((t) => t.amount)),
-    day = median(ts.map((t) => +t.date.slice(8, 10)));
-  const near = ts.filter(
-    (t) =>
-      Math.abs(t.amount - usual) <= 0.2 * Math.abs(usual) &&
-      Math.abs(+t.date.slice(8, 10) - day) <= 5,
+  const sorted = [...ts].sort((a, b) => a.date.localeCompare(b.date));
+  const days = sorted.map((t) => +t.date.slice(8, 10));
+  const apart = (a, b) => Math.min(Math.abs(a - b), 31 - Math.abs(a - b));
+  const nearDays = Math.max(
+    ...days.map((d) => days.filter((e) => apart(d, e) <= 5).length),
   );
-  return near.length >= 0.75 * ts.length;
+  const close = (a, b) =>
+    b && Math.abs(a.amount - b.amount) <= 0.2 * Math.abs(b.amount);
+  const nearAmounts = sorted.filter(
+    (t, i) => close(t, sorted[i - 1]) || close(t, sorted[i + 1]),
+  ).length;
+  return Math.max(nearDays, nearAmounts) >= 0.75 * ts.length;
 }
 
 // A steady charge or outgoing transfer missing from covered months, and a

@@ -430,11 +430,14 @@ test("a missing month is only asked about for steady charges", () => {
     cards.forEach((b, i) => {
       if (i === 5) return;
       const period = b.periods[0];
+      const [y, m] = period.split("-").map(Number);
+      const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      const date = `${period}-${String(Math.min(day(i), last)).padStart(2, "0")}`;
       b.rows.push({
         ...b.rows[0],
         id: `shop-${period}`,
-        date: `${period}-${String(day(i)).padStart(2, "0")}`,
-        chargeDate: `${period}-${String(day(i)).padStart(2, "0")}`,
+        date,
+        chargeDate: date,
         merchant: "Corner Hardware",
         amount: amount(i),
       });
@@ -451,11 +454,24 @@ test("a missing month is only asked about for steady charges", () => {
     ).length,
     0,
   );
-  assert.equal(
-    withShop(
+  // A steady day with a varying amount, a steady amount with a drifting or
+  // month-end day, and a single price rise are all still regular.
+  const regular = {
+    "a steady charge": [() => 49, () => 12],
+    "a bill alternating 400 and 500": [(i) => (i % 2 ? 500 : 400), () => 10],
+    "a seasonal bill": [
+      (i) => [520, 480, 420, 360, 320, 300, 300, 320, 380, 440, 500, 520][i],
+      () => 10,
+    ],
+    "a bill within 15%": [(i) => (i % 2 ? 460 : 400), () => 10],
+    "a price rise after the gap": [(i) => (i < 6 ? 49 : 65), () => 12],
+    "a price rise after month 9": [(i) => (i < 9 ? 49 : 65), () => 12],
+    "rent on the 30th or the 1st": [() => 4500, (i) => (i % 2 ? 1 : 30)],
+    "a charge drifting from the 10th to the 18th": [
       () => 49,
-      () => 12,
-    ).length,
-    1,
-  );
+      (i) => 10 + (i % 3) * 4,
+    ],
+  };
+  for (const [name, [amount, day]] of Object.entries(regular))
+    assert.equal(withShop(amount, day).length, 1, name);
 });
