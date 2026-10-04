@@ -6,7 +6,8 @@ import {
   typicalMonth,
 } from "./moment-kit.js";
 import { detectMoments } from "./moments.js";
-import { periodNotes, summarizeMonth, summarizePeriod } from "./summary.js";
+import { summarizeMonth } from "./summary.js";
+import { periodNotes, summarizePeriod } from "./period-story.js";
 import { count, dateRange, list, money, monthLong, name } from "./copy.js";
 import {
   addFact,

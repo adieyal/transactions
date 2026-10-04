@@ -1,6 +1,6 @@
 import { MONTHS, esc, fmt, fmtByCurrency, monthName } from "../helpers.js";
 import { $ } from "./dom.js";
-import { summarizeThread } from "../story/summary.js";
+import { summarizeThread } from "../story/thread-story.js";
 import { dayShort, money } from "../story/copy.js";
 import { phraseHTML } from "./highlight.js";
 import { TRANSFERS } from "../transactions/constants.js";

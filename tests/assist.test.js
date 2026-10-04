@@ -4,11 +4,9 @@ import { createDemoData } from "../demo.js";
 import { createRuntime } from "../state.js";
 import { deriveTransactions } from "../transactions/derive.js";
 import { detectMoments, findMoments } from "../story/moments.js";
-import {
-  summarizeMonth,
-  summarizePeriod,
-  summarizeThread,
-} from "../story/summary.js";
+import { summarizeMonth } from "../story/summary.js";
+import { summarizePeriod } from "../story/period-story.js";
+import { summarizeThread } from "../story/thread-story.js";
 import { answerOptions } from "../story/copy.js";
 import {
   answerSuggestionPrompt,

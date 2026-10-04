@@ -1,58 +1,38 @@
-import { fnv, monthOf } from "../helpers.js";
-import { LOOSE, TRANSFERS } from "../transactions/constants.js";
+import { monthOf } from "../helpers.js";
+import { LOOSE } from "../transactions/constants.js";
 import {
   coveredMonths,
-  detectMoments,
   findMoments,
   monthsSeen,
   spending,
   typicalMonth,
 } from "./moments.js";
 import {
-  count,
   dateRange,
   list,
   merchantList,
   money,
-  monthList,
   monthLong,
   name as bidi,
-  ordinal,
   plain,
   plural,
   questionText,
 } from "./copy.js";
-import { eachCurrency, sectionsPerCurrency } from "./currency.js";
+import { sectionsPerCurrency } from "./currency.js";
 import { groupBy, median } from "./moment-kit.js";
+import {
+  total,
+  ids,
+  byDate,
+  monthWord,
+  pick,
+  listParts,
+  times,
+  merchantParts,
+} from "./summary-kit.js";
 
 // A month told in plain sentences. Each part that states a figure carries
 // the ids of the transactions behind it, so the page can light them up.
-
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-const total = (ts) => ts.reduce((s, t) => s + t.amount, 0);
-const ids = (ts) => ts.map((t) => t.id);
-const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
-const monthWord = (ym) => monthLong(ym).split(" ")[0];
-
-// Varies wording by month without randomness: the same month always reads
-// the same way.
-const pick = (month, kind, variants) =>
-  variants[parseInt(fnv(month + "|" + kind), 16) % variants.length];
-
-// Text parts joined as "a, b and c", each item keeping its own ids.
-function listParts(items) {
-  const out = [];
-  items.forEach((item, i) => {
-    if (i > 0) out.push({ text: i === items.length - 1 ? " and " : ", " });
-    out.push(item);
-  });
-  return out;
-}
-
-function times(r) {
-  if (r < 2.5) return "about twice";
-  return `about ${count(Math.round(r))} times`;
-}
 
 function overview(month, ctx) {
   const M = monthWord(month);
@@ -192,24 +172,6 @@ function regular(month, ctx) {
       },
     );
   return { kind: "regular", parts };
-}
-
-// ", with ₪1,505 at Kettle & Coil (three purchases), ₪640 at …", or " at X"
-// when there is only one merchant.
-function merchantParts(ts) {
-  const merchants = [...groupBy(ts, (t) => t.merchant)]
-    .map(([name, group]) => ({ name, ts: group, sum: total(group) }))
-    .sort((a, b) => b.sum - a.sum || a.name.localeCompare(b.name));
-  if (merchants.length === 1)
-    return [{ text: ` at ${bidi(merchants[0].name)}` }];
-  const items = merchants.slice(0, 4).map((m) => ({
-    text: `${money(m.sum)} at ${bidi(m.name)}${m.ts.length > 1 ? ` (${plural(m.ts.length, "purchase")})` : ""}`,
-    txnIds: ids(m.ts),
-  }));
-  const rest = merchants.slice(4).flatMap((m) => m.ts);
-  if (rest.length)
-    items.push({ text: `${money(total(rest))} elsewhere`, txnIds: ids(rest) });
-  return [{ text: ", with " }, ...listParts(items)];
 }
 
 // A period overlapping the month: what went out in its dates this month,
@@ -389,307 +351,3 @@ function monthSections(derived, state, month, moments) {
 // A section's plain text, for tests and for an assistant to polish later.
 export const sectionText = (section) =>
   plain(section.parts.map((p) => p.text).join(""));
-
-// A period told on its own: what went out in its dates, leaving regular
-// spending aside unless asked for, and how it compares with other periods.
-export function summarizePeriod(derived, state, period, options = {}) {
-  const inDates = derived.allTxns.filter(
-    (t) => t.date >= period.start && t.date <= period.end,
-  );
-  return sectionsPerCurrency(derived, inDates, (view) =>
-    periodStory(view, state, period, options),
-  );
-}
-
-function periodStory(derived, state, period, { regular = false } = {}) {
-  const spend = derived.allTxns.filter(spending);
-  const seen = monthsSeen(spend);
-  const routine = (t) => seen.get(t.key)?.size >= 3;
-  const inDates = (p) => (t) => t.date >= p.start && t.date <= p.end;
-  const within = spend.filter(inDates(period)).sort(byDate);
-  const own = within.filter((t) => !routine(t));
-  const usual = within.filter(routine);
-  const sections = [];
-  sections.push({
-    kind: "period",
-    parts: own.length
-      ? [
-          {
-            text: `${money(total(own))} went out in these dates`,
-            txnIds: ids(own),
-          },
-          ...merchantParts(own),
-          { text: "." },
-        ]
-      : [{ text: "Only regular spending happened in these dates." }],
-  });
-  if (usual.length && !regular)
-    sections.push({
-      kind: "regular",
-      parts: [
-        {
-          text: own.length
-            ? `${cap(plural(usual.length, "regular charge"))} (${money(total(usual))}) also fell in these dates, making ${money(total(within))} in all.`
-            : `${cap(plural(usual.length, "regular charge"))} came to ${money(total(usual))}.`,
-          txnIds: ids(usual),
-        },
-      ],
-    });
-  if (usual.length && regular) {
-    const threads = [...groupBy(usual, (t) => t.thread)]
-      .map(([name, ts]) => ({ name, ts, sum: total(ts) }))
-      .sort((a, b) => b.sum - a.sum);
-    sections.push({
-      kind: "regular",
-      parts: [
-        { text: "Regular spending in these dates came to " },
-        { text: money(total(usual)), txnIds: ids(usual) },
-        { text: ": " },
-        ...listParts(
-          threads.map((th) => ({
-            text: `${money(th.sum)} on ${bidi(th.name)}`,
-            txnIds: ids(th.ts),
-          })),
-        ),
-        { text: "." },
-      ],
-    });
-  }
-  const others = state.periods
-    .filter((p) => p.id !== period.id)
-    .map((p) => ({
-      p,
-      ts: spend.filter((t) => inDates(p)(t) && !routine(t)),
-    }))
-    .filter((o) => o.ts.length)
-    .sort((a, b) => (a.p.start < b.p.start ? -1 : 1));
-  if (own.length && others.length) {
-    const most = others.every((o) => total(o.ts) < total(own));
-    sections.push({
-      kind: "compare",
-      parts: [
-        {
-          text: most
-            ? "That's more than in any of your other periods: "
-            : "For comparison: ",
-        },
-        ...listParts(
-          others.map((o) => ({
-            text: `“${bidi(o.p.name)}” came to ${money(total(o.ts))}`,
-            txnIds: ids(o.ts),
-          })),
-        ),
-        { text: "." },
-      ],
-    });
-  }
-  return sections;
-}
-
-// The notes written on a period's transactions, in date order. Regular
-// spending's notes only when that spending is listed too.
-export function periodNotes(derived, period, { regular = false } = {}) {
-  const seen = monthsSeen(derived.allTxns.filter(spending));
-  return derived.allTxns
-    .filter(
-      (t) =>
-        t.note &&
-        t.date >= period.start &&
-        t.date <= period.end &&
-        (regular || !(seen.get(t.key)?.size >= 3)),
-    )
-    .sort(byDate)
-    .map((t) => ({
-      id: t.id,
-      date: t.date,
-      merchant: t.merchant,
-      amount: t.amount,
-      currency: t.currency,
-      note: t.note,
-    }));
-}
-
-// A thread told as a summary, a month strip and a blow-by-blow list.
-// With several currencies, each is told on its own and has its own strip.
-export function summarizeThread(derived, state, name) {
-  const inThread = derived.allTxns.filter((t) => t.thread === name);
-  const runs = eachCurrency(derived, inThread, (view) =>
-    threadStory(view, state, name),
-  );
-  if (!runs.length) {
-    const story = threadStory(derived, state, name);
-    return { ...story, strips: [] };
-  }
-  const strips = runs.map((r) => ({
-    currency: r.currency,
-    months: r.value.months,
-  }));
-  return {
-    sections: sectionsPerCurrency(
-      derived,
-      inThread,
-      (view) => threadStory(view, state, name).sections,
-    ),
-    months: runs.length === 1 ? runs[0].value.months : [],
-    strips,
-    items: runs.flatMap((r) => r.value.items).sort(byDate),
-  };
-}
-
-function threadStory(derived, state, name) {
-  const inThread = derived.allTxns
-    .filter((t) => t.thread === name)
-    .sort(byDate);
-  // Money that came in is told on its own, never netted against charges.
-  const cameIn = inThread.filter((t) => t.inflow);
-  const ts = inThread.filter((t) => !t.inflow);
-  const months = coveredMonths(derived).map((m) => {
-    const inMonth = ts.filter((t) => monthOf(t.date) === m);
-    return {
-      month: m,
-      total: total(inMonth),
-      count: inMonth.length,
-      txnIds: ids(inMonth),
-    };
-  });
-  const items = inThread.map((t) => ({
-    id: t.id,
-    date: t.date,
-    merchant: t.merchant,
-    amount: t.amount,
-    currency: t.currency,
-    inflow: !!t.inflow,
-    periods: t.periods || [],
-    note: t.note || "",
-  }));
-  if (!inThread.length)
-    return {
-      sections: [
-        {
-          kind: "empty",
-          parts: [{ text: `Nothing is in ${bidi(name)} yet.` }],
-        },
-      ],
-      months,
-      items,
-    };
-  const inPart = cameIn.length && {
-    text: `${money(-total(cameIn))} came in from ${list([...new Set(cameIn.map((t) => t.merchant))].map(bidi))}.`,
-    txnIds: ids(cameIn),
-  };
-  if (!ts.length)
-    return { sections: [{ kind: "overview", parts: [inPart] }], months, items };
-  const charges = ts.filter((t) => t.amount > 0);
-  const merchants = [...new Set(ts.map((t) => t.merchant))];
-  const first = monthOf(ts[0].date),
-    last = monthOf(ts.at(-1).date);
-  const sections = [];
-  const when =
-    first === last
-      ? `in ${monthLong(first)}`
-      : `between ${monthLong(first)} and ${monthLong(last)}`;
-  const typical = median(charges.map((t) => t.amount));
-  // Transfers move money between your own accounts; a total would mix both
-  // directions, so only the count is told.
-  if (name === TRANSFERS)
-    return {
-      sections: [
-        {
-          kind: "overview",
-          parts: [
-            {
-              text: `${cap(plural(ts.length, "transfer"))} ${when}, between your own accounts or paying card statements. None of it counts as spending.`,
-              txnIds: ids(ts),
-            },
-          ],
-        },
-      ],
-      months,
-      items,
-    };
-  sections.push({
-    kind: "overview",
-    parts: [
-      {
-        text: `${bidi(name)} had ${plural(ts.length, "charge")} ${when}, ${money(total(ts))} in all`,
-        txnIds: ids(ts),
-      },
-      {
-        text:
-          merchants.length === 1
-            ? `, all at ${bidi(merchants[0])}. `
-            : `, at ${plural(merchants.length, "place")}. `,
-      },
-      ...(typical != null && charges.length >= 3
-        ? [
-            {
-              text: `A typical one was about ${money(Math.round(typical))}.`,
-              txnIds: ids(charges),
-            },
-          ]
-        : []),
-      ...(!inPart
-        ? []
-        : typical != null && charges.length >= 3
-          ? [{ text: " " }, inPart]
-          : [inPart]),
-    ],
-  });
-  const keys = new Set(ts.map((t) => t.key));
-  const tsIds = new Set(ids(ts));
-  for (const m of detectMoments(derived, state).filter(
-    (m) =>
-      m.kind === "rhythm" &&
-      m.facts.keys.every((k) => keys.has(k)) &&
-      m.txnIds.every((id) => tsIds.has(id)),
-  ))
-    sections.push({
-      kind: "rhythm",
-      parts: [
-        {
-          text: `${m.txnIds.length} of them were on the ${ordinal(m.facts.day)} of the month at ${bidi(m.facts.merchant)}, usually about ${money(m.facts.usual)}.`,
-          txnIds: m.txnIds,
-        },
-      ],
-    });
-  const busiest = [...months].sort(
-    (a, b) => b.total - a.total || (a.month < b.month ? -1 : 1),
-  )[0];
-  if (busiest.count && months.filter((m) => m.count).length > 1) {
-    const inBusiest = ts.filter((t) => monthOf(t.date) === busiest.month);
-    const shared = inBusiest[0].periods.filter((n) =>
-      inBusiest.every((t) => t.periods.includes(n)),
-    );
-    sections.push({
-      kind: "busiest",
-      parts: [
-        {
-          text: `The busiest month was ${monthLong(busiest.month)}: ${plural(busiest.count, "charge")}, ${money(busiest.total)}${shared.length ? `, ${busiest.count > 1 ? "all " : ""}during “${bidi(shared[0])}”` : ""}.`,
-          txnIds: busiest.txnIds,
-        },
-      ],
-    });
-  }
-  const th = derived.R.threads.find((x) => x.name === name);
-  if (th?.budget != null) {
-    const over = months.filter((m) => m.count && m.total > th.budget);
-    sections.push({
-      kind: "budget",
-      parts: over.length
-        ? [
-            {
-              text: `It came to more than the ${money(th.budget)} monthly budget in ${monthList(over.map((m) => m.month))}`,
-              txnIds: over.flatMap((m) => m.txnIds),
-            },
-            { text: "." },
-          ]
-        : [
-            {
-              text: `It stayed within the ${money(th.budget)} monthly budget every month.`,
-              txnIds: ids(ts),
-            },
-          ],
-    });
-  }
-  return { sections, months, items };
-}

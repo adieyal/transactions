@@ -7,10 +7,10 @@ import { detectMoments } from "../story/moments.js";
 import {
   sectionText,
   summarizeMonth,
-  summarizePeriod,
-  summarizeThread,
   summaryMonths,
 } from "../story/summary.js";
+import { summarizePeriod } from "../story/period-story.js";
+import { summarizeThread } from "../story/thread-story.js";
 import { momentFact, questionText } from "../story/copy.js";
 import {
   applyMapping,

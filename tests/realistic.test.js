@@ -7,9 +7,9 @@ import { detectMoments, findMoments } from "../story/moments.js";
 import {
   sectionText,
   summarizeMonth,
-  summarizeThread,
   summaryMonths,
 } from "../story/summary.js";
+import { summarizeThread } from "../story/thread-story.js";
 import { answerOptions, money, questionText } from "../story/copy.js";
 import {
   M,

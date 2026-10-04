@@ -2,7 +2,7 @@ import { esc, fmt, fmtByCurrency } from "../helpers.js";
 import { $, html, toast } from "./dom.js";
 import { PALETTE } from "../transactions/constants.js";
 import { periodStats as statsFor } from "../transactions/period-stats.js";
-import { periodNotes, summarizePeriod } from "../story/summary.js";
+import { periodNotes, summarizePeriod } from "../story/period-story.js";
 import { dayShort } from "../story/copy.js";
 import { phraseHTML } from "./highlight.js";
 import { markdown } from "./markdown.js";
