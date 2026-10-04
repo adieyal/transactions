@@ -80,11 +80,7 @@ const NETWORK_FILES = ["assistant.js"];
 const STORAGE =
   /(?<![.\w$])(localStorage|sessionStorage)\s*(\.\s*(getItem|setItem|removeItem|clear|key)\b|\[)/;
 const STORAGE_FILES = ["storage.js"];
-const BOUNDARY_ALLOW = [
-  // R11: the AI settings and the tour's seen flag move into storage.js.
-  { v: "ui/assistant-settings.js uses storage", fix: "R11" },
-  { v: "ui/tour.js uses storage", fix: "R11" },
-];
+const BOUNDARY_ALLOW = [];
 
 // Saved documents (documents.js) that the code does not fully handle yet.
 const DOCUMENT_ALLOW = [];

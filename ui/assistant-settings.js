@@ -1,19 +1,14 @@
-import { AI_KEY, makeOpenAI } from "../assistant.js";
+import { makeOpenAI } from "../assistant.js";
+import { settings } from "../storage.js";
 import { $, toast } from "./dom.js";
 
 export function createAssistantSettings(runtime, actions) {
   const { caps } = runtime;
-  function loadAI() {
-    try {
-      return JSON.parse(localStorage.getItem(AI_KEY)) || {};
-    } catch {
-      return {};
-    }
-  }
+  const loadAI = () => settings.readAI();
 
   function saveAI(v) {
     try {
-      localStorage.setItem(AI_KEY, JSON.stringify(v));
+      settings.writeAI(v);
     } catch {
       toast("This browser wouldn't keep the settings.");
     }

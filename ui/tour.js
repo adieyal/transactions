@@ -1,9 +1,8 @@
 import { esc } from "../helpers.js";
+import { flags } from "../storage.js";
 import { $ } from "./dom.js";
 import { detectMoments } from "../story/moments.js";
 import { money, monthLong, privacyText } from "../story/copy.js";
-
-const SEEN_KEY = "transactions-tour-seen";
 
 // A short walk through the demo year: reading a month, checking a figure,
 // answering a question, privacy, and threads. Each step points at the real UI.
@@ -232,9 +231,7 @@ export function createTour(runtime, actions) {
     removeEventListener("keydown", onKey, true);
     // Steps scroll their targets into view; the panel starts at its top again.
     actions.resetPanelScroll();
-    try {
-      localStorage.setItem(SEEN_KEY, "1");
-    } catch {}
+    flags.set("tourSeen");
     clear();
   }
 
@@ -282,11 +279,7 @@ export function createTour(runtime, actions) {
   // Offer the tour once, the first time someone opens the demo.
   function maybeStartTour() {
     if (!state.isDemo) return;
-    let seen = false;
-    try {
-      seen = !!localStorage.getItem(SEEN_KEY);
-    } catch {}
-    if (!seen) startTour();
+    if (!flags.has("tourSeen")) startTour();
   }
 
   return { maybeStartTour, startTour };

@@ -426,7 +426,7 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | R8   | `renderTimeline` layout to a pure `ui/timeline-layout.js`                                                                  | 6                      |
 | R9   | Split `ui/chat.js` into tools, prompts and log rendering                                                                   | 6                      |
 | R10  | `html` tag and delegated events, adopted as modules are touched                                                            | 8                      |
-| R11  | `localStorage` keys into `storage.js`                                                                                      | 8                      |
+| R11  | `localStorage` keys into `storage.js` (done)                                                                               | 8                      |
 | R12  | Fonts and SheetJS bundled or lazy-loaded (needs the user's decision)                                                       | 10                     |
 
 ## 9. Guardrails

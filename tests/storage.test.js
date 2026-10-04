@@ -87,3 +87,34 @@ test("account storage keeps the private user path and serializes writes to a doc
   ]);
   assert.deepEqual(await backend.all(), { notes: { map: { a: "note" } } });
 });
+
+test("assistant settings and flags keep their keys in browser storage", async () => {
+  const { browserFlags, browserSettings } = await import("../storage.js");
+  const items = new Map();
+  const fake = {
+    getItem: (k) => (items.has(k) ? items.get(k) : null),
+    setItem: (k, v) => items.set(k, String(v)),
+  };
+  const settings = browserSettings(() => fake);
+  assert.deepEqual(settings.readAI(), {});
+  settings.writeAI({ provider: "openai", model: "m" });
+  assert.deepEqual(JSON.parse(items.get("transactions-demo-ai-settings")), {
+    provider: "openai",
+    model: "m",
+  });
+  items.set("transactions-demo-ai-settings", "not json");
+  assert.deepEqual(settings.readAI(), {});
+
+  const flags = browserFlags(() => fake);
+  assert.equal(flags.has("tourSeen"), false);
+  flags.set("tourSeen");
+  assert.equal(items.get("transactions-tour-seen"), "1");
+  assert.equal(flags.has("tourSeen"), true);
+
+  const broken = browserSettings(() => ({
+    setItem() {
+      throw new Error("quota");
+    },
+  }));
+  assert.throws(() => broken.writeAI({}), /quota/);
+});

@@ -70,4 +70,56 @@ function dbBackend(db, uid, onError) {
     del: (k, options) => run(k, () => col.doc(k).delete(), options),
   };
 }
-export { dbBackend, localBackend };
+// Kept only in this browser, outside the saved documents and backups: the
+// assistant settings (which can hold an API key) and one-off flags. The keys
+// are the ones the app has always used, so existing settings carry over.
+// storage is looked up when used, so this module loads in Node too.
+const AI_SETTINGS_KEY = "transactions-demo-ai-settings";
+const FLAG_KEYS = { tourSeen: "transactions-tour-seen" };
+
+function browserSettings(storage = () => globalThis.localStorage) {
+  return {
+    // The assistant settings, or {} when there are none or they can't be read.
+    readAI() {
+      try {
+        return JSON.parse(storage().getItem(AI_SETTINGS_KEY)) || {};
+      } catch {
+        return {};
+      }
+    },
+    // Throws when the browser won't keep them, so the caller can say so.
+    writeAI(value) {
+      storage().setItem(AI_SETTINGS_KEY, JSON.stringify(value));
+    },
+  };
+}
+
+function browserFlags(storage = () => globalThis.localStorage) {
+  return {
+    has(name) {
+      try {
+        return !!storage().getItem(FLAG_KEYS[name]);
+      } catch {
+        return false;
+      }
+    },
+    set(name) {
+      try {
+        storage().setItem(FLAG_KEYS[name], "1");
+      } catch {}
+    },
+  };
+}
+
+const settings = browserSettings();
+const flags = browserFlags();
+
+export {
+  AI_SETTINGS_KEY,
+  browserFlags,
+  browserSettings,
+  dbBackend,
+  flags,
+  localBackend,
+  settings,
+};

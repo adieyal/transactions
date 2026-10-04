@@ -1,5 +1,3 @@
-const AI_KEY = "transactions-demo-ai-settings";
-
 function normBase(b) {
   let u = String(b || "").trim();
   if (!u) return "";
@@ -151,4 +149,4 @@ function makeOpenAI(cfg) {
   call.label = label;
   return call;
 }
-export { AI_KEY, makeOpenAI };
+export { makeOpenAI };

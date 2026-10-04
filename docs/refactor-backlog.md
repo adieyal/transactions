@@ -21,7 +21,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 |    5 | [R6](#r6-browser-file-readers-out-of-transactionsimportjs) Browser file readers out of `transactions/import.js` |      S      |    Low     | 3: `transactions/import.js uses window`, `… DOMParser`, `… XLSX`             |       **Done** (`next`)       |
 |    6 | [R7](#r7-persistence-stops-importing-the-ui) Persistence stops importing the UI                                 |      S      |    Low     | `persistence.js (persistence) imports ui/dom.js (ui)`                        |       **Done** (`next`)       |
 |    7 | [R5](#r5-split-helpersjs) Split `helpers.js`                                                                    |      S      |    Low     | `helpers.js uses document`, `helpers.js uses new Date()`                     |       **Done** (`next`)       |
-|    8 | [R11](#r11-storage-keys-into-storagejs) Storage keys into `storage.js`                                          |      S      |    Low     | `ui/assistant-settings.js uses storage`, `ui/tour.js uses storage`           |  Settings: **no**; tour: yes  |
+|    8 | [R11](#r11-storage-keys-into-storagejs) Storage keys into `storage.js`                                          |      S      |    Low     | `ui/assistant-settings.js uses storage`, `ui/tour.js uses storage`           |       **Done** (`next`)       |
 |    9 | [R9](#r9-split-uichatjs) Split `ui/chat.js`                                                                     |      M      | Low–medium | `ui/chat.js` size ceiling                                                    |       Yes (milestone 6)       |
 |   10 | [R8](#r8-timeline-layout-into-a-pure-helper) Timeline layout into a pure helper                                 |      L      |   Medium   | `ui/timeline.js` size ceiling                                                |       Yes (milestone 4)       |
 |   11 | [R10](#r10-escaped-html-tag-and-delegated-events) Escaped `html` tag and delegated events                       |   S each    |    Low     | none (adds a guardrail)                                                      |          Per module           |
@@ -178,6 +178,10 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Size:** S. **Risk:** low.
 - **Removes:** `ui/assistant-settings.js uses storage` and `ui/tour.js uses storage`.
 - **Wait:** the settings part can be done now; the tour part waits for story-first milestone 5 (the tour).
+- **Done** on branch `next`, 4 October 2026:
+  - `storage.js` has `settings` (`readAI`, `writeAI`) and `flags` (`has`, `set`) under the same keys as before. `AI_KEY` moved there from `assistant.js` as `AI_SETTINGS_KEY`.
+  - `ui/assistant-settings.js` and `ui/tour.js` no longer name `localStorage`. A smoke test confirmed that settings saved under the old key still load, and that the tour is offered only once.
+  - Both R11 allowlist entries are deleted, so `BOUNDARY_ALLOW` is empty.
 
 ### R9. Split `ui/chat.js`
 
