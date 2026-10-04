@@ -1,30 +1,14 @@
-import { $, TODAY, esc, fmt, ms } from "../helpers.js";
+import { $, TODAY, esc, fmt } from "../helpers.js";
 import { toast } from "./dom.js";
 import { PALETTE } from "../transactions/constants.js";
+import { periodStats as statsFor } from "../transactions/period-stats.js";
 import { periodNotes, summarizePeriod } from "../story/summary.js";
 import { dayShort } from "../story/copy.js";
 import { phraseHTML } from "./highlight.js";
 
 export function createPeriods(runtime, actions) {
   const { state, caps } = runtime;
-  function periodStats(p) {
-    const inside = runtime.derived.allTxns.filter(
-      (t) => !t.transfer && t.date >= p.start && t.date <= p.end,
-    );
-    const out = inside.filter((t) => t.amount > 0);
-    const sum = out.reduce((a, t) => a + t.amount, 0);
-    const g = {};
-    out.forEach((t) => (g[t.thread] = (g[t.thread] || 0) + t.amount));
-    const days = Math.round((ms(p.end) - ms(p.start)) / 864e5) + 1;
-    return {
-      inside,
-      out,
-      sum,
-      byThread: Object.entries(g).sort((a, b) => b[1] - a[1]),
-      biggest: [...out].sort((a, b) => b.amount - a.amount).slice(0, 6),
-      days,
-    };
-  }
+  const periodStats = (p) => statsFor(runtime.derived.allTxns, p);
 
   // The notes on the period's transactions: the person's words, shown as
   // written, each lighting up its transaction.

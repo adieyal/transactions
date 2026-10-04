@@ -20,6 +20,7 @@ const LAYERS = {
   "helpers.js": "core",
   "transactions/": "domain",
   "story/": "domain",
+  "assistant/": "domain",
   "defaults.js": "domain",
   "demo.js": "domain",
   "lens-api.js": "domain",
@@ -104,14 +105,13 @@ const SIZE_FAIL = 700;
 const SIZE_ALLOW = [
   // A ceiling, not a target: these may not grow past it while being split.
   { v: "ui/timeline.js", max: 1000, fix: "R8" },
-  { v: "ui/chat.js", max: 800, fix: "R9" },
 ];
 
 // ---- Reading the source ---------------------------------------------------
 
 function sourceFiles() {
   const files = readdirSync(root).filter((f) => f.endsWith(".js"));
-  for (const dir of ["transactions", "story", "ui", "scripts"])
+  for (const dir of ["transactions", "story", "assistant", "ui", "scripts"])
     if (existsSync(path.join(root, dir)))
       for (const f of readdirSync(path.join(root, dir)))
         if (/\.m?js$/.test(f)) files.push(`${dir}/${f}`);

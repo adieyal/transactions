@@ -1,81 +1,23 @@
-import { $, TODAY, esc, fmt, monthOf, normText } from "../helpers.js";
+import { $, TODAY, esc, fmt } from "../helpers.js";
 import { paneShown } from "./dom.js";
 import { PALETTE } from "../transactions/constants.js";
+import {
+  compactTxn,
+  findTransactions,
+  listMerchants,
+  nameChanges,
+  noteChanges,
+  totals,
+} from "../assistant/tools.js";
 
 export function createChat(runtime, actions) {
   const { state, caps } = runtime;
-  function filterTxns(q = {}) {
-    let ts = q.include_expected
-      ? [...runtime.derived.allTxns, ...runtime.derived.expected]
-      : [...runtime.derived.allTxns];
-    if (!q.include_transfers) ts = ts.filter((t) => !t.transfer);
-    if (q.period) {
-      const pn = String(q.period).toLowerCase();
-      ts = ts.filter((t) =>
-        (t.periods || []).some((n) => n.toLowerCase().includes(pn)),
-      );
-    }
-    if (q.ids?.length) {
-      const s = new Set(q.ids.map(String));
-      ts = ts.filter((t) => s.has(t.id));
-    }
-    if (q.text) {
-      const n = normText(q.text),
-        l = String(q.text).toLowerCase();
-      ts = ts.filter(
-        (t) => t.norm.includes(n) || t.raw.toLowerCase().includes(l),
-      );
-    }
-    if (q.thread)
-      ts = ts.filter(
-        (t) => t.thread.toLowerCase() === String(q.thread).toLowerCase(),
-      );
-    if (q.account)
-      ts = ts.filter((t) =>
-        t.account.toLowerCase().includes(String(q.account).toLowerCase()),
-      );
-    if (q.from) ts = ts.filter((t) => t.date >= q.from);
-    if (q.to) ts = ts.filter((t) => t.date <= q.to);
-    if (q.min != null) ts = ts.filter((t) => t.amount >= +q.min);
-    if (q.max != null) ts = ts.filter((t) => t.amount <= +q.max);
-    return ts;
-  }
-
   // everything the inspector shows about a transaction
-  const ruleText = (t) =>
-    t.matchLine != null
-      ? `line ${t.matchLine + 1}: ${(state.previewRules ?? state.rules).split("\n")[t.matchLine].trim()}`
-      : undefined;
-  const sourceText = (t) =>
-    t.derivedFrom
-      ? `worked out from the ${t.account} ${t.derivedFrom.period || ""} statement`
-      : [t.account, t.period && `${t.period} statement`, t.file]
-          .filter(Boolean)
-          .join(", ");
-  const compact = (t) => ({
-    periods: t.periods?.length ? t.periods : undefined,
-    transfer: t.transfer ? actions.transferText(t) : undefined,
-    transfer_other: t.transfer?.kind === "pair" ? t.transfer.other : undefined,
-    id: t.id,
-    kind: t.kind === "actual" ? undefined : t.kind,
-    date: t.date,
-    charge_date:
-      t.chargeDate && t.chargeDate !== t.date ? t.chargeDate : undefined,
-    merchant: t.merchant,
-    original: t.original && t.original !== t.merchant ? t.original : undefined,
-    amount: t.amount,
-    orig: t.orig ? `${t.orig.currency} ${t.orig.amount}` : undefined,
-    type: t.type || undefined,
-    details: t.details || undefined,
-    thread: t.thread,
-    rule: ruleText(t),
-    account: t.account,
-    source: sourceText(t),
-    note: t.note || undefined,
-    inst: t.inst ? `${t.inst.n}/${t.inst.of}` : undefined,
-    expected: t.kind === "ghost" || undefined,
-    why: t.why || undefined,
-  });
+  const compact = (t) =>
+    compactTxn(t, {
+      rules: state.previewRules ?? state.rules,
+      transferText: actions.transferText,
+    });
 
   const FILTER_PROPS = {
     period: { type: "string", description: "Name of a period they marked" },
@@ -100,109 +42,40 @@ export function createChat(runtime, actions) {
     },
   };
 
+  // The tools compute the changes; here they are applied and saved, and the
+  // reply keeps what undoing them needs.
   function applyNoteChanges(changes, reply) {
-    const list = Array.isArray(changes) ? changes.slice(0, 600) : [];
-    if (!list.length) throw new Error("changes must be a non-empty list");
-    reply.undo ||= {};
-    let changed = 0,
-      missing = [];
-    for (const c of list) {
-      const text = String(c?.text ?? "").trim();
-      const mode = c?.mode === "replace" ? "replace" : "append";
-      let ids = [];
-      if (c?.id)
-        ids = runtime.derived.allTxns.some((t) => t.id === String(c.id))
-          ? [String(c.id)]
-          : [];
-      else if (c?.merchant) {
-        const m = String(c.merchant).trim();
-        ids = runtime.derived.allTxns
-          .filter((t) => t.merchant === m || t.original === m)
-          .map((t) => t.id);
-        if (!ids.length) {
-          const n = normText(m);
-          ids = runtime.derived.allTxns
-            .filter((t) => normText(t.merchant) === n)
-            .map((t) => t.id);
-        }
-      }
-      if (!ids.length) {
-        missing.push(c?.id || c?.merchant || "?");
-        continue;
-      }
-      for (const id of ids) {
-        const before = state.notes[id] || "";
-        let after;
-        if (mode === "replace") after = text;
-        else
-          after =
-            !text || before.includes(text)
-              ? before
-              : before
-                ? before + "\n" + text
-                : text;
-        if (after === before) continue;
-        if (!(id in reply.undo)) reply.undo[id] = before;
-        if (after) state.notes[id] = after;
-        else delete state.notes[id];
-        changed++;
-      }
-    }
-    if (changed) {
+    const { notes, undo, result } = noteChanges(
+      runtime.derived,
+      state.notes,
+      changes,
+      reply.undo,
+    );
+    reply.undo = undo;
+    if (result.changed) {
+      state.notes = notes;
       actions.save("notes");
       actions.refreshSoon();
     }
     reply.changedCount = Object.keys(reply.undo).length;
-    return { changed, not_found: missing.slice(0, 20) };
+    return result;
   }
 
   function applyNameChanges(changes, reply) {
-    const list = Array.isArray(changes) ? changes.slice(0, 600) : [];
-    if (!list.length) throw new Error("changes must be a non-empty list");
-    reply.undoNames ||= {};
-    let changed = 0;
-    const missing = [];
-    for (const c of list) {
-      const m = String(c?.merchant ?? "").trim();
-      const name = String(c?.name ?? "").trim();
-      if (!m) continue;
-      const n = normText(m);
-      const keys = [
-        ...new Set(
-          runtime.derived.allTxns
-            .filter(
-              (t) =>
-                t.original === m ||
-                t.merchant === m ||
-                t.nameKey === n ||
-                normText(t.merchant) === n,
-            )
-            .map((t) => t.nameKey),
-        ),
-      ];
-      if (!keys.length) {
-        missing.push(m);
-        continue;
-      }
-      for (const k of keys) {
-        const before = state.names[k] || null;
-        const orig = runtime.derived.allTxns.find(
-          (t) => t.nameKey === k,
-        )?.original;
-        const after = name && name !== orig ? { name, by: "ai" } : null;
-        if (JSON.stringify(before) === JSON.stringify(after)) continue;
-        if (!(k in reply.undoNames)) reply.undoNames[k] = before;
-        if (after) state.names[k] = after;
-        else delete state.names[k];
-        changed++;
-      }
-    }
-    if (changed) {
+    const { names, undo, result } = nameChanges(
+      runtime.derived,
+      state.names,
+      changes,
+      reply.undoNames,
+    );
+    reply.undoNames = undo;
+    if (result.changed) {
+      state.names = names;
       actions.save("names");
       actions.refreshSoon();
     }
     reply.renamedCount = Object.keys(reply.undoNames).length;
-    return { changed, not_found: missing.slice(0, 20) };
+    return result;
   }
 
   const WRITE_TOOLS = [
@@ -210,23 +83,7 @@ export function createChat(runtime, actions) {
       name: "list_merchants",
       description:
         "List every distinct merchant description: {original (exactly as on the statement), name (current display name, same as original unless renamed), count, total}. Use before renaming or translating.",
-      execute: () => {
-        const g = {};
-        for (const t of runtime.derived.allTxns) {
-          g[t.nameKey] ||= {
-            original: t.original,
-            name: t.merchant,
-            count: 0,
-            total: 0,
-          };
-          g[t.nameKey].count++;
-          g[t.nameKey].total += t.amount;
-        }
-        return Object.values(g)
-          .sort((a, b) => b.total - a.total)
-          .slice(0, 400)
-          .map((x) => ({ ...x, total: +x.total.toFixed(2) }));
-      },
+      execute: () => listMerchants(runtime.derived),
     },
     {
       name: "rename_merchants",
@@ -384,15 +241,7 @@ export function createChat(runtime, actions) {
         type: "object",
         properties: { ...FILTER_PROPS, limit: { type: "number" } },
       },
-      execute(q) {
-        const ts = filterTxns(q).sort((a, b) => (a.date < b.date ? 1 : -1));
-        const lim = Math.min(200, Math.max(1, +q.limit || 60));
-        return {
-          count: ts.length,
-          total: +ts.reduce((a, t) => a + t.amount, 0).toFixed(2),
-          rows: ts.slice(0, lim).map(compact),
-        };
-      },
+      execute: (q) => findTransactions(runtime.derived, q, compact),
     },
     {
       name: "totals",
@@ -409,30 +258,7 @@ export function createChat(runtime, actions) {
         },
         required: ["group_by"],
       },
-      execute(q) {
-        const f =
-          {
-            month: (t) => monthOf(t.date),
-            thread: (t) => t.thread,
-            merchant: (t) => t.merchant,
-            account: (t) => t.account,
-            period: (t) => t.period,
-          }[q.group_by] || ((t) => t.thread);
-        const g = {};
-        for (const t of filterTxns(q)) {
-          const k = f(t);
-          g[k] ||= { key: k, count: 0, total: 0 };
-          g[k].count++;
-          g[k].total += t.amount;
-        }
-        const out = Object.values(g).map((x) => ({
-          ...x,
-          total: +x.total.toFixed(2),
-        }));
-        return /month|period/.test(q.group_by)
-          ? out.sort((a, b) => (a.key < b.key ? -1 : 1))
-          : out.sort((a, b) => b.total - a.total);
-      },
+      execute: (q) => totals(runtime.derived, q),
     },
   ];
 

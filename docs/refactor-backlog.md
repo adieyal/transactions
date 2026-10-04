@@ -17,7 +17,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 |    1 | [R2](#r2-derive-boot-saves-and-backups-from-documentsjs) Derive boot, saves and backups from `documents.js`     |      M      |   Medium   | `workspace is missing from: save`, `main.js writes undeclared document demo` |        **Done** (`next`)         |
 |    2 | [R3](#r3-one-refresh-path) One refresh path                                                                     |      M      |   Medium   | none (removes the duplicate `renderReports` call)                            |        **Done** (`next`)         |
 |    3 | [R1](#r1-declared-module-contracts-and-registry) Declared module contracts and registry                         |      M      |    Low     | none (turns the provider test into a contract test)                          |        **Done** (`next`)         |
-|    4 | [R4](#r4-pure-logic-out-of-the-ui) Pure logic out of the UI                                                     | L (4 × S/M) | Low–medium | none directly; shrinks `ui/chat.js` and `ui/timeline.js`                     |        Mostly yes; R4d no        |
+|    4 | [R4](#r4-pure-logic-out-of-the-ui) Pure logic out of the UI                                                     | L (4 × S/M) | Low–medium | none directly; shrinks `ui/chat.js` and `ui/timeline.js`                     |  R4a, c, d done; R4b part done   |
 |    5 | [R6](#r6-browser-file-readers-out-of-transactionsimportjs) Browser file readers out of `transactions/import.js` |      S      |    Low     | 3: `transactions/import.js uses window`, `… DOMParser`, `… XLSX`             |              **No**              |
 |    6 | [R7](#r7-persistence-stops-importing-the-ui) Persistence stops importing the UI                                 |      S      |    Low     | `persistence.js (persistence) imports ui/dom.js (ui)`                        |               Yes                |
 |    7 | [R5](#r5-split-helpersjs) Split `helpers.js`                                                                    |      S      |    Low     | `helpers.js uses document`, `helpers.js uses new Date()`                     | Yes (touches every `$` importer) |
@@ -118,6 +118,16 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Risk:** low to medium. The undo records in R4b are what matter to the person.
 - **Removes:** no allowlist entries directly. R4b shrinks `ui/chat.js` towards removing its size ceiling.
 - **Wait:** R4a, R4b and R4c yes. R4d no, because story-first doesn't touch `ui/lenses.js`.
+- **Progress** on branch `next`, 4 October 2026:
+  - **R4a done.** `setBudget` and `addToThread` live in `transactions/rules-edit.js` and are tested in `tests/rules-edit.test.js`. Accepting a preview is a two-line assignment, so it stays in `ui/chrome.js`.
+    - Found while testing, and kept as it was: `addToThread` doesn't match a thread whose name line carries a budget (`Dining out [budget 100/month]`), so it starts a second thread with the same name. It needs a fix of its own: match the name the way `parseRules` reads it.
+  - **R4b first slice done.** `filterTxns`, `compactTxn`, `findTransactions`, `totals`, `listMerchants`, `noteChanges` and `nameChanges` live in `assistant/tools.js` (domain), tested in `tests/assistant-tools.test.js`. They return new notes and names plus undo records, and `ui/chat.js` applies them. `ui/chat.js` is down from 790 to 616 lines, so its size ceiling is deleted.
+  - **R4b remaining:**
+    - `save_period` and `propose_threads`, which still change state inside the tool;
+    - `buildIntro`, the system prompt, into `assistant/prompts.js`;
+    - the prompts in `suggestions.js` and in `ui/periods.js` (`draftStory`).
+  - **R4c done.** `periodStats` is in `transactions/period-stats.js`. Tag parsing and bulk tagging are in `transactions/tags.js` (`parseTags`, `tagsOf`, `retag`, `restoreNotes`). Both are tested in `tests/tags-periods.test.js`.
+  - **R4d done.** `publicTxn`, `lensLib` and `runLens` are in `lens-api.js`. `lensLib` takes `today` as an argument, and `tests/lens-api.test.js` calls them directly.
 
 ### R6. Browser file readers out of `transactions/import.js`
 
@@ -159,7 +169,7 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Problem:** 756 lines that mix tool schemas, tools, the system prompt, a markdown renderer used by three modules, and a 100-line click handler (`:655-752`).
 - **Change:** after R4b, `ui/chat.js` keeps the conversation log and its events. `md()` moves to a pure view helper (`ui/markdown.js`, whose output must stay escaped).
 - **Size:** M. **Risk:** low to medium.
-- **Removes:** the `ui/chat.js` size ceiling, once the file is under 700 lines.
+- **Removes:** the `ui/chat.js` size ceiling, once the file is under 700 lines. (Done early: R4b's first slice brought it to 616 lines and the entry is deleted.)
 - **Wait:** yes. Story-first milestone 6 adds assistant features.
 
 ### R8. Timeline layout into a pure helper

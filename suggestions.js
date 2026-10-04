@@ -1,6 +1,7 @@
 import { $, TODAY, monthName } from "./helpers.js";
 import { toast } from "./ui/dom.js";
 import { LOOSE } from "./transactions/constants.js";
+import { publicTxn } from "./lens-api.js";
 
 export function createSuggestions(runtime, actions) {
   const { state, caps } = runtime;
@@ -79,7 +80,7 @@ Views:
 Write plain, readable code a person will want to edit: under 35 lines, a one-line // comment at the top saying what it shows, clear names, no clever tricks. Remember statement months may be missing; only use what's there.`;
 
   async function writeLens(brief, prev) {
-    const sampleRows = runtime.derived.txns.slice(0, 4).map(actions.publicTxn);
+    const sampleRows = runtime.derived.txns.slice(0, 4).map(publicTxn);
     let input = `${LENS_CONTRACT}
 
 Threads: ${runtime.derived.names.join(", ")}. Accounts and statement months: ${coverageText()}. Today is ${TODAY}.
@@ -109,7 +110,7 @@ export const contract = {
   name: "suggestions",
   create: createSuggestions,
   provides: ["coverageText", "suggestThreads", "writeLens"],
-  requires: ["AI", "publicTxn", "refresh", "sampleErr", "syncGutter"],
+  requires: ["AI", "refresh", "sampleErr", "syncGutter"],
   renders: [],
   wires: [],
 };

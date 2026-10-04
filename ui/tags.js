@@ -1,58 +1,17 @@
 import { toast } from "./dom.js";
 import { esc } from "../helpers.js";
+import {
+  parseTags,
+  restoreNotes,
+  retag,
+  tagsOf,
+} from "../transactions/tags.js";
 
 export function createTags(runtime, actions) {
   const { state } = runtime;
-  const escRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-  const tagRe = (tag) =>
-    new RegExp(
-      "(^|[^\\p{L}\\p{N}_-])" + escRe(tag) + "(?![\\p{L}\\p{N}_-])",
-      "giu",
-    );
-
-  function parseTags(str) {
-    return [
-      ...new Set(
-        String(str || "")
-          .split(/[\s,]+/)
-          .map((x) => x.replace(/^#+/, "").replace(/[^\p{L}\p{N}_-]/gu, ""))
-          .filter(Boolean)
-          .map((x) => "#" + x.toLowerCase()),
-      ),
-    ];
-  }
-
-  function tagsOf(note) {
-    return [
-      ...new Set(
-        String(note || "")
-          .toLowerCase()
-          .match(/#[\p{L}\p{N}_-]+/gu) || [],
-      ),
-    ];
-  }
-
   function bulkTag(ids, add = [], remove = []) {
-    const prev = {};
-    let n = 0;
-    for (const id of ids) {
-      const before = state.notes[id] || "";
-      let after = before;
-      for (const t of remove) after = after.replace(tagRe(t), "$1");
-      after = after
-        .replace(/[ \t]{2,}/g, " ")
-        .replace(/\n{2,}/g, "\n")
-        .trim();
-      const missing = add.filter((t) => !tagRe(t).test(after));
-      if (missing.length)
-        after = after ? after + " " + missing.join(" ") : missing.join(" ");
-      if (after === before) continue;
-      prev[id] = before;
-      n++;
-      if (after) state.notes[id] = after;
-      else delete state.notes[id];
-    }
+    const { notes, previous } = retag(state.notes, ids, add, remove);
+    const n = Object.keys(previous).length;
     if (!n) {
       toast(
         add.length
@@ -61,6 +20,7 @@ export function createTags(runtime, actions) {
       );
       return;
     }
+    state.notes = notes;
     actions.save("notes");
     actions.refresh();
     const what = [
@@ -75,10 +35,7 @@ export function createTags(runtime, actions) {
       {
         label: "Undo",
         fn: () => {
-          for (const [id, before] of Object.entries(prev)) {
-            if (before) state.notes[id] = before;
-            else delete state.notes[id];
-          }
+          state.notes = restoreNotes(state.notes, previous);
           actions.save("notes");
           actions.refresh();
           toast("Tags put back as they were.");

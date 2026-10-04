@@ -1,70 +1,11 @@
 import { $, TODAY, debounce, esc, fmt, monthName } from "../helpers.js";
 import { paneShown, toast } from "./dom.js";
+import { runLens as runLensCode } from "../lens-api.js";
 
 export function createLenses(runtime, actions) {
   const { state, caps } = runtime;
-  const lensLib = () => ({
-    sum: (a, f = (x) => x) => a.reduce((s, x) => s + (Number(f(x)) || 0), 0),
-    groupBy: (a, f) =>
-      a.reduce((o, x) => {
-        const k = f(x);
-        (o[k] ||= []).push(x);
-        return o;
-      }, {}),
-    month: (d) => String(d).slice(0, 7),
-    fmt: (n) => fmt(n),
-    today: TODAY,
-    threads: runtime.derived.names,
-    accounts: runtime.derived.accounts,
-    expected: runtime.derived.expected.map(publicTxn),
-    periods: state.periods.map((p) => ({
-      name: p.name,
-      start: p.start,
-      end: p.end,
-      story: p.story || "",
-    })),
-    budgets: Object.fromEntries(
-      runtime.derived.R.threads
-        .filter((t) => t.budget != null)
-        .map((t) => [t.name, t.budget]),
-    ),
-    transfers: runtime.derived.allTxns.filter((t) => t.transfer).map(publicTxn),
-  });
-
-  function publicTxn(t) {
-    return {
-      id: t.id,
-      date: t.date,
-      chargeDate: t.chargeDate,
-      merchant: t.merchant,
-      original: t.original || t.merchant,
-      amount: t.amount,
-      orig: t.orig,
-      type: t.type,
-      details: t.details,
-      inst: t.inst,
-      thread: t.thread,
-      account: t.account,
-      note: t.note || "",
-      period: t.period,
-      periods: t.periods || [],
-      recurring: !!t.recurring,
-      key: t.key,
-      kind: t.kind,
-    };
-  }
-
-  function runLens(code) {
-    const txns = runtime.derived.txns.filter((t) => !t.transfer).map(publicTxn);
-    const lib = lensLib();
-    const fn = new Function("txns", "lib", code);
-    const v = fn(txns, lib);
-    if (!v || typeof v !== "object")
-      throw new Error(
-        "The lens needs to return a view, e.g. { kind: 'bars', items: [...] }",
-      );
-    return v;
-  }
+  // A lens runs on the derived transactions as they are now.
+  const runLens = (code) => runLensCode(code, runtime.derived, state, TODAY);
 
   function renderView(v) {
     if (v.kind === "bars") {
@@ -267,8 +208,6 @@ export function createLenses(runtime, actions) {
   }, 250);
 
   return {
-    lensLib,
-    publicTxn,
     renderLenses,
     renderView,
     rerunLens,
@@ -281,8 +220,6 @@ export const contract = {
   name: "lenses",
   create: createLenses,
   provides: [
-    "lensLib",
-    "publicTxn",
     "renderLenses",
     "renderView",
     "rerunLens",

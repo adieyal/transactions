@@ -1,3 +1,5 @@
+import { fmt } from "./helpers.js";
+
 // What a lens can use, for the editor's reference panel and autocomplete.
 // tests/lens-api.test.js checks this against the objects lenses receive.
 
@@ -139,3 +141,71 @@ export const ARRAY_METHODS = [
   ["forEach", "forEach(t => …)", "Run something for each item."],
   ["length", "length", "How many items."],
 ].map(([name, sig, doc]) => ({ name, sig, doc }));
+
+// The fields of a transaction a lens sees (TXN_FIELDS documents them).
+export function publicTxn(t) {
+  return {
+    id: t.id,
+    date: t.date,
+    chargeDate: t.chargeDate,
+    merchant: t.merchant,
+    original: t.original || t.merchant,
+    amount: t.amount,
+    orig: t.orig,
+    type: t.type,
+    details: t.details,
+    inst: t.inst,
+    thread: t.thread,
+    account: t.account,
+    note: t.note || "",
+    period: t.period,
+    periods: t.periods || [],
+    recurring: !!t.recurring,
+    key: t.key,
+    kind: t.kind,
+  };
+}
+
+// The helpers and data a lens gets as `lib` (LIB_MEMBERS documents them).
+export function lensLib(derived, state, today) {
+  return {
+    sum: (a, f = (x) => x) => a.reduce((s, x) => s + (Number(f(x)) || 0), 0),
+    groupBy: (a, f) =>
+      a.reduce((o, x) => {
+        const k = f(x);
+        (o[k] ||= []).push(x);
+        return o;
+      }, {}),
+    month: (d) => String(d).slice(0, 7),
+    fmt: (n) => fmt(n),
+    today,
+    threads: derived.names,
+    accounts: derived.accounts,
+    expected: derived.expected.map(publicTxn),
+    periods: state.periods.map((p) => ({
+      name: p.name,
+      start: p.start,
+      end: p.end,
+      story: p.story || "",
+    })),
+    budgets: Object.fromEntries(
+      derived.R.threads
+        .filter((t) => t.budget != null)
+        .map((t) => [t.name, t.budget]),
+    ),
+    transfers: derived.allTxns.filter((t) => t.transfer).map(publicTxn),
+  };
+}
+
+// Runs a lens's code on the shown transactions (without transfers). The code
+// is the person's own; it must return a view object.
+export function runLens(code, derived, state, today) {
+  const txns = derived.txns.filter((t) => !t.transfer).map(publicTxn);
+  const fn = new Function("txns", "lib", code);
+  const view = fn(txns, lensLib(derived, state, today));
+  if (!view || typeof view !== "object")
+    throw new Error(
+      "The lens needs to return a view, e.g. { kind: 'bars', items: [...] }",
+    );
+  return view;
+}

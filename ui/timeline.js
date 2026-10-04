@@ -13,7 +13,7 @@ import {
 } from "../helpers.js";
 import { LOOSE, TRANSFERS } from "../transactions/constants.js";
 import { toast } from "./dom.js";
-import { parseRules } from "../transactions/rules.js";
+import { setBudget as setThreadBudget } from "../transactions/rules-edit.js";
 import { name as bidi } from "../story/copy.js";
 import {
   anchorEnd,
@@ -516,19 +516,13 @@ export function createTimeline(runtime, actions) {
       );
       return;
     }
-    const th = parseRules(state.rules).threads.find((t) => t.name === name);
-    if (!th) return;
-    const lines = state.rules.split("\n");
-    let l = lines[th.line].replace(/\s*\[\s*budget[^\]]*\]/i, "");
-    if (value > 0) l += `  [budget ${Math.round(value)}]`;
-    lines[th.line] = l;
-    state.rules = lines.join("\n");
+    const rules = setThreadBudget(state.rules, name, value);
+    if (rules === state.rules) return;
+    state.rules = rules;
     actions.save("rules");
     actions.refresh();
   }
 
-  // Keeps period names in view: hidden while the period lane shows, then
-  // pinned just below the top of the scrolled timeline.
   // The period band under a point, and which side if it is on an edge.
   function bandAt({ x, y }) {
     if (y < TL.perTop) return null;

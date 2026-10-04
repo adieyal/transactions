@@ -1,6 +1,7 @@
 import { $, esc, fmt, fmtDate, monthName, normText } from "../helpers.js";
 import { toast } from "./dom.js";
 import { wireHoverHighlight } from "./highlight.js";
+import { addToThread as addLines } from "../transactions/rules-edit.js";
 
 export function createInspector(runtime, actions) {
   const { state, caps } = runtime;
@@ -256,36 +257,8 @@ export function createInspector(runtime, actions) {
   }
 
   function addToThread(name, ts) {
-    const pats = [
-      ...new Set(ts.map((t) => normText(t.merchant)).filter(Boolean)),
-    ];
-    const lines = state.rules.split("\n");
-    const idx = lines.findIndex(
-      (l) =>
-        !/^\s/.test(l) &&
-        l.trim() &&
-        !l.trim().startsWith("//") &&
-        l.trim().replace(/:.*$/, "").toLowerCase() === name.toLowerCase(),
-    );
-    let at, count;
-    if (idx >= 0) {
-      let j = idx + 1;
-      while (j < lines.length && /^\s+\S/.test(lines[j])) j++;
-      lines.splice(j, 0, ...pats.map((p) => "  " + p));
-      at = j;
-      count = pats.length;
-    } else {
-      let j = 0;
-      while (
-        j < lines.length &&
-        (!lines[j].trim() || lines[j].trim().startsWith("//"))
-      )
-        j++;
-      lines.splice(j, 0, name, ...pats.map((p) => "  " + p), "");
-      at = j;
-      count = pats.length + 1;
-    }
-    state.rules = lines.join("\n");
+    const { rules, at, count } = addLines(state.rules, name, ts);
+    state.rules = rules;
     state.previewRules = null;
     actions.save("rules");
     state.selection.clear();
