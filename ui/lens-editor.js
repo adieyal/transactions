@@ -17,6 +17,7 @@ import {
   LIB_MEMBERS,
   TXN_FIELDS,
   VIEW_KINDS,
+  lensIsOn,
 } from "../lens-api.js";
 
 // Colours come from CSS variables so the editor follows light and dark themes.
@@ -265,6 +266,14 @@ export function createLensEditor(runtime, actions) {
   function renderPreview() {
     const l = lens();
     if (!l) return;
+    if (!lensIsOn(l)) {
+      // Code from a backup: shown to read, never run until turned on.
+      $("#lensPreview").innerHTML =
+        `<p class="sub">This lens came from a backup, so its code doesn't run until you turn it on.</p><button class="btn small" data-lens-on>Turn on</button>`;
+      $("#lensStatus").textContent = "Off";
+      $("#lensStatus").className = "lens-status";
+      return;
+    }
     let html = "",
       err = null,
       syntax = false;
@@ -365,6 +374,11 @@ export function createLensEditor(runtime, actions) {
       actions.save("lenses");
       actions.rerunLens(l.id);
     });
+    $("#lensPreview").addEventListener("click", (e) => {
+      if (!e.target.closest("[data-lens-on]") || !lens()) return;
+      actions.turnOnLens(lens().id);
+      renderPreview();
+    });
     $("#lensRef").addEventListener("click", (e) => {
       const b = e.target.closest("[data-ins]");
       if (!b || !view) return;
@@ -380,7 +394,14 @@ export const contract = {
   name: "lens-editor",
   create: createLensEditor,
   provides: ["openLensEditor", "wireLensEditor"],
-  requires: ["redraw", "renderView", "rerunLens", "runLens", "save"],
+  requires: [
+    "redraw",
+    "renderView",
+    "rerunLens",
+    "runLens",
+    "save",
+    "turnOnLens",
+  ],
   renders: [],
   wires: ["wireLensEditor"],
 };

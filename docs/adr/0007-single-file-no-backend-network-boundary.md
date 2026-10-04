@@ -29,6 +29,7 @@ Today:
 
 - **Fonts (user, 2026-10-04): keep the external Google Fonts.** `index.html` keeps loading Frank Ruhl Libre, Instrument Sans and Noto Sans Hebrew from Google Fonts. They are page styling, not data, and nothing about the person's statements is sent with them. Offline, the browser falls back to its own fonts, and the app still works.
 - **SheetJS (user, 2026-10-04): load it on demand, not on page load and not bundled.** `files.js` adds the pinned script (`xlsx/0.18.5/xlsx.full.min.js` on cdnjs) with an `integrity` hash and `crossorigin="anonymous"`, and only when someone chooses an `.xlsx` or `.xls` file. That choice is the person asking. If the script can't load (offline, blocked, or a hash that doesn't match), the import shows "The spreadsheet reader couldn't load … Save the file as CSV and add that instead." and nothing else happens. A guardrail allows `<script>` creation only in `files.js`.
+- **Lens code in imported backups (user, 2026-10-04): not trusted.** `parseBackup` switches off every imported lens whose code isn't exactly a starter lens's (`off: true`, saved through `documents.js`). A switched-off lens shows its title, a note that it came from a backup and contains code, and a "Turn on" button. Nothing runs its code until it is turned on: not the Lenses tab, the editor's preview, the in-place rerun or the assistant's "Change with" button. Editing its code doesn't turn it on either. Lenses saved before the flag existed load switched on. Running lenses in a sandbox is a separate, timeboxed spike (step 9).
 
 ## Consequences
 

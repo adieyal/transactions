@@ -29,7 +29,14 @@ const listOf = (ok) => (v) => Array.isArray(v) && v.every(ok);
 const isBool = (v) => typeof v === "boolean";
 
 const isName = (n) => record(n) && text(n.name);
-const isLens = (l) => record(l) && isId(l.id) && text(l.title) && text(l.code);
+// off: true for a lens that came from an imported backup and hasn't been
+// turned on; absent means on.
+const isLens = (l) =>
+  record(l) &&
+  isId(l.id) &&
+  text(l.title) &&
+  text(l.code) &&
+  (l.off == null || typeof l.off === "boolean");
 const isPeriod = (p) =>
   record(p) &&
   isId(p.id) &&

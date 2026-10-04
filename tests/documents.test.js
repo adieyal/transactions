@@ -124,3 +124,57 @@ test("a saved document that fails its check is reported and not loaded", () => {
   assert.deepEqual(loaded.notes, {});
   assert.deepEqual(loaded.periods, state.periods);
 });
+
+test("lenses saved before the on/off flag load switched on, and the flag round-trips", async () => {
+  const { STARTER_LENSES } = await import("../defaults.js");
+  const { lensIsOn } = await import("../lens-api.js");
+  const mine = {
+    id: "mine",
+    title: "Mine",
+    code: "return { kind: 'text', text: 'hi' };",
+  };
+  // A workspace saved before the flag existed: no `off` anywhere.
+  const old = { lenses: { items: [...STARTER_LENSES, mine] } };
+  const state = fresh();
+  assert.deepEqual(loadDocuments(clone(old), state).invalid, []);
+  assert.ok(state.lenses.every(lensIsOn));
+  // A switched-off lens saves and loads switched off.
+  state.lenses.at(-1).off = true;
+  const again = fresh();
+  loadDocuments(
+    clone({ lenses: toDocument(documentFor("lenses"), state) }),
+    again,
+  );
+  assert.equal(again.lenses.at(-1).off, true);
+  assert.equal(lensIsOn(again.lenses.at(-1)), false);
+  // A flag that isn't a boolean fails the check, so it isn't loaded.
+  const bad = clone(old);
+  bad.lenses.items[0].off = "yes";
+  assert.deepEqual(loadDocuments(bad, fresh()).invalid, ["lenses"]);
+});
+
+test("lenses in an imported backup arrive switched off, unless they are starter lenses", async () => {
+  const { STARTER_LENSES } = await import("../defaults.js");
+  const { lensIsOn } = await import("../lens-api.js");
+  const state = demoState();
+  state.lenses = [
+    ...STARTER_LENSES,
+    { id: "mine", title: "Mine", code: "return { kind: 'text', text: 'hi' };" },
+    // Turned on in the file it came from: still off after importing.
+    { id: "was-on", title: "Was on", code: "return 1;", off: false },
+  ];
+  const parsed = parseBackup(JSON.stringify(createBackup(state, TODAY)), TODAY);
+  const on = parsed.lenses.filter(lensIsOn).map((l) => l.id);
+  assert.deepEqual(
+    on,
+    STARTER_LENSES.map((l) => l.id),
+  );
+  assert.deepEqual(
+    parsed.lenses.filter((l) => !lensIsOn(l)).map((l) => l.id),
+    ["mine", "was-on"],
+  );
+  // An older backup without lenses gets the starter lenses, switched on.
+  const older = createBackup(state, TODAY);
+  delete older.lenses;
+  assert.ok(parseBackup(JSON.stringify(older), TODAY).lenses.every(lensIsOn));
+});

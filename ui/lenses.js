@@ -1,6 +1,6 @@
 import { debounce, esc, fmt, monthName } from "../helpers.js";
 import { $, html, paneShown, toast } from "./dom.js";
-import { runLens as runLensCode } from "../lens-api.js";
+import { lensIsOn, runLens as runLensCode } from "../lens-api.js";
 
 export function createLenses(runtime, actions) {
   const { state, caps } = runtime;
@@ -49,6 +49,10 @@ export function createLenses(runtime, actions) {
     }
     let h = `<p class="lead">Small programs over your transactions. Click a bar or row to light up its beads on the timeline.${runtime.derived.filtered ? ` <b>Showing only what matches the filter.</b>` : ""}</p><div class="lens-grid">`;
     state.lenses.forEach((l) => {
+      if (!lensIsOn(l)) {
+        h += offCard(l);
+        return;
+      }
       let body,
         err = null,
         view = null;
@@ -70,6 +74,20 @@ export function createLenses(runtime, actions) {
     el.innerHTML = h;
   }
 
+  // A lens from an imported backup: its title and what it is, and nothing of
+  // its code runs until it is turned on.
+  const offCard = (l) =>
+    html`<article class="lens lensoff" data-lens="${l.id}"><h3><span contenteditable="true" spellcheck="false" data-title="${l.id}">${l.title}</span></h3><p class="sub">This lens came from a backup and contains code. It won't run until you turn it on. You can read the code first.</p>
+      <div class="foot"><button class="lens-on" data-on="${l.id}">Turn on</button><button data-edit="${l.id}">Read the code</button><button data-del="${l.id}">Remove</button></div></article>`;
+
+  function turnOn(id) {
+    const l = state.lenses.find((x) => x.id === id);
+    if (!l) return;
+    delete l.off;
+    actions.save("lenses");
+    renderLenses();
+  }
+
   function wireLenses() {
     const el = $("#lenses");
     el.addEventListener("click", async (ev) => {
@@ -85,6 +103,11 @@ export function createLenses(runtime, actions) {
           x.classList.remove("on"),
         );
         if (!same) b.classList.add("on");
+        return;
+      }
+      const on = ev.target.closest("[data-on]");
+      if (on) {
+        turnOn(on.dataset.on);
         return;
       }
       const t = ev.target.closest("[data-edit]");
@@ -104,6 +127,7 @@ export function createLenses(runtime, actions) {
       const f = ev.target.closest("[data-fix]");
       if (f) {
         const l = state.lenses.find((x) => x.id === f.dataset.fix);
+        if (!lensIsOn(l)) return;
         let err = null;
         try {
           runLens(l.code);
@@ -181,7 +205,7 @@ export function createLenses(runtime, actions) {
   const rerunLens = debounce((id) => {
     const art = $(`#lenses [data-lens="${id}"]`);
     const l = state.lenses.find((x) => x.id === id);
-    if (!art || !l) return;
+    if (!art || !l || !lensIsOn(l)) return;
     let body = "",
       err = null;
     try {
@@ -210,6 +234,7 @@ export function createLenses(runtime, actions) {
 
   return {
     renderLenses,
+    turnOnLens: turnOn,
     renderView,
     rerunLens,
     runLens,
@@ -225,6 +250,7 @@ export const contract = {
     "renderView",
     "rerunLens",
     "runLens",
+    "turnOnLens",
     "wireLenses",
   ],
   requires: [

@@ -209,3 +209,18 @@ export function runLens(code, derived, state, today) {
     );
   return view;
 }
+
+// A lens runs only while it is on. Lenses without the flag (yours, the
+// starter ones, and everything saved before the flag existed) are on.
+export const lensIsOn = (lens) => lens.off !== true;
+
+// Lenses arriving in an imported backup are code from that file, so they
+// arrive switched off (the user's decision). A lens whose code is exactly a
+// starter lens's code is the app's own and stays on.
+export function switchOffImported(lenses, starters) {
+  const own = new Set(starters.map((l) => l.code));
+  return lenses.map((l) => {
+    const { off, ...rest } = l;
+    return own.has(l.code) ? rest : { ...rest, off: true };
+  });
+}
