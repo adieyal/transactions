@@ -93,7 +93,16 @@ test("uncited, foreign or invented output falls back to the template", () => {
     ],
     ["", /empty/],
     ["```\n```", /empty/],
+    ["<think>Planning the month", /empty/],
   ];
+  // A model's reasoning block is dropped; the prose after it stands.
+  const thought = validatePolish(
+    `<think>**Planning**</think>₪3,136 went out in April. [[${overview}]]`,
+    april,
+    "2026-04",
+  );
+  assert.equal(thought.ok, true);
+  assert.equal(thought.sentences[0].text, "₪3,136 went out in April.");
   for (const [reply, reason] of cases) {
     const result = validatePolish(reply, april, "2026-04");
     assert.equal(result.ok, false, reply);

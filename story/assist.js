@@ -21,8 +21,12 @@ const POLISHED = new Set([
 ]);
 const CITE = /\[\[([^\]]*)\]\]/g;
 
+// A model's reasoning (<think>, <thinking> or <reasoning> blocks, or an
+// unclosed one at the start) is never part of the reply.
 const stripFences = (text) =>
   String(text ?? "")
+    .replace(/<(think|thinking|reasoning)>[\s\S]*?<\/\1>/gi, "")
+    .replace(/^\s*<(think|thinking|reasoning)>[\s\S]*$/i, "")
     .trim()
     .replace(/^```[a-z]*\s*/i, "")
     .replace(/\s*```$/, "")
@@ -114,10 +118,14 @@ export function polishPrompt(sections, month) {
 
 ${polishFacts(sections)}
 
-Rewrite these facts as two to four short paragraphs that read well, in a friendly, second-person voice ("you"). Rules:
+Tell the month as a short story in two to four paragraphs, in a friendly, second-person voice ("you"). Don't walk through the facts in order or recite every number. Find the thread that makes this month interesting (what stood out, what kept coming back, what changed, how one thing led into the next), lead with it, and let the rest support it. Leave out facts that add nothing, and keep figures to the few that matter.
+
+Use a little dry humour: understated and wry, the kind that comes from noticing something, at most a line or two. Never mock or judge the person or their spending, no puns or exclamation marks, and nothing over the top. If nothing in the month invites it, play it straight.
+
+Rules:
 - Every sentence must end with one or more citations taken from the facts, like [[id1,id2]].
 - Use only the amounts and numbers that appear in the facts. Don't work out new totals, differences or percentages.
-- State facts only. Don't guess reasons, feelings or what anything meant to them.
+- Everything you say must be true of the facts. Don't guess reasons, feelings or what anything meant to them; the humour comes from how you tell what happened, never from inventing it.
 Reply with only the prose.`;
 }
 
