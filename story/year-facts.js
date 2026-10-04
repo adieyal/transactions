@@ -1,4 +1,4 @@
-import { MONTHS, monthOf } from "../helpers.js";
+import { MONTHS, addMonths, monthOf } from "../helpers.js";
 import { accountMonths, byDate, groupBy } from "./moment-kit.js";
 import { count, list, money, monthLong, name, ordinal } from "./copy.js";
 
@@ -46,6 +46,7 @@ export function rhythmSentence(rhythms, run, last, told) {
 
 // Money moved to another of your accounts on the same day for the same
 // amount in every month of a run: "₪150 went into Demo Savings on the 24th".
+// A clause, without its full stop; the quiet section joins it to others.
 export function transferSentence(derived, run, told) {
   const moved = derived.allTxns.filter(
     (t) =>
@@ -66,7 +67,7 @@ export function transferSentence(derived, run, told) {
         text: `${money(ts[0].amount)} went into ${name(to(ts[0]))} on the ${ordinal(day(ts[0]))}`,
         txnIds: ids(ts.sort(byDate)),
       },
-      { text: run.length > 1 ? " of each month." : "." },
+      ...(run.length > 1 ? [{ text: " of each month" }] : []),
     ];
   }
   return null;
@@ -179,21 +180,59 @@ export function addFact(section, parts) {
   else section.paragraphs.push(parts);
 }
 
+// The charges expected in a month the statements don't reach: each merchant
+// paid in two or more months, last in `last` (the statements' latest month),
+// projected a month on from its last payment. The ids are derive's, so a
+// projection after today is the same bead; one between the 1st and today,
+// which derive leaves out, is drawn from this list.
+export function expectedIn(derived, last, currency) {
+  const groups = groupBy(
+    derived.allTxns.filter(
+      (t) => t.recurring && !t.inst && !t.transfer && t.currency === currency,
+    ),
+    (t) => t.key,
+  );
+  const out = [];
+  for (const [, ts] of groups) {
+    const g = [...ts].sort(byDate);
+    const lastPaid = g.at(-1);
+    if (monthOf(lastPaid.date) !== last) continue;
+    const date = addMonths(lastPaid.date, 1);
+    out.push({
+      ...lastPaid,
+      id: `x${lastPaid.id}-1`,
+      date,
+      chargeDate: date,
+      kind: "ghost",
+      note: "",
+      details: "",
+      derivedFrom: lastPaid,
+    });
+  }
+  return out;
+}
+
 // "Sep 2026 and ahead": recent price changes and the charges expected in
-// the first month after the statements. When the latest month had nothing
-// standing out, this section is that month's; otherwise it starts after it.
-export function aheadSection(derived, last, withLast, currency, recent) {
+// the month after the statements, told only while today is in that month
+// (the band draws it then, so every expected charge has its bead). When the
+// latest month had nothing standing out, this section is that month's;
+// otherwise it starts after it.
+// expected: expectedIn's charges, or none once that month is over.
+export function aheadSection(
+  derived,
+  last,
+  withLast,
+  currency,
+  recent,
+  expected,
+) {
   const changed = new Set(recent.flatMap((p) => p.facts.keys));
-  const next = derived.expected
-    .filter((e) => e.amount > 0 && e.currency === currency)
-    .map((e) => monthOf(e.date))
-    .filter((m) => m > last)
-    .sort()[0];
+  const next = expected.length ? nextMonth(last) : null;
   const paragraphs = [
     priceSentence(recent),
     next
       ? aheadSentence(
-          derived.expected,
+          expected,
           next,
           currency,
           changed,

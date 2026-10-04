@@ -11,11 +11,17 @@ import { count, dateRange, list, money, monthLong, name } from "./copy.js";
 import {
   addFact,
   aheadSection,
+  expectedIn,
   gapSentence,
+  nextMonth,
   priceSentence,
   rhythmSentence,
   transferSentence,
 } from "./year-facts.js";
+import { periodComparison, quietSection, trendSentence } from "./year-quiet.js";
+import { monthRange, short, shortRange } from "./year-dates.js";
+
+export { monthRange, shortRange };
 
 // Artboard 3, two months or more: the year told as sections, each about a
 // stretch of months or one that stood out (Copy rules, sections 2–4). A
@@ -30,30 +36,6 @@ const pay = (t) => t.amount > 0 && !t.transfer;
 const sum = (ts) => ts.reduce((a, t) => a + t.amount, 0);
 const ids = (ts) => ts.map((t) => t.id);
 const monthName = (ym) => monthLong(ym).split(" ")[0];
-const short = (iso) => {
-  const [y, m, d] = iso.split("-").map(Number);
-  return { y, mon: MONTHS[m - 1], d };
-};
-
-// "10 – 13 Dec 2025", "28 Mar – 2 Apr 2026": a section's dates, as drawn.
-export function shortRange(from, to) {
-  const a = short(from),
-    b = short(to);
-  if (from === to) return `${a.d} ${a.mon} ${a.y}`;
-  if (a.y === b.y && a.mon === b.mon) return `${a.d} – ${b.d} ${b.mon} ${b.y}`;
-  if (a.y === b.y) return `${a.d} ${a.mon} – ${b.d} ${b.mon} ${b.y}`;
-  return `${a.d} ${a.mon} ${a.y} – ${b.d} ${b.mon} ${b.y}`;
-}
-
-// "Oct – Nov 2025", "Sep 2026": a run of months.
-export function monthRange(first, last) {
-  const [y1, m1] = first.split("-").map(Number),
-    [y2, m2] = last.split("-").map(Number);
-  if (first === last) return `${MONTHS[m1 - 1]} ${y1}`;
-  return y1 === y2
-    ? `${MONTHS[m1 - 1]} – ${MONTHS[m2 - 1]} ${y2}`
-    : `${MONTHS[m1 - 1]} ${y1} – ${MONTHS[m2 - 1]} ${y2}`;
-}
 
 // "about three times a typical month", "close to a typical month".
 function againstTypical(total, typical) {
@@ -103,18 +85,18 @@ function standouts(derived, state, first, last, moments) {
   );
 }
 
-export function yearStory(derived, state) {
+export function yearStory(derived, state, today) {
   const months = coveredMonths(derived);
   if (months.length < 2) return null;
   const inRange = derived.allTxns.filter((t) =>
     months.includes(monthOf(t.date)),
   );
   return withCurrency(mainCurrency(inRange.filter(pay)), () =>
-    tell(derived, state, months, inRange),
+    tell(derived, state, months, inRange, today),
   );
 }
 
-function tell(derived, state, months, inRange) {
+function tell(derived, state, months, inRange, today) {
   const currency = mainCurrency(inRange.filter(pay));
   const pays = inRange.filter((t) => pay(t) && t.currency === currency);
   const byMonth = new Map(months.map((m) => [m, []]));
@@ -196,17 +178,37 @@ function tell(derived, state, months, inRange) {
   // What's ahead: recent price changes and the charges that repeat. The
   // latest month, when nothing stood out in it, is told with them.
   const recent = prices.filter((p) => p.month >= months.at(-3));
+  // The month after the statements is told, and drawn, from the latest
+  // month until it is over; later, it would be told as still to come.
+  const expected =
+    typical != null && [last, nextMonth(last)].includes(monthOf(today))
+      ? expectedIn(derived, last, currency)
+      : [];
   const ahead =
     typical == null
       ? null
-      : aheadSection(derived, last, !busy.has(last), currency, recent);
+      : aheadSection(
+          derived,
+          last,
+          !busy.has(last),
+          currency,
+          recent,
+          expected,
+        );
+  const ctx = {
+    byMonth,
+    months,
+    typical,
+    threads: new Set(derived.R.threads.map((t) => t.name)),
+  };
+  const vsTypical = (total) => againstTypical(total, typical);
   const told = new Set();
   const sections = [];
   let run = [];
   const flush = () => {
     if (run.length)
       sections.push(
-        quietSection(run, byMonth, typical, {
+        quietSection(run, ctx, vsTypical, derived.allTxns, {
           rhythm: rhythmSentence(rhythms, run, last, told),
           transfer:
             typical == null ? null : transferSentence(derived, run, told),
@@ -224,7 +226,7 @@ function tell(derived, state, months, inRange) {
     for (const o of outs.filter((o) => o.from.slice(0, 7) === m))
       sections.push(
         o.kind === "period"
-          ? periodSection(derived, state, o, monthSentence)
+          ? periodSection(derived, state, o, monthSentence, ctx)
           : stretchSection(derived, state, o, monthSentence),
       );
   }
@@ -241,6 +243,15 @@ function tell(derived, state, months, inRange) {
     const s = holding(p.month);
     if (s) addFact(s, priceSentence([p]));
   }
+  // A thread lower or higher since a month runs to the latest one: told
+  // ahead, before what's coming up, as drawn.
+  const trend = typical == null ? null : trendSentence(ctx);
+  if (trend && ahead) {
+    const at = ahead.paragraphs.findIndex((p) =>
+      p[0]?.text?.startsWith("Coming up"),
+    );
+    ahead.paragraphs.splice(at < 0 ? ahead.paragraphs.length : at, 0, trend);
+  } else if (trend && holding(last)) addFact(holding(last), trend);
   return {
     months: months.length,
     first,
@@ -249,78 +260,18 @@ function tell(derived, state, months, inRange) {
     allIds: ids(pays),
     lead,
     sections,
+    expected,
   };
 }
 
-function quietSection(run, byMonth, typical, { rhythm, transfer }) {
-  const ts = run.flatMap((m) => byMonth.get(m));
-  const totals = run.map((m) => sum(byMonth.get(m)));
-  let parts;
-  if (run.length === 1) {
-    const vs = againstTypical(totals[0], typical);
-    parts = [
-      {
-        text: `${monthName(run[0])} came to ${money(totals[0])}`,
-        txnIds: ids(ts),
-      },
-      { text: vs ? `, ${vs}.` : "." },
-    ];
-  } else if (run.length === 2) {
-    parts = [
-      {
-        text: `${monthName(run[0])} came to ${money(totals[0])}`,
-        txnIds: ids(byMonth.get(run[0])),
-      },
-      { text: " and " },
-      {
-        text: `${monthName(run[1])} to ${money(totals[1])}`,
-        txnIds: ids(byMonth.get(run[1])),
-      },
-      { text: "." },
-    ];
-  } else {
-    const [lo, hi] = [Math.min(...totals), Math.max(...totals)];
-    parts = [
-      { text: `From ${monthName(run[0])} to ${monthName(run.at(-1))}, ` },
-      {
-        text: `each month came to between ${money(lo)} and ${money(hi)}`,
-        txnIds: ids(ts),
-      },
-      { text: "." },
-    ];
-  }
-  const big = [...ts].sort((a, b) => b.amount - a.amount)[0];
-  const paragraphs = [parts];
-  const shape = [
-    ...(transfer ?? []),
-    ...(transfer && rhythm ? [{ text: " " }] : []),
-    ...(rhythm ?? []),
-  ];
-  if (shape.length) paragraphs.push(shape);
-  if (big)
-    paragraphs.push([
-      { text: "The largest single payment was " },
-      {
-        text: `${money(big.amount)} to ${name(big.merchant)} on ${dateRange(big.date, big.date)}`,
-        txnIds: [big.id],
-      },
-      { text: "." },
-    ]);
-  return {
-    id: `months-${run[0]}`,
-    label: monthRange(run[0], run.at(-1)),
-    months: run,
-    from: `${run[0]}-01`,
-    to: `${run.at(-1)}-28`,
-    paragraphs,
-  };
-}
-
-function periodSection(derived, state, o, monthSentence) {
+function periodSection(derived, state, o, monthSentence, ctx) {
   const told = summarizePeriod(derived, state, o.p).filter(
     (s) => s.kind === "period",
   );
   const month = o.from.slice(0, 7);
+  // "Harbor Pantry came to ₪201 that month, against about ₪430 in other
+  // months": a merchant the period moved, beside it (Copy rules, s4).
+  const compared = ctx.typical == null ? null : periodComparison(month, ctx);
   return {
     id: `period-${o.id}`,
     label: shortRange(o.from, o.to),
@@ -337,7 +288,10 @@ function periodSection(derived, state, o, monthSentence) {
       date: n.date,
       text: n.note,
     })),
-    after: monthSentence(month),
+    after: [
+      ...monthSentence(month),
+      ...(compared ? [{ text: " " }, ...compared] : []),
+    ],
     month,
   };
 }
@@ -424,6 +378,17 @@ export function yearMonthStory(
     lead,
     periods,
     paragraphs,
-    numbersHint: budgets && !numbers,
+    // Only when a thread with a budget caught a payment this month: a
+    // budget nothing is in has nothing to show.
+    numbersHint:
+      budgets &&
+      !numbers &&
+      derived.allTxns.some(
+        (t) =>
+          monthOf(t.date) === month &&
+          derived.R.threads.some(
+            (th) => th.name === t.thread && th.budget != null,
+          ),
+      ),
   };
 }

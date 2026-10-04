@@ -21,7 +21,11 @@ export function yearScale(months, today) {
     const [y, m] = months.at(-1).split("-").map(Number);
     return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
   })();
-  const cols = monthOf(today) === next ? [...months, next] : months;
+  // The month after the statements is drawn ahead from the latest month's
+  // end until it is over (story/year.js tells it over the same days).
+  const cols = [months.at(-1), next].includes(monthOf(today))
+    ? [...months, next]
+    : months;
   const N = cols.length;
   const pos = (date, off) => {
     const i = cols.indexOf(monthOf(date));
@@ -195,13 +199,11 @@ export function bandHTML(derived, state, view) {
       t.thread &&
       !(t.amount < 0 && t.transfer),
   );
-  // Charges that repeat, projected into the month ahead: dashed beads.
-  if (year && scale.ahead) {
-    const ahead = scale.cols.at(-1);
-    for (const e of derived.expected || [])
-      if (monthOf(e.date) === ahead && e.thread)
-        txns.push({ ...e, expected: true });
-  }
+  // Charges that repeat, projected into the month ahead (the story's, which
+  // include those due between the 1st and today): dashed beads.
+  if (year && scale.ahead)
+    for (const e of view.expected)
+      if (e.thread) txns.push({ ...e, expected: true });
   const axis = year
     ? scale.cols
         .map((ym, i) => {

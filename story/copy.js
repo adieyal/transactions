@@ -64,6 +64,16 @@ export function list(items, joiner = "and") {
   return `${items.slice(0, -1).join(", ")} ${joiner} ${items.at(-1)}`;
 }
 
+// "Hilltop Flats, Fresh Mart and four others": the merchants of ts, the
+// largest first, naming at most two.
+export function merchantList(ts) {
+  const by = new Map();
+  for (const t of ts) by.set(t.merchant, (by.get(t.merchant) ?? 0) + t.amount);
+  const names = [...by].sort((a, b) => b[1] - a[1]).map(([m]) => name(m));
+  if (names.length <= 3) return list(names);
+  return list([...names.slice(0, 2), `${count(names.length - 2)} others`]);
+}
+
 export function ordinal(n) {
   const tens = n % 100;
   const suffix =

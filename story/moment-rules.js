@@ -242,6 +242,54 @@ export function prices(ctx, spiked) {
       ),
     );
   }
+  return [...out, ...heldPrices(ctx, spiked)];
+}
+
+// A price that changed before the latest charge and held since (findChanges
+// only flags a change in the latest month): at least three earlier charges
+// within 3% of each other, then two or more at the new price, also within 3%.
+const close = (xs) => xs.every((a) => Math.abs(a - median(xs)) <= 0.03 * a);
+function heldPrices(ctx, spiked) {
+  const out = [];
+  const charges = ctx.derived.allTxns.filter(
+    (t) =>
+      t.recurring &&
+      !t.inst &&
+      spending(t) &&
+      !t.inflow &&
+      t.currency === ctx.derived.currency,
+  );
+  for (const g of groupBy(charges, (t) => t.key).values()) {
+    const ts = [...g].sort(byDate);
+    const months = ts.map((t) => monthOf(t.date));
+    if (new Set(months).size !== ts.length) continue;
+    for (let k = 3; k <= ts.length - 2; k++) {
+      const [before, after] = [ts.slice(0, k), ts.slice(k)];
+      const [a, b] = [ts[k - 1].amount, ts[k].amount];
+      if (Math.abs(b - a) < 1 || Math.abs(b - a) / a < 0.03) continue;
+      if (!close(before.map((t) => t.amount))) continue;
+      if (!close(after.map((t) => t.amount))) continue;
+      if (after.some((t) => spiked.has(t.id))) continue;
+      out.push(
+        moment(
+          "price",
+          [ts[k - 1], ts[k]],
+          {
+            merchant: ts[k].merchant,
+            before: a,
+            after: b,
+            currency: ts[k].currency,
+          },
+          (b - a) * 12,
+          {
+            from: ts[k].date,
+            month: monthOf(ts[k].date),
+            idDates: [ts[k].date],
+          },
+        ),
+      );
+    }
+  }
   return out;
 }
 
