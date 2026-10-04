@@ -1,0 +1,2780 @@
+{
+  "about": "Every user interaction in 8d87cd2's ui/ modules. `old` runs on 8d87cd2 from the demo with the tour closed; `new` is how to reach it from the new UI's default views, empty where none was found; `bench: true` lets the runner also try `old` inside More > Timeline and panels. See tests/parity/run.mjs.",
+  "fixtureCsv": "five-months.csv",
+  "network": [
+    {
+      "id": "period-draft-story",
+      "source": "ui/periods.js:131",
+      "selector": "#pDraftStory",
+      "does": "Click Draft it with the assistant on a period",
+      "effect": "The assistant writes the period's story; a toast offers Undo"
+    },
+    {
+      "id": "insp-ask-these",
+      "source": "ui/inspector.js:257",
+      "selector": "#askThese",
+      "does": "Click Ask about these with beads selected",
+      "effect": "Ask opens with the selection as context"
+    },
+    {
+      "id": "reports-run",
+      "source": "ui/reports.js:98",
+      "selector": "#runStale, [data-run], [data-repsug]",
+      "does": "Run a report, run stale reports, or pick a suggested report",
+      "effect": "The report runs through the assistant"
+    },
+    {
+      "id": "reports-cite",
+      "source": "ui/reports.js:129",
+      "selector": "#reports [data-cite]",
+      "does": "Click a cited transaction in a report",
+      "effect": "The bead is selected and shown in the inspector"
+    },
+    {
+      "id": "questions-assist",
+      "source": "ui/questions.js:151",
+      "selector": "[data-qassist]",
+      "does": "Click Suggest answers on a question",
+      "effect": "The assistant offers answer chips"
+    },
+    {
+      "id": "lens-fix",
+      "source": "ui/lenses.js:94",
+      "selector": "#lenses [data-fix]",
+      "does": "Click Change with AI on a lens",
+      "effect": "The assistant rewrites the lens code"
+    },
+    {
+      "id": "lens-write",
+      "source": "ui/lenses.js:134",
+      "selector": "#lensGo",
+      "does": "Describe a lens and click Write the lens",
+      "effect": "The assistant writes a new lens"
+    },
+    {
+      "id": "chat-send",
+      "source": "ui/chat.js:436",
+      "selector": "#sendBtn, #askInput Enter, [data-sug]",
+      "does": "Ask a question in the chat",
+      "effect": "A turn is added; tools may change data"
+    },
+    {
+      "id": "chat-stop",
+      "source": "ui/chat.js:447",
+      "selector": "#stopBtn",
+      "does": "Stop a running question",
+      "effect": "The request is aborted"
+    },
+    {
+      "id": "chat-undo",
+      "source": "ui/chat.js:454",
+      "selector": "#log [data-undonames], #log [data-undo]",
+      "does": "Click Undo on an assistant's renames or note changes",
+      "effect": "The change is reverted"
+    },
+    {
+      "id": "chat-links",
+      "source": "ui/chat.js:483",
+      "selector": "#log [data-shownoted], [data-review], [data-openperiod], [data-cite]",
+      "does": "Follow a link in an answer",
+      "effect": "Highlights, opens Threads, opens the period, or selects the bead"
+    },
+    {
+      "id": "chat-save-report",
+      "source": "ui/chat.js:500",
+      "selector": "#log [data-savereport]",
+      "does": "Save an answer as a report",
+      "effect": "A report is added and Reports opens"
+    },
+    {
+      "id": "chat-lens-from",
+      "source": "ui/chat.js:512",
+      "selector": "#log [data-lensfrom]",
+      "does": "Turn an answer into a lens",
+      "effect": "A lens is written and Lenses opens"
+    },
+    {
+      "id": "ai-test",
+      "source": "ui/assistant-settings.js:72",
+      "selector": "#aiTest",
+      "does": "Test the assistant connection",
+      "effect": "Says whether it connected"
+    },
+    {
+      "id": "import-map-ask",
+      "source": "ui/import.js:356",
+      "selector": "#mapAsk",
+      "does": "Ask AI to map an unknown file's columns",
+      "effect": "The mapping is filled in"
+    }
+  ],
+  "entries": [
+    {
+      "id": "header-tour-button",
+      "source": "ui/chrome.js:77",
+      "selector": "#demoNotice #tourBtn",
+      "does": "Click Take the tour in the demo notice",
+      "effect": "The tour card opens",
+      "old": [
+        {
+          "click": "#tourBtn"
+        },
+        {
+          "expect": "return P.vis('.tour-card')"
+        }
+      ],
+      "new": []
+    },
+    {
+      "id": "tour-next-back",
+      "source": "ui/tour.js:262",
+      "selector": ".tour-card [data-tour=next], [data-tour=back]",
+      "does": "Click Next, then Back, in the tour",
+      "effect": "The step counter goes to 2 and back to 1",
+      "old": [
+        {
+          "menu": "tour"
+        },
+        {
+          "click": "[data-tour=next]"
+        },
+        {
+          "expect": "return /^2 /.test(P.text('.tour-count'))"
+        },
+        {
+          "click": "[data-tour=back]"
+        },
+        {
+          "expect": "return /^1 /.test(P.text('.tour-count'))"
+        }
+      ],
+      "new": [
+        {
+          "menu": "tour"
+        },
+        {
+          "click": "[data-tour=next]"
+        },
+        {
+          "expect": "return /^2 /.test(P.text('.tour-count'))"
+        },
+        {
+          "click": "[data-tour=back]"
+        },
+        {
+          "expect": "return /^1 /.test(P.text('.tour-count'))"
+        }
+      ]
+    },
+    {
+      "id": "tour-arrows-escape",
+      "source": "ui/tour.js:241",
+      "selector": "document keydown (tour open)",
+      "does": "Press ArrowRight, then Escape, in the tour",
+      "effect": "The tour moves to step 2, then closes",
+      "old": [
+        {
+          "menu": "tour"
+        },
+        {
+          "key": "ArrowRight"
+        },
+        {
+          "expect": "return /^2 /.test(P.text('.tour-count'))"
+        },
+        {
+          "key": "Escape"
+        },
+        {
+          "expect": "return !P.vis('.tour-card')"
+        }
+      ],
+      "new": [
+        {
+          "menu": "tour"
+        },
+        {
+          "key": "ArrowRight"
+        },
+        {
+          "expect": "return /^2 /.test(P.text('.tour-count'))"
+        },
+        {
+          "key": "Escape"
+        },
+        {
+          "expect": "return !P.vis('.tour-card')"
+        }
+      ]
+    },
+    {
+      "id": "tour-end",
+      "source": "ui/tour.js:262",
+      "selector": ".tour-card [data-tour=end]",
+      "does": "Click Skip the tour",
+      "effect": "The tour closes",
+      "old": [
+        {
+          "menu": "tour"
+        },
+        {
+          "click": ".tour-card [data-tour=end]"
+        },
+        {
+          "expect": "return !P.vis('.tour-card')"
+        }
+      ],
+      "new": [
+        {
+          "menu": "tour"
+        },
+        {
+          "click": ".tour-card [data-tour=end]"
+        },
+        {
+          "expect": "return !P.vis('.tour-card')"
+        }
+      ]
+    },
+    {
+      "id": "privacy-dialog",
+      "source": "ui/questions.js:209",
+      "selector": "#privacyChip, #privacyClose",
+      "does": "Click the Private to this device chip, then Close",
+      "effect": "The privacy dialog opens and closes",
+      "old": [
+        {
+          "click": "#privacyChip"
+        },
+        {
+          "expect": "return document.querySelector('#privacyDlg').open"
+        },
+        {
+          "click": "#privacyClose"
+        },
+        {
+          "expect": "return !document.querySelector('#privacyDlg').open"
+        }
+      ],
+      "new": [
+        {
+          "click": "#privacyChip"
+        },
+        {
+          "expect": "return document.querySelector('#privacyDlg').open"
+        },
+        {
+          "click": "#privacyClose"
+        },
+        {
+          "expect": "return !document.querySelector('#privacyDlg').open"
+        }
+      ]
+    },
+    {
+      "id": "range-chips",
+      "source": "ui/chrome.js:104",
+      "selector": "#ranges [data-range]",
+      "does": "Click 3 months in the range chips",
+      "effect": "The timeline shows fewer beads",
+      "old": [
+        {
+          "save": "n",
+          "js": "return P.n('#tl circle[data-id]')"
+        },
+        {
+          "click": "#ranges [data-range]",
+          "text": "3 months"
+        },
+        {
+          "expect": "return P.n('#tl circle[data-id]') < S.n"
+        }
+      ],
+      "new": [
+        {
+          "save": "n",
+          "js": "return P.n('.yr-bead')"
+        },
+        {
+          "click": "#moreBtn"
+        },
+        {
+          "click": "[data-range]",
+          "text": "3 months"
+        },
+        {
+          "expect": "return P.n('.yr-bead') < S.n"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "more-menu-open-close",
+      "source": "ui/chrome.js:160",
+      "selector": "#moreBtn",
+      "does": "Click More, then click elsewhere",
+      "effect": "The menu opens with aria-expanded true, and closes on an outside click",
+      "old": [
+        {
+          "click": "#moreBtn"
+        },
+        {
+          "expect": "return document.querySelector('#moreBtn').getAttribute('aria-expanded') === 'true' && P.vis('[data-act=ai]')"
+        },
+        {
+          "click": "body",
+          "at": {
+            "x": 5,
+            "y": 5
+          }
+        },
+        {
+          "expect": "return !P.vis('[data-act=ai]')"
+        }
+      ],
+      "new": [
+        {
+          "click": "#moreBtn"
+        },
+        {
+          "expect": "return document.querySelector('#moreBtn').getAttribute('aria-expanded') === 'true' && P.vis('[data-act=ai]')"
+        },
+        {
+          "click": "body",
+          "at": {
+            "x": 5,
+            "y": 880
+          }
+        },
+        {
+          "expect": "return !P.vis('[data-act=ai]')"
+        }
+      ]
+    },
+    {
+      "id": "more-ai-settings",
+      "source": "ui/chrome.js:183",
+      "selector": "[data-act=ai], #aiCancel",
+      "does": "More > AI assistant settings, then Cancel",
+      "effect": "The assistant dialog opens and closes",
+      "old": [
+        {
+          "menu": "ai"
+        },
+        {
+          "expect": "return document.querySelector('#aiDlg').open"
+        },
+        {
+          "click": "#aiCancel"
+        },
+        {
+          "expect": "return !document.querySelector('#aiDlg').open"
+        }
+      ],
+      "new": [
+        {
+          "menu": "ai"
+        },
+        {
+          "expect": "return document.querySelector('#aiDlg').open"
+        },
+        {
+          "click": "#aiCancel"
+        },
+        {
+          "expect": "return !document.querySelector('#aiDlg').open"
+        }
+      ]
+    },
+    {
+      "id": "ai-provider-switch",
+      "source": "ui/assistant-settings.js:64",
+      "selector": "#aiDlg [name=prov]",
+      "does": "Pick the other provider in AI settings",
+      "effect": "The OpenAI-compatible fields show",
+      "old": [
+        {
+          "menu": "ai"
+        },
+        {
+          "click": "#aiDlg [name=prov][value=openai]"
+        },
+        {
+          "expect": "return P.vis('#aiOpenai')"
+        }
+      ],
+      "new": [
+        {
+          "menu": "ai"
+        },
+        {
+          "click": "#aiDlg [name=prov][value=openai]"
+        },
+        {
+          "expect": "return P.vis('#aiOpenai')"
+        }
+      ]
+    },
+    {
+      "id": "ai-save-needs-host",
+      "source": "ui/assistant-settings.js:103",
+      "selector": "#aiSave",
+      "does": "Pick the OpenAI-compatible provider with no host and click Save",
+      "effect": "A note asks for the host and model; the dialog stays open",
+      "old": [
+        {
+          "menu": "ai"
+        },
+        {
+          "click": "#aiDlg [name=prov][value=openai]"
+        },
+        {
+          "click": "#aiSave"
+        },
+        {
+          "expect": "return document.querySelector('#aiDlg').open && P.text('#aiNote').length > 0"
+        }
+      ],
+      "new": [
+        {
+          "menu": "ai"
+        },
+        {
+          "click": "#aiDlg [name=prov][value=openai]"
+        },
+        {
+          "click": "#aiSave"
+        },
+        {
+          "expect": "return document.querySelector('#aiDlg').open && P.text('#aiNote').length > 0"
+        }
+      ]
+    },
+    {
+      "id": "ai-forget-key",
+      "source": "ui/assistant-settings.js:93",
+      "selector": "#aiForget",
+      "does": "Click Forget key in AI settings",
+      "effect": "The key field empties and a note says it was removed",
+      "old": [
+        {
+          "menu": "ai"
+        },
+        {
+          "click": "#aiDlg [name=prov][value=openai]"
+        },
+        {
+          "click": "#aiForget"
+        },
+        {
+          "expect": "return /removed/i.test(P.text('#aiNote'))"
+        }
+      ],
+      "new": [
+        {
+          "menu": "ai"
+        },
+        {
+          "click": "#aiDlg [name=prov][value=openai]"
+        },
+        {
+          "click": "#aiForget"
+        },
+        {
+          "expect": "return /removed/i.test(P.text('#aiNote'))"
+        }
+      ]
+    },
+    {
+      "id": "more-download-threads",
+      "source": "ui/chrome.js:193",
+      "selector": "[data-act=dl-rules]",
+      "does": "More > Download threads as text",
+      "effect": "A download starts, or a toast says downloads aren't available here",
+      "old": [
+        {
+          "menu": "dl-rules",
+          "wait": 600
+        },
+        {
+          "expect": "return window.__downloads > 0 || /Downloads/.test(P.toast())"
+        }
+      ],
+      "new": [
+        {
+          "menu": "dl-rules",
+          "wait": 600
+        },
+        {
+          "expect": "return window.__downloads > 0 || /Downloads/.test(P.toast())"
+        }
+      ]
+    },
+    {
+      "id": "more-download-all",
+      "source": "ui/chrome.js:193",
+      "selector": "[data-act=dl-all]",
+      "does": "More > Download everything (JSON)",
+      "effect": "A download starts, or a toast says downloads aren't available here",
+      "old": [
+        {
+          "menu": "dl-all",
+          "wait": 600
+        },
+        {
+          "expect": "return window.__downloads > 0 || /Downloads/.test(P.toast())"
+        }
+      ],
+      "new": [
+        {
+          "menu": "dl-all",
+          "wait": 600
+        },
+        {
+          "expect": "return window.__downloads > 0 || /Downloads/.test(P.toast())"
+        }
+      ]
+    },
+    {
+      "id": "more-import-backup",
+      "source": "ui/backup.js:54",
+      "selector": "[data-act=import-backup], #backupFile, #backupCancel",
+      "does": "More > Import backup, choose a backup file, then Cancel",
+      "effect": "The backup dialog opens with a summary, and Cancel closes it",
+      "old": [
+        {
+          "files": "import-backup",
+          "file": "backup.json",
+          "wait": 600
+        },
+        {
+          "expect": "return document.querySelector('#backupDlg').open"
+        },
+        {
+          "click": "#backupCancel"
+        },
+        {
+          "expect": "return !document.querySelector('#backupDlg').open"
+        }
+      ],
+      "new": [
+        {
+          "files": "import-backup",
+          "file": "backup.json",
+          "wait": 600
+        },
+        {
+          "expect": "return document.querySelector('#backupDlg').open"
+        },
+        {
+          "click": "#backupCancel"
+        },
+        {
+          "expect": "return !document.querySelector('#backupDlg').open"
+        }
+      ]
+    },
+    {
+      "id": "more-reset-lenses",
+      "source": "ui/chrome.js:175",
+      "selector": "[data-act=reset-lenses]",
+      "does": "Remove a lens, then More > Restore starter lenses",
+      "effect": "The removed starter lens comes back",
+      "old": [
+        {
+          "click": "#tab-lenses"
+        },
+        {
+          "save": "n",
+          "js": "return P.n('#lenses [data-lens]')"
+        },
+        {
+          "click": "#lenses [data-del]"
+        },
+        {
+          "expect": "return P.n('#lenses [data-lens]') === S.n - 1"
+        },
+        {
+          "menu": "reset-lenses"
+        },
+        {
+          "expect": "return P.n('#lenses [data-lens]') === S.n"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "more-restart-demo",
+      "source": "ui/backup.js:82",
+      "selector": "[data-act=restart-demo], #backupRestore",
+      "does": "Add a note, then More > Restart the demo and confirm",
+      "effect": "The demo comes back as it started; the note is gone",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "fill": "#noteBox",
+          "value": "parity note"
+        },
+        {
+          "wait": 400
+        },
+        {
+          "menu": "restart-demo"
+        },
+        {
+          "click": "#backupRestore",
+          "wait": 1200
+        },
+        {
+          "expect": "return !JSON.stringify(P.ls('notes')).includes('parity note')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "add-statements-csv",
+      "source": "ui/chrome.js:80",
+      "selector": "#addBtn, #file",
+      "does": "Add statements and choose a CSV while the demo shows",
+      "effect": "The demo is replaced and the CSV's transactions are imported",
+      "data": "csv",
+      "old": [
+        {
+          "expect": "return P.n('#tl circle[data-id]') > 0 && !/fictional/.test(document.body.innerText)"
+        }
+      ],
+      "new": [
+        {
+          "expect": "return document.querySelectorAll('[data-id]').length > 0 && !/Sam/.test(document.body.innerText.slice(0, 400))"
+        }
+      ]
+    },
+    {
+      "id": "bead-tooltip",
+      "source": "ui/timeline.js:327",
+      "selector": "#tl circle[data-id] (pointermove) → #tip",
+      "does": "Hover a bead",
+      "effect": "The white tooltip shows the payment",
+      "old": [
+        {
+          "hover": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "expect": "return P.vis('#tip') && P.text('#tip').length > 3"
+        }
+      ],
+      "new": [
+        {
+          "hover": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "expect": "return P.vis('.cv-tip') && P.text('.cv-tip').length > 3"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "bead-click-select",
+      "source": "ui/timeline.js:343",
+      "selector": "#tl circle[data-id]",
+      "does": "Click a bead",
+      "effect": "The bead is selected and the inspector shows its details",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "expect": "return P.n('#tl circle.sel') === 1 && P.vis('#nameBox')"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "expect": "return P.vis('#one-name')"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "bead-shift-click",
+      "source": "ui/timeline.js:346",
+      "selector": "#tl circle[data-id] + Shift",
+      "does": "Click a bead, then shift-click another",
+      "effect": "Both are selected; the inspector offers Thread these and Mark as a period",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 24,
+          "shift": true
+        },
+        {
+          "expect": "return P.n('#tl circle.sel') === 2 && P.vis('#makePeriod')"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "click": ".yr-bead",
+          "nth": 24,
+          "shift": true
+        },
+        {
+          "expect": "return /2 beads/.test(P.text('.yr-bench')) && [...document.querySelectorAll('.yr-bench button')].some(b => /Mark as a period/.test(b.textContent))"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "lasso-select",
+      "source": "ui/timeline-drag.js:141",
+      "selector": "#tl (drag on empty space)",
+      "does": "Drag a box across beads",
+      "effect": "The beads inside are selected",
+      "old": [
+        {
+          "drag": "#tl svg",
+          "at": {
+            "x": 300,
+            "y": 160
+          },
+          "dx": 400,
+          "dy": 260
+        },
+        {
+          "expect": "return P.n('#tl circle.sel') > 1"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "empty-click-clears",
+      "source": "ui/timeline-drag.js:194",
+      "selector": "#tl (click on empty space)",
+      "does": "Select a bead, then click empty timeline space",
+      "effect": "The selection clears",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "drag": "#tl svg",
+          "at": {
+            "x": 450,
+            "y": 610
+          },
+          "dx": 0
+        },
+        {
+          "expect": "return P.n('#tl circle.sel') === 0"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "escape-clears",
+      "source": "ui/chrome.js:229",
+      "selector": "document keydown Escape",
+      "does": "Select a bead and press Escape",
+      "effect": "The selection clears",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "key": "Escape"
+        },
+        {
+          "expect": "return P.n('#tl circle.sel') === 0"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "key": "Escape"
+        },
+        {
+          "expect": "return !P.vis('#one-name')"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "period-click-open",
+      "source": "ui/timeline-drag.js:173",
+      "selector": "#tl .period[data-pid]",
+      "does": "Click a period band",
+      "effect": "The period opens in the inspector with its name field",
+      "old": [
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "expect": "return P.vis('#pName') && document.querySelector('#pName').value === 'Holiday in Lantern Bay'"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-pchip[data-period=demo-trip]"
+        },
+        {
+          "expect": "return P.vis('#cv-pname') && document.querySelector('#cv-pname').value === 'Holiday in Lantern Bay'"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "period-remove-button",
+      "source": "ui/timeline-drag.js:73",
+      "selector": "#tl [data-pdel]",
+      "does": "Open a period and click its × remove button on the timeline",
+      "effect": "The period is removed and a toast offers Undo",
+      "old": [
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "click": "#tl [data-pdel=demo-trip]",
+          "force": true
+        },
+        {
+          "expect": "return !P.ls('periods').items.some(p => p.id === 'demo-trip') && /Undo/.test(P.toast())"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-pchip[data-period=demo-trip]"
+        },
+        {
+          "click": "[data-pedit-delete]"
+        },
+        {
+          "expect": "return !P.ls('periods').items.some(p => p.id === 'demo-trip') && /Undo/.test(P.toast())"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "period-delete-key",
+      "source": "ui/chrome.js:217",
+      "selector": "document keydown Delete (period open)",
+      "does": "Open a period and press Delete",
+      "effect": "The period is removed and a toast offers Undo",
+      "old": [
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "click": "body",
+          "at": {
+            "x": 5,
+            "y": 880
+          }
+        },
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "key": "Delete"
+        },
+        {
+          "expect": "return !P.ls('periods').items.some(p => p.id === 'demo-trip') && /Undo/.test(P.toast())"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-pchip[data-period=demo-trip]"
+        },
+        {
+          "key": "Delete"
+        },
+        {
+          "expect": "return !P.ls('periods').items.some(p => p.id === 'demo-trip') && /Undo/.test(P.toast())"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "period-remove-undo",
+      "source": "ui/periods.js:210",
+      "selector": "#pRemove, #toast .toastbtn",
+      "does": "Remove a period from the inspector, then click Undo in the toast",
+      "effect": "The period comes back",
+      "old": [
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "click": "#pRemove"
+        },
+        {
+          "expect": "return !P.ls('periods').items.some(p => p.id === 'demo-trip')"
+        },
+        {
+          "click": "#toast .toastbtn"
+        },
+        {
+          "expect": "return P.ls('periods').items.some(p => p.id === 'demo-trip')"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-pchip[data-period=demo-trip]"
+        },
+        {
+          "click": "[data-pedit-delete]"
+        },
+        {
+          "expect": "return !P.ls('periods').items.some(p => p.id === 'demo-trip')"
+        },
+        {
+          "click": "#toast .toastbtn"
+        },
+        {
+          "expect": "return P.ls('periods').items.some(p => p.id === 'demo-trip')"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "period-drag-move",
+      "source": "ui/timeline-drag.js:117",
+      "selector": "#tl .period[data-pid] (drag)",
+      "does": "Drag a period band sideways",
+      "effect": "Its start and end move by the same number of days",
+      "old": [
+        {
+          "save": "s",
+          "js": "return P.ls('periods').items.find(p => p.id === 'demo-trip').start"
+        },
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 60
+        },
+        {
+          "expect": "return P.ls('periods').items.find(p => p.id === 'demo-trip').start > S.s"
+        }
+      ],
+      "new": [
+        {
+          "save": "s",
+          "js": "return P.ls('periods').items.find(p => p.id === 'demo-trip').start"
+        },
+        {
+          "drag": ".yr-pchip[data-period=demo-trip]",
+          "dx": 60
+        },
+        {
+          "expect": "return P.ls('periods').items.find(p => p.id === 'demo-trip').start > S.s"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "period-drag-resize",
+      "source": "ui/timeline-drag.js:116",
+      "selector": "#tl .pedge[data-edge]",
+      "does": "Drag a period's end edge",
+      "effect": "Its end date changes and its start stays",
+      "old": [
+        {
+          "save": "p",
+          "js": "return P.ls('periods').items.find(p => p.id === 'demo-trip')"
+        },
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pedge[data-edge=end]",
+          "dx": 40
+        },
+        {
+          "expect": "const p = P.ls('periods').items.find(p => p.id === 'demo-trip'); return p.end > S.p.end && p.start === S.p.start"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "period-draw-new",
+      "source": "ui/timeline-drag.js:183",
+      "selector": "#tl period strip (drag on empty)",
+      "does": "Drag across empty space in the period strip",
+      "effect": "A new period is added",
+      "old": [
+        {
+          "save": "n",
+          "js": "return P.ls('periods').items.length"
+        },
+        {
+          "drag": "#tl .pstrip",
+          "at": {
+            "x": 300,
+            "y": 10
+          },
+          "dx": 60
+        },
+        {
+          "expect": "return P.ls('periods').items.length === S.n + 1"
+        }
+      ],
+      "new": [
+        {
+          "save": "n",
+          "js": "return P.ls('periods').items.length"
+        },
+        {
+          "drag": "tx-year .ps-strip",
+          "at": {
+            "x": 120,
+            "y": 8
+          },
+          "dx": 60
+        },
+        {
+          "expect": "return P.ls('periods').items.length === S.n + 1"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "period-rename",
+      "source": "ui/periods.js:85",
+      "selector": "#pName",
+      "does": "Open a period and type a new name",
+      "effect": "The period's name is saved",
+      "old": [
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "fill": "#pName",
+          "value": "Clutch week",
+          "wait": 500
+        },
+        {
+          "expect": "return P.ls('periods').items.find(p => p.id === 'demo-trip').name === 'Clutch week'"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-pchip[data-period=demo-trip]"
+        },
+        {
+          "fill": "#cv-pname",
+          "value": "Clutch week"
+        },
+        {
+          "press": "#cv-pname",
+          "key": "Enter",
+          "wait": 500
+        },
+        {
+          "expect": "return P.ls('periods').items.find(p => p.id === 'demo-trip').name === 'Clutch week'"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "period-dates",
+      "source": "ui/periods.js:89",
+      "selector": "#pStart, #pEnd",
+      "does": "Open a period and change its To date",
+      "effect": "The end date is saved",
+      "old": [
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "fill": "#pEnd",
+          "value": "2026-01-20",
+          "wait": 300
+        },
+        {
+          "expect": "return P.ls('periods').items.find(p => p.id === 'demo-trip').end === '2026-01-20'"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "period-story",
+      "source": "ui/periods.js:105",
+      "selector": "#pEdit, #pStory",
+      "does": "Open a period, click Edit and type its story",
+      "effect": "The story is saved",
+      "old": [
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "click": "#pEdit"
+        },
+        {
+          "fill": "#pStory",
+          "value": "Parity story",
+          "wait": 400
+        },
+        {
+          "expect": "return P.ls('periods').items.find(p => p.id === 'demo-trip').story === 'Parity story'"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "period-filter",
+      "source": "ui/periods.js:120",
+      "selector": "#pFilter",
+      "does": "Open a period and click Show only this period",
+      "effect": "The filter box reads @ and the period's first word",
+      "old": [
+        {
+          "each": "#tl .bhandle",
+          "key": "Delete",
+          "why": "8d87cd2's timeline throws 'An amount has no currency' when a filter or hidden account leaves a budgeted thread empty (ui/timeline.js:196), so budgets are removed first"
+        },
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "click": "#pFilter"
+        },
+        {
+          "expect": "return /^@/.test(document.querySelector('#q').value)"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "period-regular",
+      "source": "ui/periods.js:127",
+      "selector": "#pRegular",
+      "does": "Open a period and tick or untick regular spending",
+      "effect": "The period summary redraws",
+      "old": [
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "save": "t",
+          "js": "return P.text('#insp')"
+        },
+        {
+          "click": "#pRegular"
+        },
+        {
+          "expect": "return P.text('#insp') !== S.t"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "period-bar-highlight",
+      "source": "ui/inspector.js:41",
+      "selector": "#insp .bar[data-ids]",
+      "does": "Open a period and click a bar in its chart",
+      "effect": "Those payments light up on the timeline",
+      "old": [
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "click": "#insp .bar[data-ids]"
+        },
+        {
+          "expect": "return P.n('#tl circle.dim') > 0"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "period-cite",
+      "source": "ui/inspector.js:29",
+      "selector": "#insp [data-cite]",
+      "does": "Open a period and click a payment named under Biggest",
+      "effect": "The inspector shows that payment",
+      "old": [
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "click": "#insp [data-cite]"
+        },
+        {
+          "expect": "return P.vis('#nameBox')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "bead-open-period",
+      "source": "ui/inspector.js:36",
+      "selector": "#insp [data-openperiod]",
+      "does": "Click a payment inside a period, then the period's name in its details",
+      "effect": "The period opens in the inspector",
+      "old": [
+        {
+          "drag": "#tl .period[data-pid=demo-trip] .pbody",
+          "dx": 0
+        },
+        {
+          "click": "#insp [data-cite]"
+        },
+        {
+          "click": "#insp [data-openperiod]"
+        },
+        {
+          "expect": "return P.vis('#pName')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "insp-rename",
+      "source": "ui/inspector.js:208",
+      "selector": "#nameBox, #nameReset",
+      "does": "Click a bead, type a new name, then Use the original",
+      "effect": "The name is saved, then removed",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "fill": "#nameBox",
+          "value": "Parity Shop",
+          "wait": 400
+        },
+        {
+          "expect": "return JSON.stringify(P.ls('names') || {}).includes('Parity Shop')"
+        },
+        {
+          "key": "Escape"
+        },
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "click": "#nameReset"
+        },
+        {
+          "expect": "return !JSON.stringify(P.ls('names') || {}).includes('Parity Shop')"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "fill": "#one-name",
+          "value": "Parity Shop",
+          "wait": 500
+        },
+        {
+          "expect": "return JSON.stringify(P.ls('names') || {}).includes('Parity Shop')"
+        },
+        {
+          "key": "Escape"
+        },
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "click": ".yr-bench button",
+          "text": "Use the original"
+        },
+        {
+          "expect": "return !JSON.stringify(P.ls('names') || {}).includes('Parity Shop')"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "insp-note",
+      "source": "ui/inspector.js:214",
+      "selector": "#noteBox",
+      "does": "Click a bead and type a note",
+      "effect": "The note is saved",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "fill": "#noteBox",
+          "value": "parity note",
+          "wait": 500
+        },
+        {
+          "expect": "return JSON.stringify(P.ls('notes')).includes('parity note')"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "fill": "#one-note",
+          "value": "parity note",
+          "wait": 500
+        },
+        {
+          "expect": "return JSON.stringify(P.ls('notes')).includes('parity note')"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "insp-transfer-toggle",
+      "source": "ui/inspector.js:193",
+      "selector": "#trToggle",
+      "does": "Click a bead and mark it as a transfer between accounts",
+      "effect": "The transfer choice is saved and the button flips",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "save": "t",
+          "js": "return P.text('#trToggle')"
+        },
+        {
+          "click": "#trToggle"
+        },
+        {
+          "expect": "return P.text('#trToggle') !== S.t && JSON.stringify(P.ls('transfers') || {}).length > 12"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "save": "t",
+          "js": "return P.text('[data-bench-transfer]')"
+        },
+        {
+          "click": "[data-bench-transfer]"
+        },
+        {
+          "expect": "return P.text('[data-bench-transfer]') !== S.t && JSON.stringify(P.ls('transfers') || {}).length > 12"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "insp-rule-line",
+      "source": "ui/inspector.js:197",
+      "selector": "#insp [data-line]",
+      "does": "Click a bead, then the rule line that caught it",
+      "effect": "Threads opens with that line selected",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "click": "#insp [data-line]"
+        },
+        {
+          "expect": "return P.vis('#pane-threads') && document.querySelector('#rules').selectionEnd > document.querySelector('#rules').selectionStart"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "click": "[data-bench-line]"
+        },
+        {
+          "expect": "const t = [...document.querySelectorAll('textarea')].find(t => t.getClientRects().length && t.value.includes('cloudfern')); return t && t.selectionEnd > t.selectionStart"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "tag-add-undo",
+      "source": "ui/tags.js:73",
+      "selector": "#insp [data-tagin], [data-tagadd], #toast .toastbtn",
+      "does": "Click a bead, type a tag and Add tag, then Undo",
+      "effect": "The tag is added with a chip, and Undo takes it off",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "fill": "#insp [data-tagin]",
+          "value": "#parity"
+        },
+        {
+          "click": "#insp [data-tagadd]"
+        },
+        {
+          "expect": "return JSON.stringify(P.ls('notes')).includes('#parity')"
+        },
+        {
+          "click": "#toast .toastbtn"
+        },
+        {
+          "expect": "return !JSON.stringify(P.ls('notes')).includes('#parity')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "tag-enter",
+      "source": "ui/tags.js:74",
+      "selector": "#insp [data-tagin] Enter",
+      "does": "Click a bead, type a tag and press Enter",
+      "effect": "The tag is added",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "fill": "#insp [data-tagin]",
+          "value": "#parity"
+        },
+        {
+          "press": "#insp [data-tagin]",
+          "key": "Enter"
+        },
+        {
+          "expect": "return JSON.stringify(P.ls('notes')).includes('#parity')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "tag-remove",
+      "source": "ui/tags.js:81",
+      "selector": "#insp [data-tagrm]",
+      "does": "Click a tagged bead and click × on its tag chip",
+      "effect": "The tag is removed and a toast offers Undo",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "fill": "#insp [data-tagin]",
+          "value": "#parity"
+        },
+        {
+          "click": "#insp [data-tagadd]"
+        },
+        {
+          "click": "#insp [data-tagrm]"
+        },
+        {
+          "expect": "return !JSON.stringify(P.ls('notes')).includes('#parity') && /Undo/.test(P.toast())"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "multi-thread-these",
+      "source": "ui/inspector.js:239",
+      "selector": "#threadName, #makeThread",
+      "does": "Select two beads, name a thread and click Thread these",
+      "effect": "Rule lines for the new thread are added",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 24,
+          "shift": true
+        },
+        {
+          "fill": "#threadName",
+          "value": "Parity thread"
+        },
+        {
+          "click": "#makeThread"
+        },
+        {
+          "expect": "return P.ls('rules').text.includes('Parity thread')"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "click": ".yr-bead",
+          "nth": 24,
+          "shift": true
+        },
+        {
+          "fill": "#many-name",
+          "value": "Parity thread"
+        },
+        {
+          "click": ".yr-bench button",
+          "text": "Thread these"
+        },
+        {
+          "expect": "return P.ls('rules').text.includes('Parity thread')"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "multi-thread-enter",
+      "source": "ui/inspector.js:247",
+      "selector": "#threadName Enter",
+      "does": "Select two beads, name a thread and press Enter",
+      "effect": "A toast says the beads are now on the new thread (at 8d87cd2 the same Enter then lands in the Threads editor and replaces the highlighted new lines, so the rules check is on the toast)",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 24,
+          "shift": true
+        },
+        {
+          "fill": "#threadName",
+          "value": "Parity thread"
+        },
+        {
+          "press": "#threadName",
+          "key": "Enter"
+        },
+        {
+          "expect": "return /now on .Parity thread/.test(P.toast())"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "click": ".yr-bead",
+          "nth": 24,
+          "shift": true
+        },
+        {
+          "fill": "#many-name",
+          "value": "Parity thread"
+        },
+        {
+          "press": "#many-name",
+          "key": "Enter"
+        },
+        {
+          "expect": "return /now on .Parity thread/.test(P.toast()) || P.ls('rules').text.includes('Parity thread')"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "multi-make-period",
+      "source": "ui/inspector.js:250",
+      "selector": "#makePeriod",
+      "does": "Select two beads and click Mark as a period",
+      "effect": "A new period is added and opened with its name field focused",
+      "old": [
+        {
+          "save": "n",
+          "js": "return P.ls('periods').items.length"
+        },
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 24,
+          "shift": true
+        },
+        {
+          "click": "#makePeriod"
+        },
+        {
+          "expect": "return P.ls('periods').items.length === S.n + 1 && document.activeElement?.id === 'pName'"
+        }
+      ],
+      "new": [
+        {
+          "save": "n",
+          "js": "return P.ls('periods').items.length"
+        },
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "click": ".yr-bead",
+          "nth": 24,
+          "shift": true
+        },
+        {
+          "click": ".yr-bench button",
+          "text": "Mark as a period"
+        },
+        {
+          "expect": "return P.ls('periods').items.length === S.n + 1"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "multi-clear",
+      "source": "ui/inspector.js:252",
+      "selector": "#clearSel",
+      "does": "Select two beads and click Clear",
+      "effect": "The selection clears",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 20
+        },
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 24,
+          "shift": true
+        },
+        {
+          "click": "#clearSel"
+        },
+        {
+          "expect": "return P.n('#tl circle.sel') === 0"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-bead",
+          "nth": 20
+        },
+        {
+          "click": ".yr-bead",
+          "nth": 24,
+          "shift": true
+        },
+        {
+          "click": ".yr-bench button",
+          "text": "Clear"
+        },
+        {
+          "expect": "return !/2 beads/.test(P.text('.yr-bench'))"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "statement-open-remove",
+      "source": "ui/inspector.js:94",
+      "selector": "#tl .cov-on, #insp [data-rm]",
+      "does": "Click a statement's coverage cell, then Remove this statement and confirm",
+      "effect": "That statement's transactions are removed",
+      "old": [
+        {
+          "save": "n",
+          "js": "return P.n('#tl circle[data-id]')"
+        },
+        {
+          "click": "#tl .cov-on",
+          "force": true
+        },
+        {
+          "click": "#insp [data-rm]"
+        },
+        {
+          "wait": 600
+        },
+        {
+          "expect": "return P.n('#tl circle[data-id]') < S.n"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "thread-row-summary",
+      "source": "ui/timeline.js:373",
+      "selector": "#tl .rowlabel, #tRules, #tClose",
+      "does": "Click a thread's row label, then Close",
+      "effect": "The thread summary opens in the inspector, and Close shuts it",
+      "old": [
+        {
+          "click": "#tl .rowlabel",
+          "force": true
+        },
+        {
+          "expect": "return P.vis('#tClose')"
+        },
+        {
+          "click": "#tClose"
+        },
+        {
+          "expect": "return !P.vis('#tClose')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "thread-edit-rules",
+      "source": "ui/thread-summary.js:59",
+      "selector": "#tRules",
+      "does": "Click a thread's row label, then Edit rules",
+      "effect": "Threads opens",
+      "old": [
+        {
+          "click": "#tl .rowlabel",
+          "force": true
+        },
+        {
+          "click": "#tRules"
+        },
+        {
+          "expect": "return P.vis('#pane-threads') && P.vis('#rules')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "account-toggle",
+      "source": "ui/timeline.js:389",
+      "selector": "#tl [data-togacct]",
+      "does": "Click an account's label to hide it",
+      "effect": "That account's beads leave the timeline",
+      "old": [
+        {
+          "each": "#tl .bhandle",
+          "key": "Delete",
+          "why": "8d87cd2's timeline throws 'An amount has no currency' when a filter or hidden account leaves a budgeted thread empty (ui/timeline.js:196), so budgets are removed first"
+        },
+        {
+          "save": "n",
+          "js": "return P.n('#tl circle[data-id]')"
+        },
+        {
+          "click": "#tl [data-togacct]",
+          "force": true
+        },
+        {
+          "expect": "return P.n('#tl circle[data-id]') < S.n"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "account-toggle-key",
+      "source": "ui/timeline.js:516",
+      "selector": "#tl [data-togacct] Enter",
+      "does": "Focus an account's label and press Enter",
+      "effect": "That account's beads leave the timeline",
+      "old": [
+        {
+          "each": "#tl .bhandle",
+          "key": "Delete",
+          "why": "8d87cd2's timeline throws 'An amount has no currency' when a filter or hidden account leaves a budgeted thread empty (ui/timeline.js:196), so budgets are removed first"
+        },
+        {
+          "save": "n",
+          "js": "return P.n('#tl circle[data-id]')"
+        },
+        {
+          "focus": "#tl [data-togacct]"
+        },
+        {
+          "key": "Enter"
+        },
+        {
+          "expect": "return P.n('#tl circle[data-id]') < S.n"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "park-thread",
+      "source": "ui/timeline.js:362",
+      "selector": "#tl .parkbtn, #parkbar [data-unpark]",
+      "does": "Park a thread, then unpark it from the parked bar",
+      "effect": "The thread moves to the parked list and comes back",
+      "old": [
+        {
+          "click": "#tl .parkbtn",
+          "force": true
+        },
+        {
+          "expect": "return P.n('#parkbar [data-unpark]') === 1"
+        },
+        {
+          "click": "#parkbar [data-unpark]"
+        },
+        {
+          "expect": "return P.n('#parkbar [data-unpark]') === 0"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "park-show",
+      "source": "ui/timeline.js:508",
+      "selector": "#parkbar [data-showparked]",
+      "does": "Park a thread, then Show them for now",
+      "effect": "The button changes to Fold them back",
+      "old": [
+        {
+          "click": "#tl .parkbtn",
+          "force": true
+        },
+        {
+          "click": "#parkbar [data-showparked]"
+        },
+        {
+          "expect": "return /Fold/.test(P.text('#parkbar [data-showparked]'))"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "budget-add",
+      "source": "ui/timeline.js:357",
+      "selector": "#tl .budgetbtn",
+      "does": "Click + Budget on a thread row",
+      "effect": "A budget line is added for that thread",
+      "old": [
+        {
+          "save": "n",
+          "js": "return P.n('#tl .bhandle')"
+        },
+        {
+          "click": "#tl .budgetbtn",
+          "force": true
+        },
+        {
+          "expect": "return P.n('#tl .bhandle') === S.n + 1"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "budget-drag",
+      "source": "ui/timeline-drag.js:80",
+      "selector": "#tl .bhandle (drag)",
+      "does": "Drag a budget line up",
+      "effect": "The thread's budget changes and a toast names it",
+      "old": [
+        {
+          "save": "r",
+          "js": "return P.ls('rules').text"
+        },
+        {
+          "drag": "#tl .bhandle",
+          "dy": -12
+        },
+        {
+          "expect": "return P.ls('rules').text !== S.r && /a month/.test(P.toast())"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "budget-arrow-keys",
+      "source": "ui/timeline.js:413",
+      "selector": "#tl .bhandle ArrowUp",
+      "does": "Focus a budget line and press ArrowUp",
+      "effect": "The budget goes up by a step",
+      "old": [
+        {
+          "save": "r",
+          "js": "return P.ls('rules').text"
+        },
+        {
+          "focus": "#tl .bhandle"
+        },
+        {
+          "key": "ArrowUp"
+        },
+        {
+          "expect": "return P.ls('rules').text !== S.r"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "budget-delete-key",
+      "source": "ui/timeline.js:407",
+      "selector": "#tl .bhandle Delete",
+      "does": "Focus a budget line and press Delete",
+      "effect": "The budget line goes",
+      "old": [
+        {
+          "save": "n",
+          "js": "return P.n('#tl .bhandle')"
+        },
+        {
+          "focus": "#tl .bhandle"
+        },
+        {
+          "key": "Delete"
+        },
+        {
+          "expect": "return P.n('#tl .bhandle') === S.n - 1"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "budget-remove-button",
+      "source": "ui/timeline-drag.js:73",
+      "selector": "#tl [data-bdel]",
+      "does": "Click × beside a budget line",
+      "effect": "The budget line goes",
+      "old": [
+        {
+          "save": "n",
+          "js": "return P.n('#tl .bhandle')"
+        },
+        {
+          "click": "#tl [data-bdel]",
+          "force": true
+        },
+        {
+          "expect": "return P.n('#tl .bhandle') === S.n - 1"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "filter-type",
+      "source": "ui/filter.js:80",
+      "selector": "#q",
+      "does": "Type a merchant's name in the filter box",
+      "effect": "Only matching beads stay on the timeline",
+      "old": [
+        {
+          "each": "#tl .bhandle",
+          "key": "Delete",
+          "why": "8d87cd2's timeline throws 'An amount has no currency' when a filter or hidden account leaves a budgeted thread empty (ui/timeline.js:196), so budgets are removed first"
+        },
+        {
+          "save": "n",
+          "js": "return P.n('#tl circle[data-id]')"
+        },
+        {
+          "fill": "#q",
+          "value": "Harbor",
+          "wait": 400
+        },
+        {
+          "expect": "return P.n('#tl circle[data-id]') < S.n && P.n('#tl circle[data-id]') > 0"
+        }
+      ],
+      "new": [
+        {
+          "fill": "#q",
+          "value": "Harbor",
+          "wait": 500
+        },
+        {
+          "expect": "return P.n('.yr-bead.dim') > 0 && P.n('.yr-bead:not(.dim)') > 0"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "filter-escape",
+      "source": "ui/filter.js:81",
+      "selector": "#q Escape",
+      "does": "Type in the filter box, then press Escape",
+      "effect": "The filter empties and every bead comes back",
+      "old": [
+        {
+          "each": "#tl .bhandle",
+          "key": "Delete",
+          "why": "8d87cd2's timeline throws 'An amount has no currency' when a filter or hidden account leaves a budgeted thread empty (ui/timeline.js:196), so budgets are removed first"
+        },
+        {
+          "save": "n",
+          "js": "return P.n('#tl circle[data-id]')"
+        },
+        {
+          "fill": "#q",
+          "value": "Harbor",
+          "wait": 400
+        },
+        {
+          "press": "#q",
+          "key": "Escape",
+          "wait": 400
+        },
+        {
+          "expect": "return document.querySelector('#q').value === '' && P.n('#tl circle[data-id]') === S.n"
+        }
+      ],
+      "new": [
+        {
+          "fill": "#q",
+          "value": "Harbor",
+          "wait": 500
+        },
+        {
+          "press": "#q",
+          "key": "Escape",
+          "wait": 500
+        },
+        {
+          "expect": "return document.querySelector('#q').value === '' && P.n('.yr-bead.dim') === 0"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "filter-clear",
+      "source": "ui/filter.js:88",
+      "selector": "#qClear",
+      "does": "Type in the filter box, then click its clear button",
+      "effect": "The filter empties",
+      "old": [
+        {
+          "each": "#tl .bhandle",
+          "key": "Delete",
+          "why": "8d87cd2's timeline throws 'An amount has no currency' when a filter or hidden account leaves a budgeted thread empty (ui/timeline.js:196), so budgets are removed first"
+        },
+        {
+          "fill": "#q",
+          "value": "Harbor",
+          "wait": 400
+        },
+        {
+          "click": "#qClear",
+          "wait": 300
+        },
+        {
+          "expect": "return document.querySelector('#q').value === ''"
+        }
+      ],
+      "new": [
+        {
+          "fill": "#q",
+          "value": "Harbor",
+          "wait": 400
+        },
+        {
+          "click": "#qClear",
+          "wait": 300
+        },
+        {
+          "expect": "return document.querySelector('#q').value === ''"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "filter-slash",
+      "source": "ui/filter.js:105",
+      "selector": "document keydown /",
+      "does": "Press / anywhere outside a field",
+      "effect": "The filter box gets focus",
+      "old": [
+        {
+          "key": "/"
+        },
+        {
+          "expect": "return document.activeElement?.id === 'q'"
+        }
+      ],
+      "new": [
+        {
+          "key": "/"
+        },
+        {
+          "expect": "return document.activeElement?.id === 'q'"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "filter-tag-chip",
+      "source": "ui/filter.js:93",
+      "selector": "#qTags [data-tag]",
+      "does": "Click the #pets tag chip",
+      "effect": "The filter box reads #pets",
+      "old": [
+        {
+          "each": "#tl .bhandle",
+          "key": "Delete",
+          "why": "8d87cd2's timeline throws 'An amount has no currency' when a filter or hidden account leaves a budgeted thread empty (ui/timeline.js:196), so budgets are removed first"
+        },
+        {
+          "click": "#qTags [data-tag]",
+          "text": "#pets",
+          "wait": 300
+        },
+        {
+          "expect": "return document.querySelector('#q').value.includes('#pets')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "filter-bulk-tag",
+      "source": "ui/filter.js:61",
+      "selector": "#qTagForm input, #qTagForm button",
+      "does": "Filter, type a tag in Tag all these and click its button",
+      "effect": "Every matching payment gets the tag",
+      "old": [
+        {
+          "each": "#tl .bhandle",
+          "key": "Delete",
+          "why": "8d87cd2's timeline throws 'An amount has no currency' when a filter or hidden account leaves a budgeted thread empty (ui/timeline.js:196), so budgets are removed first"
+        },
+        {
+          "fill": "#q",
+          "value": "Harbor",
+          "wait": 400
+        },
+        {
+          "fill": "#qTagForm input",
+          "value": "#parity"
+        },
+        {
+          "click": "#qTagForm button"
+        },
+        {
+          "expect": "return JSON.stringify(P.ls('notes')).includes('#parity')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "panel-tabs",
+      "source": "ui/chrome.js:115",
+      "selector": "#tab-month … #tab-reports",
+      "does": "Click each panel tab",
+      "effect": "Its pane shows",
+      "old": [
+        {
+          "click": "#tab-lenses"
+        },
+        {
+          "expect": "return P.vis('#pane-lenses')"
+        },
+        {
+          "click": "#tab-questions"
+        },
+        {
+          "expect": "return P.vis('#pane-questions')"
+        },
+        {
+          "click": "#tab-threads"
+        },
+        {
+          "expect": "return P.vis('#pane-threads')"
+        },
+        {
+          "click": "#tab-ask"
+        },
+        {
+          "expect": "return P.vis('#pane-ask')"
+        },
+        {
+          "click": "#tab-reports"
+        },
+        {
+          "expect": "return P.vis('#pane-reports')"
+        },
+        {
+          "click": "#tab-month"
+        },
+        {
+          "expect": "return P.vis('#pane-month')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "panel-hide",
+      "source": "ui/chrome.js:110",
+      "selector": "#hidePanel",
+      "does": "Click the panel's hide button",
+      "effect": "The side panel folds away",
+      "old": [
+        {
+          "click": "#hidePanel"
+        },
+        {
+          "expect": "return !P.vis('#pane-month')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "rules-edit",
+      "source": "ui/chrome.js:122",
+      "selector": "#rules (input)",
+      "does": "Open Threads and type a new rule line",
+      "effect": "The rules are saved",
+      "old": [
+        {
+          "click": "#tab-threads"
+        },
+        {
+          "click": "#rules"
+        },
+        {
+          "key": "Control+End"
+        },
+        {
+          "key": "Enter"
+        },
+        {
+          "key": "P"
+        },
+        {
+          "key": "x"
+        },
+        {
+          "wait": 400
+        },
+        {
+          "expect": "return /Px\\s*$/.test(P.ls('rules').text)"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "rules-tab-indent",
+      "source": "ui/chrome.js:140",
+      "selector": "#rules Tab",
+      "does": "Press Tab in the rules editor",
+      "effect": "Two spaces are typed instead of leaving the field",
+      "old": [
+        {
+          "click": "#tab-threads"
+        },
+        {
+          "click": "#rules"
+        },
+        {
+          "key": "Control+End"
+        },
+        {
+          "key": "Tab"
+        },
+        {
+          "wait": 300
+        },
+        {
+          "expect": "return document.activeElement?.id === 'rules' && / {2}$/.test(P.ls('rules').text)"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "questions-skip-undo",
+      "source": "ui/questions.js:155",
+      "selector": ".qcard [data-qskip], #toast .toastbtn",
+      "does": "Open Questions, click Skip on a card, then Undo",
+      "effect": "The card goes and comes back",
+      "old": [
+        {
+          "click": "#tab-questions"
+        },
+        {
+          "save": "n",
+          "js": "return P.n('#pane-questions .qcard')"
+        },
+        {
+          "click": "#pane-questions .qcard [data-qskip]"
+        },
+        {
+          "expect": "return P.n('#pane-questions .qcard') === S.n - 1"
+        },
+        {
+          "click": "#toast .toastbtn"
+        },
+        {
+          "expect": "return P.n('#pane-questions .qcard') === S.n"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "questions-option",
+      "source": "ui/questions.js:159",
+      "selector": ".qcard [data-qopt]",
+      "does": "Open Questions and pick an answer chip",
+      "effect": "The card is answered, or a write-in form or Threads opens",
+      "old": [
+        {
+          "click": "#tab-questions"
+        },
+        {
+          "save": "n",
+          "js": "return P.n('#pane-questions .qcard')"
+        },
+        {
+          "click": "#pane-questions .qcard [data-qopt]"
+        },
+        {
+          "expect": "return P.n('#pane-questions .qcard') < S.n || P.vis('[data-qform]') || P.vis('#pane-threads') || /Undo/.test(P.toast())"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "questions-card-highlight",
+      "source": "ui/questions.js:174",
+      "selector": ".qcard (body)",
+      "does": "Open Questions and click a card's text",
+      "effect": "Its payments light up on the timeline",
+      "old": [
+        {
+          "click": "#tab-questions"
+        },
+        {
+          "save": "c",
+          "js": "return document.querySelector('#tl').innerHTML.length"
+        },
+        {
+          "click": "#pane-questions .qcard p, #pane-questions .qcard .qtext, #pane-questions .qcard",
+          "at": {
+            "x": 6,
+            "y": 6
+          }
+        },
+        {
+          "expect": "return document.querySelector('#tl').innerHTML.length !== S.c"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "reports-save-remove-undo",
+      "source": "ui/reports.js:113",
+      "selector": "#repInput, #repSave, [data-rmrep], #toast .toastbtn",
+      "does": "Open Reports, save a question, remove it, then Undo",
+      "effect": "The report appears, goes, and comes back",
+      "old": [
+        {
+          "click": "#tab-reports"
+        },
+        {
+          "fill": "#repInput",
+          "value": "Parity report?"
+        },
+        {
+          "click": "#repSave"
+        },
+        {
+          "expect": "return P.n('#reports article.report') === 1"
+        },
+        {
+          "click": "#reports [data-rmrep]"
+        },
+        {
+          "expect": "return P.n('#reports article.report') === 0"
+        },
+        {
+          "click": "#toast .toastbtn"
+        },
+        {
+          "expect": "return P.n('#reports article.report') === 1"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "reports-enter",
+      "source": "ui/reports.js:146",
+      "selector": "#repInput Enter",
+      "does": "Open Reports, type a question and press Enter",
+      "effect": "The report is saved",
+      "old": [
+        {
+          "click": "#tab-reports"
+        },
+        {
+          "fill": "#repInput",
+          "value": "Parity report?"
+        },
+        {
+          "press": "#repInput",
+          "key": "Enter"
+        },
+        {
+          "expect": "return (P.ls('reports')?.items || []).length === 1"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "lens-remove",
+      "source": "ui/lenses.js:85",
+      "selector": "#lenses [data-del]",
+      "does": "Open Lenses and remove a lens (confirm)",
+      "effect": "The lens card goes",
+      "old": [
+        {
+          "click": "#tab-lenses"
+        },
+        {
+          "save": "n",
+          "js": "return P.n('#lenses [data-lens]')"
+        },
+        {
+          "click": "#lenses [data-del]"
+        },
+        {
+          "expect": "return P.n('#lenses [data-lens]') === S.n - 1"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "lens-blank-edit-done",
+      "source": "ui/lenses.js:121",
+      "selector": "#lensBlank, #lensDone",
+      "does": "Open Lenses, Start a blank lens, then Done",
+      "effect": "A new lens is added and its editor opens and closes",
+      "old": [
+        {
+          "click": "#tab-lenses"
+        },
+        {
+          "save": "n",
+          "js": "return P.n('#lenses [data-lens]')"
+        },
+        {
+          "click": "#lensBlank"
+        },
+        {
+          "expect": "return document.querySelector('#lensDlg').open"
+        },
+        {
+          "click": "#lensDone"
+        },
+        {
+          "expect": "return !document.querySelector('#lensDlg').open && P.n('#lenses [data-lens]') === S.n + 1"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "lens-edit-code",
+      "source": "ui/lenses.js:80",
+      "selector": "#lenses [data-edit]",
+      "does": "Open Lenses and click Edit code on a lens",
+      "effect": "The code editor opens with the lens's title",
+      "old": [
+        {
+          "click": "#tab-lenses"
+        },
+        {
+          "click": "#lenses [data-edit]"
+        },
+        {
+          "expect": "return document.querySelector('#lensDlg').open && document.querySelector('#lensTitle').value.length > 0"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "lens-editor-title",
+      "source": "ui/lens-editor.js:365",
+      "selector": "#lensTitle",
+      "does": "In the lens editor, type a new title",
+      "effect": "The lens's title is saved",
+      "old": [
+        {
+          "click": "#tab-lenses"
+        },
+        {
+          "click": "#lenses [data-edit]"
+        },
+        {
+          "fill": "#lensTitle",
+          "value": "Parity lens",
+          "wait": 400
+        },
+        {
+          "click": "#lensDone"
+        },
+        {
+          "expect": "return JSON.stringify(P.ls('lenses')).includes('Parity lens')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "lens-editor-snippet",
+      "source": "ui/lens-editor.js:372",
+      "selector": "#lensRef [data-ins]",
+      "does": "In the lens editor, click a reference snippet",
+      "effect": "The snippet is inserted in the code",
+      "old": [
+        {
+          "click": "#tab-lenses"
+        },
+        {
+          "click": "#lenses [data-edit]"
+        },
+        {
+          "save": "c",
+          "js": "return P.text('#lensCode .cm-content')"
+        },
+        {
+          "click": "#lensRef [data-ins]"
+        },
+        {
+          "expect": "return P.text('#lensCode .cm-content') !== S.c"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "lens-editor-escape",
+      "source": "ui/lens-editor.js:356",
+      "selector": "#lensDlg Escape",
+      "does": "In the lens editor, press Escape",
+      "effect": "The editor closes",
+      "old": [
+        {
+          "click": "#tab-lenses"
+        },
+        {
+          "click": "#lenses [data-edit]"
+        },
+        {
+          "click": "#lensTitle"
+        },
+        {
+          "key": "Escape"
+        },
+        {
+          "expect": "return !document.querySelector('#lensDlg').open"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "lens-title-inline",
+      "source": "ui/lenses.js:167",
+      "selector": "#lenses [data-title] (contenteditable)",
+      "does": "Open Lenses and edit a lens's title in place",
+      "effect": "The title is saved",
+      "old": [
+        {
+          "click": "#tab-lenses"
+        },
+        {
+          "click": "#lenses [data-title]"
+        },
+        {
+          "key": "End"
+        },
+        {
+          "key": "Z"
+        },
+        {
+          "wait": 400
+        },
+        {
+          "expect": "return JSON.stringify(P.ls('lenses') || '').includes('Z')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "chat-connect",
+      "source": "ui/assistant-settings.js:43",
+      "selector": "[data-connect]",
+      "does": "Open Ask and click Connect an assistant",
+      "effect": "The assistant settings dialog opens",
+      "old": [
+        {
+          "click": "#tab-ask"
+        },
+        {
+          "click": "#pane-ask [data-connect]"
+        },
+        {
+          "expect": "return document.querySelector('#aiDlg').open"
+        }
+      ],
+      "new": [
+        {
+          "click": "tx-year [data-connect]"
+        },
+        {
+          "expect": "return document.querySelector('#aiDlg').open"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "chat-new-conversation",
+      "source": "ui/chat.js:430",
+      "selector": "#newChat",
+      "does": "Open Ask and Start a new conversation",
+      "effect": "The log resets",
+      "old": [
+        {
+          "click": "#tab-ask"
+        },
+        {
+          "expect": "return !!document.querySelector('#newChat') || P.vis('#log')"
+        }
+      ],
+      "new": [],
+      "bench": true
+    },
+    {
+      "id": "csv-bead-select",
+      "source": "ui/timeline.js:343",
+      "selector": "#tl circle[data-id]",
+      "does": "With a CSV imported, click a bead",
+      "effect": "The inspector shows its details",
+      "data": "csv",
+      "old": [
+        {
+          "click": "#tl circle[data-id]",
+          "nth": 3
+        },
+        {
+          "expect": "return P.vis('#nameBox')"
+        }
+      ],
+      "new": [
+        {
+          "click": ".yr-bead",
+          "nth": 3
+        },
+        {
+          "expect": "return P.vis('#one-name')"
+        }
+      ],
+      "bench": true
+    },
+    {
+      "id": "csv-filter",
+      "source": "ui/filter.js:80",
+      "selector": "#q",
+      "does": "With a CSV imported, type Fresh Mart in the filter box",
+      "effect": "Only matching beads stay",
+      "data": "csv",
+      "old": [
+        {
+          "save": "n",
+          "js": "return P.n('#tl circle[data-id]')"
+        },
+        {
+          "fill": "#q",
+          "value": "Fresh Mart",
+          "wait": 400
+        },
+        {
+          "expect": "return P.n('#tl circle[data-id]') < S.n && P.n('#tl circle[data-id]') > 0"
+        }
+      ],
+      "new": [
+        {
+          "save": "n",
+          "js": "return P.n('.yr-bead:not(.dim)')"
+        },
+        {
+          "fill": "#q",
+          "value": "Fresh Mart",
+          "wait": 500
+        },
+        {
+          "expect": "return P.n('.yr-bead.dim') > 0 && P.n('.yr-bead:not(.dim)') < S.n"
+        }
+      ],
+      "bench": true
+    }
+  ]
+}
