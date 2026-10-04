@@ -379,3 +379,22 @@ test("copy helpers and a typical month", () => {
     ),
   );
 });
+
+test("a regular charge that stops becomes a question, as Worth a look's flags did", () => {
+  const state = shipped();
+  const latest = Object.values(state.batches).find(
+    (b) => b.account === "Demo Card" && b.periods[0] === "2026-08",
+  );
+  latest.rows = latest.rows.filter((r) => r.merchant !== "Lantern Stream");
+  const derived = derive(state);
+  assert.ok(derived.flags.some((f) => f.type === "gone"));
+  const stopped = findMoments(derived, state).find(
+    (m) => m.kind === "gap" && m.facts.stopped,
+  );
+  assert.equal(stopped.facts.merchant, "Lantern Stream");
+  assert.equal(kindLabel(stopped), "Stopped");
+  assert.equal(
+    questionText(stopped),
+    "Lantern Stream last appeared on 15 July 2026, and not in August 2026. Want to add a note?",
+  );
+});
