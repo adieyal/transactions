@@ -1,18 +1,13 @@
 import { toast } from "./dom.js";
 import { esc } from "../helpers.js";
-import {
-  parseTags,
-  restoreNotes,
-  retag,
-  tagsOf,
-} from "../transactions/tags.js";
+import { parseTags, tagsOf } from "../transactions/tags.js";
+import { tag } from "../model/index.js";
 
 export function createTags(runtime, actions) {
   const { state } = runtime;
   function bulkTag(ids, add = [], remove = []) {
-    const { notes, previous } = retag(state.notes, ids, add, remove);
-    const n = Object.keys(previous).length;
-    if (!n) {
+    const change = actions.commit(tag(state, { ids, add, remove }));
+    if (!change) {
       toast(
         add.length
           ? "They all have that tag already."
@@ -20,28 +15,13 @@ export function createTags(runtime, actions) {
       );
       return;
     }
-    state.notes = notes;
-    actions.save("notes");
-    actions.refresh();
-    const what = [
-      add.length ? `added ${add.join(" ")}` : "",
-      remove.length ? `removed ${remove.join(" ")}` : "",
-    ]
-      .filter(Boolean)
-      .join(", ");
-    toast(
-      `${what[0].toUpperCase() + what.slice(1)} on ${n} transaction${n > 1 ? "s" : ""}.`,
-      9000,
-      {
-        label: "Undo",
-        fn: () => {
-          state.notes = restoreNotes(state.notes, previous);
-          actions.save("notes");
-          actions.refresh();
-          toast("Tags put back as they were.");
-        },
+    toast(change.summary, 9000, {
+      label: "Undo",
+      fn: () => {
+        actions.undo(change);
+        toast("Tags put back as they were.");
       },
-    );
+    });
   }
 
   function tagToolsHTML(ids, key) {
@@ -91,7 +71,7 @@ export const contract = {
   name: "tags",
   create: createTags,
   provides: ["bulkTag", "parseTags", "tagToolsHTML", "wireTagTools"],
-  requires: ["refresh", "save"],
+  requires: ["commit", "undo"],
   renders: [],
   wires: [],
 };

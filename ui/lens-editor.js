@@ -12,6 +12,7 @@ import { linter, lintGutter } from "@codemirror/lint";
 import { tags } from "@lezer/highlight";
 import { debounce, esc } from "../helpers.js";
 import { $ } from "./dom.js";
+import { editLens } from "../model/index.js";
 import {
   ARRAY_METHODS,
   LIB_MEMBERS,
@@ -292,8 +293,8 @@ export function createLensEditor(runtime, actions) {
   const update = debounce(() => {
     const l = lens();
     if (!l) return;
-    l.code = view.state.doc.toString();
-    actions.save("lenses");
+    const code = view.state.doc.toString();
+    actions.commit(editLens(state, { id: l.id, code }), { refresh: "none" });
     renderPreview();
     actions.rerunLens(l.id);
   }, 250);
@@ -340,8 +341,8 @@ export function createLensEditor(runtime, actions) {
   function closeLensEditor() {
     const l = lens();
     if (l && view) {
-      l.code = view.state.doc.toString();
-      actions.save("lenses");
+      const code = view.state.doc.toString();
+      actions.commit(editLens(state, { id: l.id, code }), { refresh: "none" });
     }
     view?.destroy();
     view = null;
@@ -365,8 +366,8 @@ export function createLensEditor(runtime, actions) {
     $("#lensTitle").addEventListener("input", () => {
       const l = lens();
       if (!l) return;
-      l.title = $("#lensTitle").value.trim() || "Untitled lens";
-      actions.save("lenses");
+      const title = $("#lensTitle").value.trim() || "Untitled lens";
+      actions.commit(editLens(state, { id: l.id, title }), { refresh: "none" });
       actions.rerunLens(l.id);
     });
     $("#lensRef").addEventListener("click", (e) => {
@@ -384,7 +385,7 @@ export const contract = {
   name: "lens-editor",
   create: createLensEditor,
   provides: ["openLensEditor", "wireLensEditor"],
-  requires: ["redraw", "renderView", "rerunLens", "runLens", "save"],
+  requires: ["commit", "redraw", "renderView", "rerunLens", "runLens"],
   renders: [],
   wires: ["wireLensEditor"],
 };

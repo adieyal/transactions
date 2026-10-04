@@ -3,6 +3,7 @@ import { $, benchHidden, paneShown, toast } from "./dom.js";
 import { markdown } from "./markdown.js";
 import { coverageText } from "../assistant/prompts.js";
 import { latestPayment } from "../story/saved-question.js";
+import { addReport as add, removeReport } from "../model/index.js";
 
 export function createReports(runtime, actions) {
   const { state, caps } = runtime;
@@ -65,6 +66,8 @@ export function createReports(runtime, actions) {
           renderReports();
         },
       });
+      // A command may have replaced the saved list while this ran.
+      r = state.reports.find((x) => x.id === r.id) || r;
       r.answer = text;
       r.by = actions.AI();
       r.ranAt = runtime.today;
@@ -87,7 +90,7 @@ export function createReports(runtime, actions) {
 
   // open: false when saved from the year's Ask, which stays where it is.
   function addReport(q, answer, { open = true } = {}) {
-    state.reports.push({
+    const report = {
       id: "r" + Date.now().toString(36),
       q,
       answer: answer || "",
@@ -96,8 +99,8 @@ export function createReports(runtime, actions) {
       coverage: answer ? coverageText(runtime.derived) : "",
       by: answer ? actions.AI() : "",
       through: answer ? latestPayment(runtime.derived) : "",
-    });
-    actions.save("reports");
+    };
+    actions.commit(add(state, { report }), { refresh: "none" });
     if (open) actions.openTab("reports");
   }
 
@@ -120,15 +123,15 @@ export function createReports(runtime, actions) {
       }
       const rm = e.target.closest("[data-rmrep]");
       if (rm) {
-        const i = state.reports.findIndex((r) => r.id === rm.dataset.rmrep);
-        const [r] = state.reports.splice(i, 1);
-        actions.save("reports");
+        const change = actions.commit(
+          removeReport(state, { id: rm.dataset.rmrep }),
+          { refresh: "none" },
+        );
         renderReports();
-        toast("Report removed.", 9000, {
+        toast(change.summary, 9000, {
           label: "Undo",
           fn: () => {
-            state.reports.splice(i, 0, r);
-            actions.save("reports");
+            actions.undo(change, { refresh: "none" });
             renderReports();
           },
         });
@@ -184,11 +187,13 @@ export const contract = {
     "AI",
     "buildIntro",
     "callAssistant",
+    "commit",
     "noAssistant",
     "openTab",
     "sampleErr",
     "save",
     "select",
+    "undo",
   ],
   renders: ["renderReports"],
   wires: ["wireReports"],

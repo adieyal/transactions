@@ -9,18 +9,19 @@ import {
 } from "../helpers.js";
 import { $, benchHidden, toast } from "./dom.js";
 import { wireLinkedRefs } from "../components/linked-ref.js";
-import { addToThread as addLines } from "../transactions/rules-edit.js";
+import {
+  addToThread as addLines,
+  renameMerchant,
+  setNote,
+  setTransfer as transfer,
+} from "../model/index.js";
 
 export function createInspector(runtime, actions) {
   const { state, caps } = runtime;
   function setTransfer(id, on) {
     const t = runtime.derived.byId.get(id);
     const auto = !!t?.transfer && t.transfer.kind !== "manual";
-    if (on) state.transferOv[id] = true;
-    else state.transferOv[id] = false;
-    if (on && auto) delete state.transferOv[id];
-    actions.save("transfers");
-    actions.refresh();
+    actions.commit(transfer(state, { id, on, auto }));
   }
 
   function wireInspector() {
@@ -198,12 +199,10 @@ export function createInspector(runtime, actions) {
         actions.selectRuleLine(+e.currentTarget.dataset.line),
       );
       const setName = (v) => {
-        v = v.trim();
-        if (v && v !== (t.original || t.merchant))
-          state.names[nk] = { name: v, by: "you" };
-        else delete state.names[nk];
-        actions.save("names");
-        actions.refreshSoon();
+        const original = t.original || t.merchant;
+        actions.commit(renameMerchant(state, { key: nk, original, name: v }), {
+          refresh: "soon",
+        });
       };
       $("#nameBox")?.addEventListener("input", (e) => setName(e.target.value));
       $("#nameReset")?.addEventListener("click", () => {
@@ -212,11 +211,9 @@ export function createInspector(runtime, actions) {
       });
       if (realId)
         $("#noteBox").addEventListener("input", (e) => {
-          const v = e.target.value;
-          if (v.trim()) state.notes[realId] = v;
-          else delete state.notes[realId];
-          actions.save("notes");
-          actions.refreshSoon();
+          actions.commit(setNote(state, { id: realId, text: e.target.value }), {
+            refresh: "soon",
+          });
         });
     } else {
       const ts = ids.map((id) => runtime.derived.byId.get(id));
@@ -261,10 +258,12 @@ export function createInspector(runtime, actions) {
   }
 
   function addToThread(name, ts) {
-    const { rules, at, count } = addLines(state.rules, name, ts);
-    state.rules = rules;
+    const change = actions.commit(addLines(state, { name, txns: ts }), {
+      refresh: "none",
+    });
+    if (!change) return;
+    const { at, count } = change;
     state.previewRules = null;
-    actions.save("rules");
     state.selection.clear();
     actions.openTab("threads");
     actions.refresh();
@@ -302,15 +301,14 @@ export const contract = {
   provides: ["refreshInspector", "renderInspector", "wireInspector"],
   requires: [
     "addPeriod",
+    "commit",
     "highlight",
     "openPeriod",
     "openTab",
     "refresh",
-    "refreshSoon",
     "removeBatch",
     "renderPeriodInspector",
     "renderThreadInspector",
-    "save",
     "select",
     "selectRuleLine",
     "tagToolsHTML",

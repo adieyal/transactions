@@ -8,6 +8,7 @@ import {
   startDrag,
 } from "../transactions/period-drag.js";
 import { periodLanes } from "../transactions/period-lanes.js";
+import { editPeriod } from "../model/index.js";
 import { subscribeWhileConnected } from "./base.js";
 import { refIds, togglePin, wireLinkedRefs } from "./linked-ref.js";
 
@@ -293,9 +294,12 @@ export function createPeriodStrip(runtime, actions) {
             drag = null;
             if (!d.moved) return;
             dragged = true;
-            if (!keep) [d.p.start, d.p.end] = [d.start, d.end];
-            else actions.save("periods");
-            actions.refresh();
+            // The drag moved the period live; the command records it from
+            // where it started.
+            const to = { start: d.p.start, end: d.p.end };
+            [d.p.start, d.p.end] = [d.start, d.end];
+            if (keep) actions.commit(editPeriod(state, { id: d.p.id, ...to }));
+            else actions.refresh();
           };
           this.addEventListener("pointerup", (e) => finish(e, true));
           this.addEventListener("pointercancel", (e) => finish(e, false));
@@ -307,15 +311,11 @@ export function createPeriodStrip(runtime, actions) {
             if (chip && /^Arrow(Left|Right)$/.test(e.key)) {
               const p = periodOf(chip.dataset.period);
               if (!p) return;
-              Object.assign(
-                p,
-                nudge(p, e.key === "ArrowLeft" ? -1 : 1, e.shiftKey),
-              );
+              const to = nudge(p, e.key === "ArrowLeft" ? -1 : 1, e.shiftKey);
               e.preventDefault();
               e.stopPropagation();
               refocus = p.id;
-              actions.save("periods");
-              actions.refresh();
+              actions.commit(editPeriod(state, { id: p.id, ...to }));
             } else if (e.key === "Escape" && this.querySelector(".cv-pedit")) {
               const id = this.querySelector(".cv-pedit").dataset.pid;
               this.closeCard();
@@ -348,10 +348,9 @@ export function createPeriodStrip(runtime, actions) {
             if (!p) return this.closeCard();
             if (e.target.closest("[data-pedit-save]")) {
               const name = card.querySelector("#cv-pname").value.trim();
-              if (name) p.name = name;
               this.closeCard();
-              actions.save("periods");
-              actions.refresh();
+              if (name) actions.commit(editPeriod(state, { id: p.id, name }));
+              else actions.refresh();
             } else if (e.target.closest("[data-pedit-delete]")) {
               this.closeCard();
               actions.removePeriod(p.id);
@@ -415,7 +414,7 @@ export const contract = {
   name: "tx-period-strip",
   create: createPeriodStrip,
   provides: ["definePeriodStrip"],
-  requires: ["refresh", "removePeriod", "save"],
+  requires: ["commit", "refresh", "removePeriod"],
   renders: [],
   wires: ["definePeriodStrip"],
 };

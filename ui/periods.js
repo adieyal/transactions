@@ -1,6 +1,10 @@
 import { esc, fmt, fmtByCurrency } from "../helpers.js";
 import { $, html, toast } from "./dom.js";
-import { PALETTE } from "../transactions/constants.js";
+import {
+  addPeriod as add,
+  editPeriod,
+  removePeriod as remove,
+} from "../model/index.js";
 import { periodStats as statsFor } from "../transactions/period-stats.js";
 import { periodNotes, summarizePeriod } from "../story/period-story.js";
 import { dayShort } from "../story/copy.js";
@@ -78,36 +82,28 @@ export function createPeriods(runtime, actions) {
       ${notesHTML(p)}
       <div class="row-actions"><button class="btn small quiet" id="pFilter">Show only this period</button><button class="btn small quiet" id="pRemove">Remove period</button></div>
     </div></div>`;
-    const upd = () => {
-      actions.save("periods");
-      actions.refreshSoon();
-    };
-    $("#pName").addEventListener("input", (e) => {
-      p.name = e.target.value.trim() || "Untitled period";
-      upd();
-    });
+    // Each edit is a command on the period as it is now, not as drawn.
+    const now = () => state.periods.find((q) => q.id === p.id) || p;
+    const edit = (fields, refresh = "soon") =>
+      actions.commit(editPeriod(state, { id: p.id, ...fields }), { refresh });
+    $("#pName").addEventListener("input", (e) =>
+      edit({ name: e.target.value.trim() || "Untitled period" }),
+    );
     $("#pStart").addEventListener("change", (e) => {
-      if (e.target.value) {
-        p.start = e.target.value;
-        if (p.end < p.start) p.end = p.start;
-        upd();
-        actions.refresh();
-      }
+      const start = e.target.value;
+      if (start)
+        edit({ start, end: now().end < start ? start : now().end }, "now");
     });
     $("#pEnd").addEventListener("change", (e) => {
-      if (e.target.value) {
-        p.end = e.target.value;
-        if (p.end < p.start) p.start = p.end;
-        upd();
-        actions.refresh();
-      }
+      const end = e.target.value;
+      if (end)
+        edit({ end, start: end < now().start ? end : now().start }, "now");
     });
-    $("#pStory")?.addEventListener("input", (e) => {
-      p.story = e.target.value;
-      actions.save("periods");
-    });
+    $("#pStory")?.addEventListener("input", (e) =>
+      edit({ story: e.target.value }, "none"),
+    );
     $("#pStory")?.addEventListener("blur", () => {
-      if (p.story) {
+      if (now().story) {
         state.storyEdit = null;
         actions.refresh();
       }
@@ -178,23 +174,18 @@ A typical month for them, by thread: ${Object.entries(typical)
 Statement months available: ${coverageText(runtime.derived)}.
 
 Write 80 to 180 words in the first person, as the person's own plain notes: what was going on, what the money went on, anything unusual compared with a typical month. Not everything in the dates belongs to this period, so leave out charges that are clearly routine. Stay with what the data and their notes support; don't invent reasons. Cite up to 6 specific transactions inline as [[id]]. Reply with only the story text.`;
-    const before = p.story;
     try {
       const r = await caps.sample(input, {
         modelTier: "default",
         cache: false,
       });
-      p.story = r.text.trim();
       state.storyEdit = null;
-      actions.save("periods");
-      actions.refresh();
+      const change = actions.commit(
+        editPeriod(state, { id: p.id, story: r.text.trim() }),
+      );
       toast("Story drafted. Edit it however you like.", 9000, {
         label: "Undo",
-        fn: () => {
-          p.story = before;
-          actions.save("periods");
-          actions.refresh();
-        },
+        fn: () => actions.undo(change),
       });
     } catch (e) {
       if ($("#pNote")) $("#pNote").textContent = actions.sampleErr(e);
@@ -203,19 +194,14 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
   }
 
   function removePeriod(id) {
-    const i = state.periods.findIndex((q) => q.id === id);
-    if (i < 0) return;
-    const [p] = state.periods.splice(i, 1);
+    if (!state.periods.some((q) => q.id === id)) return;
     if (state.periodSel === id) state.periodSel = null;
-    actions.save("periods");
-    actions.refresh();
-    toast(`Removed “${p.name}”.`, 9000, {
+    const change = actions.commit(remove(state, { id }));
+    toast(change.summary, 9000, {
       label: "Undo",
       fn: () => {
-        state.periods.splice(i, 0, p);
-        state.periodSel = p.id;
-        actions.save("periods");
-        actions.refresh();
+        state.periodSel = id;
+        actions.undo(change);
       },
     });
   }
@@ -223,20 +209,12 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
   // Adds a period. Without a name it opens with "New period" selected, ready
   // to type over; with one (from an answered question) it is saved as is.
   function addPeriod(start, end, { name = "", story = "" } = {}) {
-    const p = {
-      id: "p" + Date.now().toString(36),
-      name: name || "New period",
-      start,
-      end,
-      story,
-      color: PALETTE[(state.periods.length + 3) % PALETTE.length],
-    };
-    state.periods.push(p);
+    const id = "p" + Date.now().toString(36);
     state.selection.clear();
     state.statement = null;
-    if (!name) state.periodSel = p.id;
-    actions.save("periods");
-    actions.refresh();
+    if (!name) state.periodSel = id;
+    actions.commit(add(state, { id, name, start, end, story }));
+    const p = state.periods.find((q) => q.id === id);
     const n = !name && $("#pName");
     if (n) {
       n.focus();
@@ -265,7 +243,7 @@ export const contract = {
     "removePeriod",
     "renderPeriodInspector",
   ],
-  requires: ["AI", "refresh", "refreshSoon", "sampleErr", "save"],
+  requires: ["AI", "commit", "refresh", "sampleErr", "undo"],
   renders: [],
   wires: [],
 };

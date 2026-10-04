@@ -28,12 +28,15 @@ const LAYERS = {
   "backup.js": "persistence",
   "persistence.js": "persistence",
   "storage.js": "persistence",
+  // The model (ADR 0013): saved state's commands and their change records.
+  "model/": "model",
   "assistant.js": "platform",
   "downloads.js": "platform",
   "files.js": "platform",
   "state.js": "app",
   "registry.js": "app",
   "store.js": "app",
+  "changes.js": "app",
   // A UI factory at the root until R4 splits its prompts from its handlers.
   "suggestions.js": "ui",
   "ui/": "ui",
@@ -46,12 +49,13 @@ const RANK = {
   core: 0,
   domain: 1,
   persistence: 2,
+  model: 2,
   platform: 2,
   app: 3,
   ui: 4,
   entry: 5,
 };
-const PURE = new Set(["core", "domain"]);
+const PURE = new Set(["core", "domain", "model"]);
 
 // The largest group of modules that all reach each other through actions
 // (review finding 1). It may only shrink: lower this when it does.
@@ -139,6 +143,56 @@ const REACH_ALLOW = [
   { v: "ui/dom.js reaches outside itself", fix: "R15" },
 ];
 
+// Saved state changes only through the model's commands (ADR 0013): no
+// assignment, push, splice or delete on a saved field anywhere else. The
+// fields are those in model/change.js KEY_OF, plus the answers the model
+// doesn't cover yet. Each entry counts the writes left in one file.
+const SAVED_FIELDS =
+  "notes|names|transferOv|rules|periods|lenses|reports|answers|merchantAnswers";
+const SAVED_WRITE = new RegExp(
+  `\\bstate\\.(?:${SAVED_FIELDS})\\b\\s*(?:\\[[^\\]\\n]*\\]\\s*)?(?:=(?!=)|\\.(?:push|splice|unshift|pop|shift)\\()|\\bdelete\\s+(?:runtime\\.)?state\\.(?:${SAVED_FIELDS})\\b`,
+  "g",
+);
+// Where saved state may still be written: the model, and loading and
+// restoring documents, which set whole fields by key.
+const SAVED_WRITERS = ["model/", "documents.js", "backup.js", "main.js"];
+const SAVED_WRITE_ALLOW = [
+  // C2 (one chat with full access): the chat's tools call the commands, and
+  // the year's Ask with its question removal goes.
+  { v: "ui/chat.js writes saved state 8 times", fix: "C2" },
+  { v: "components/tx-year-ask.js writes saved state 1 time", fix: "C2" },
+  // C4 (converge the rest, audit plan 4-7): the bench rewrites and saved
+  // suggestions are deleted; question answers get commands.
+  { v: "components/tx-year-bench.js writes saved state 9 times", fix: "C4" },
+  { v: "components/tx-year-saved.js writes saved state 2 times", fix: "C4" },
+  { v: "ui/questions.js writes saved state 4 times", fix: "C4" },
+  { v: "components/tx-one-month.js writes saved state 1 time", fix: "C4" },
+  { v: "components/tx-year.js writes saved state 1 time", fix: "C4" },
+];
+
+// UI renders and wires; it doesn't compute over money (ADR 0013). Measured as:
+// no reduce that sums .amount, and no filter, sort or reduce over a list of
+// transactions (txns, allTxns, derived.txns, derived.expected) in ui/ or
+// components/. Each entry counts what is left in one file.
+const UI_LOGIC = [
+  /\.reduce\(\s*\(?[^)]*\)?\s*=>[^;]*?\.amount\b/g,
+  /\b(?:derived\.(?:txns|allTxns|expected)|txns|allTxns)\s*\.\s*(?:filter|sort|reduce)\(/g,
+];
+const UI_LOGIC_ALLOW = [
+  // C4: the period inspector, the tour, the bench and the year band's rows
+  // take their figures from story/ and transactions/.
+  { v: "ui/periods.js computes over transactions 1 time", fix: "C4" },
+  { v: "ui/tour.js computes over transactions 2 times", fix: "C4" },
+  {
+    v: "components/tx-year-band.js computes over transactions 8 times",
+    fix: "C4",
+  },
+  {
+    v: "components/tx-year-bench.js computes over transactions 1 time",
+    fix: "C4",
+  },
+];
+
 // Lines per module: warn above SIZE_WARN, fail above SIZE_FAIL.
 const SIZE_WARN = 400;
 const SIZE_FAIL = 700;
@@ -154,6 +208,7 @@ function sourceFiles() {
     "transactions",
     "story",
     "assistant",
+    "model",
     "ui",
     "components",
     "scripts",
@@ -774,4 +829,50 @@ test("every ADR is linked from docs/architecture.md", () => {
     .filter((f) => !plan.includes(`adr/${f}`));
   assert.deepEqual(missing, []);
   assert.ok(plan.includes("`story/currency.js`"));
+});
+
+// ---- The model (ADR 0013) ---------------------------------------------------
+
+const times = (n) => `${n} time${n > 1 ? "s" : ""}`;
+
+test("saved state changes only through the model's commands", () => {
+  const found = [];
+  for (const file of FILES) {
+    if (SAVED_WRITERS.some((w) => file.startsWith(w))) continue;
+    const n = (CODE[file].match(SAVED_WRITE) || []).length;
+    if (n) found.push(`${file} writes saved state ${times(n)}`);
+  }
+  expectAllowlist("Saved-state writes", found, SAVED_WRITE_ALLOW);
+});
+
+test("ui and components hold no business logic", () => {
+  const found = [];
+  for (const file of FILES.filter((f) => layerOf(f) === "ui")) {
+    const n = UI_LOGIC.reduce(
+      (a, re) => a + (CODE[file].match(re) || []).length,
+      0,
+    );
+    if (n) found.push(`${file} computes over transactions ${times(n)}`);
+  }
+  expectAllowlist("Business logic in the UI", found, UI_LOGIC_ALLOW);
+});
+
+test("the model imports only the model, the domain and the core", () => {
+  const bad = [];
+  for (const file of FILES.filter((f) => layerOf(f) === "model"))
+    for (const dep of importsOf(file))
+      if (!["model", "domain", "core"].includes(layerOf(dep)))
+        bad.push(`${file} imports ${dep}`);
+  assert.deepEqual(bad, []);
+});
+
+test("the model's saved fields are the saved documents' fields", async () => {
+  const { KEY_OF } = await import(
+    pathToFileURL(path.join(root, "model/change.js"))
+  );
+  const { documentFor } = await import(
+    pathToFileURL(path.join(root, "documents.js"))
+  );
+  for (const [field, key] of Object.entries(KEY_OF))
+    assert.equal(documentFor(key).field, field, `${field} is saved as ${key}`);
 });

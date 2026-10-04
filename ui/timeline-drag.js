@@ -1,5 +1,6 @@
 import { fmt } from "../helpers.js";
 import { dragTo, startDrag } from "../transactions/period-drag.js";
+import { editPeriod } from "../model/index.js";
 import { $, toast } from "./dom.js";
 import { isoFromMs, niceBudget } from "./timeline-layout.js";
 
@@ -149,8 +150,12 @@ export function wireTimelineDrag(host, runtime, actions, ctx) {
     if (md0.kind === "move" || md0.kind === "resize") {
       if (md0.moved) {
         state.periodSel = md0.id;
-        actions.save("periods");
-        actions.refresh();
+        // The drag moved the period live; the command records it from where
+        // it started.
+        const p = state.periods.find((q) => q.id === md0.id);
+        const to = { start: p.start, end: p.end };
+        Object.assign(p, { start: md0.start, end: md0.end });
+        actions.commit(editPeriod(state, { id: md0.id, ...to }));
       } else {
         state.periodSel = state.periodSel === md0.id ? null : md0.id;
         state.selection.clear();

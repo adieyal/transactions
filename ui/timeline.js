@@ -16,7 +16,8 @@ import { layoutTimeline, niceBudget } from "./timeline-layout.js";
 import { wireTimelineDrag } from "./timeline-drag.js";
 import { describeTransfer, showBeadTip } from "./timeline-text.js";
 import { $, benchHidden, html, toast } from "./dom.js";
-import { setBudget as setThreadBudget } from "../transactions/rules-edit.js";
+import { setBudget as budget } from "../model/index.js";
+import { monthlyAverage } from "../transactions/budgets.js";
 import { name as bidi } from "../story/copy.js";
 import { waitingForCurrency } from "../story/currency.js";
 import {
@@ -249,25 +250,18 @@ export function createTimeline(runtime, actions) {
     name,
     hint = "Drag the handle on the right to change it.",
   ) {
-    const ts = runtime.derived.allTxns.filter(
-      (t) => t.thread === name && t.amount > 0,
-    );
-    const months = new Set(
-      Object.values(runtime.derived.coverage).flatMap((set) => [...set]),
-    );
-    const avg = ts.reduce((a, t) => a + t.amount, 0) / Math.max(1, months.size);
+    const avg = monthlyAverage(runtime.derived, name);
     setBudget(name, niceBudget(avg) || 500);
     toast(`Budget line added at about your monthly average. ${hint}`);
   }
 
   function removeBudget(name) {
     const th = runtime.derived.R.threads.find((t) => t.name === name);
-    if (!th?.budget || state.previewRules != null) return setBudget(name, 0);
-    const was = th.budget;
-    setBudget(name, 0);
+    const change = setBudget(name, 0);
+    if (!th?.budget || !change) return;
     toast(`Removed the budget for ${name}.`, 9000, {
       label: "Undo",
-      fn: () => setBudget(name, was),
+      fn: () => actions.undo(change),
     });
   }
 
@@ -278,11 +272,8 @@ export function createTimeline(runtime, actions) {
       );
       return;
     }
-    const rules = setThreadBudget(state.rules, name, value);
-    if (rules === state.rules) return;
-    state.rules = rules;
-    actions.save("rules");
-    actions.refresh();
+    if (!runtime.derived.R.threads.some((t) => t.name === name)) return null;
+    return actions.commit(budget(state, { thread: name, value }));
   }
 
   // The period band under a point, and which side if it is on an edge.
@@ -558,7 +549,15 @@ export const contract = {
     "wireParkbar",
     "wireTimeline",
   ],
-  requires: ["addPeriod", "askCurrencies", "refresh", "removePeriod", "save"],
+  requires: [
+    "addPeriod",
+    "askCurrencies",
+    "commit",
+    "refresh",
+    "removePeriod",
+    "save",
+    "undo",
+  ],
   renders: ["renderParkbar", "renderTimeline"],
   wires: ["wireTimeline", "wireParkbar"],
 };

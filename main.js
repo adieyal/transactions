@@ -7,6 +7,7 @@ import { toast } from "./ui/dom.js";
 import { createRuntime } from "./state.js";
 import { deriveTransactions } from "./transactions/derive.js";
 import { contract as persistence } from "./persistence.js";
+import { createChanges } from "./changes.js";
 import { documentFor, loadDocuments, toDocument } from "./documents.js";
 import { createRegistry } from "./registry.js";
 import { contract as filter } from "./ui/filter.js";
@@ -66,7 +67,17 @@ const MODULES = [
   txOneMonth,
   txYear,
 ];
+// Model commands' records are applied, saved and undone here (ADR 0013).
+// Provided by main rather than registered, so it adds no module to the
+// cycles counted in tests/architecture.test.js.
+const changes = createChanges(runtime, {
+  save: (...keys) => actions.save(...keys),
+  refresh: () => refresh(),
+  refreshSoon: () => actions.refreshSoon(),
+});
 const registry = createRegistry(runtime, MODULES, {
+  commit: changes.commit,
+  undo: changes.undo,
   derive() {
     runtime.derived = deriveTransactions(runtime.state, {
       today: runtime.today,

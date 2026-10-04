@@ -2,7 +2,12 @@ import { debounce, esc, fmt, monthName } from "../helpers.js";
 import { $, benchHidden, html, paneShown, toast } from "./dom.js";
 import { lensInput, viewProblem } from "../lens-api.js";
 import { newLensSandbox } from "./lens-sandbox.js";
-import { STARTER_LENSES } from "../defaults.js";
+import {
+  addLens,
+  editLens,
+  removeLens,
+  restoreStarterLenses as restore,
+} from "../model/index.js";
 
 export function createLenses(runtime, actions) {
   const { state, caps } = runtime;
@@ -87,8 +92,7 @@ export function createLenses(runtime, actions) {
       if (d) {
         const l = state.lenses.find((x) => x.id === d.dataset.del);
         if (!confirm(`Remove “${l.title}”?`)) return;
-        state.lenses = state.lenses.filter((x) => x !== l);
-        actions.save("lenses");
+        actions.commit(removeLens(state, { id: l.id }), { refresh: "none" });
         renderLenses();
         return;
       }
@@ -111,9 +115,14 @@ export function createLenses(runtime, actions) {
             error: err,
             change: brief,
           });
-          l.code = r.code;
-          if (r.title && !brief) l.title = l.title || r.title;
-          actions.save("lenses");
+          actions.commit(
+            editLens(state, {
+              id: l.id,
+              code: r.code,
+              title: r.title && !brief ? l.title || r.title : undefined,
+            }),
+            { refresh: "none" },
+          );
         } catch (e) {
           toast(actions.sampleErr(e));
         }
@@ -136,13 +145,12 @@ export function createLenses(runtime, actions) {
           actions.AI() + " is writing it. This can take up to a minute.";
         try {
           const r = await actions.writeLens(brief);
-          const l = {
+          const lens = {
             id: "l" + Date.now().toString(36),
             title: r.title || brief.slice(0, 40),
             code: r.code,
           };
-          state.lenses.push(l);
-          actions.save("lenses");
+          actions.commit(addLens(state, lens), { refresh: "none" });
           renderLenses();
         } catch (e) {
           $("#lensNote").textContent = actions.sampleErr(e);
@@ -160,9 +168,10 @@ export function createLenses(runtime, actions) {
     el.addEventListener("input", (ev) => {
       const t = ev.target.closest("[data-title]");
       if (t) {
-        const l = state.lenses.find((x) => x.id === t.dataset.title);
-        l.title = t.textContent.trim() || "Untitled lens";
-        actions.save("lenses");
+        const title = t.textContent.trim() || "Untitled lens";
+        actions.commit(editLens(state, { id: t.dataset.title, title }), {
+          refresh: "none",
+        });
       }
     });
   }
@@ -182,8 +191,7 @@ export function createLenses(runtime, actions) {
       title: "Untitled lens",
       code: `// txns: your transactions. lib: sum, groupBy, month, fmt, expected, threads.\nreturn { kind: "number", value: lib.sum(txns, t => t.amount), label: "Everything on your statements" };`,
     };
-    state.lenses.push(l);
-    actions.save("lenses");
+    actions.commit(addLens(state, l), { refresh: "none" });
     renderLenses();
     actions.refresh();
     actions.openLensEditor(l.id);
@@ -191,11 +199,8 @@ export function createLenses(runtime, actions) {
 
   // Puts back any starter lens that was removed; the person's own stay.
   function restoreStarterLenses() {
-    const have = new Set(state.lenses.map((l) => l.id));
-    const missing = STARTER_LENSES.filter((l) => !have.has(l.id));
-    if (!missing.length) return toast("The starter lenses are all here.");
-    state.lenses = [...state.lenses, ...missing.map((l) => ({ ...l }))];
-    actions.save("lenses");
+    const change = actions.commit(restore(state), { refresh: "none" });
+    if (!change) return toast("The starter lenses are all here.");
     renderLenses();
     actions.refresh();
   }
@@ -226,9 +231,9 @@ export const contract = {
   requires: [
     "AI",
     "openLensEditor",
+    "commit",
     "refresh",
     "sampleErr",
-    "save",
     "writeLens",
   ],
   renders: ["renderLenses"],

@@ -2,6 +2,7 @@ import { createBackup } from "../backup.js";
 import { debounce } from "../helpers.js";
 import { $, html, toast } from "./dom.js";
 import { OTHER_LENSES, STARTER_LENSES } from "../defaults.js";
+import { restoreStarterLenses, setRules } from "../model/index.js";
 import { coveredMonths } from "../story/moment-kit.js";
 
 export function createChrome(runtime, actions) {
@@ -163,9 +164,7 @@ export function createChrome(runtime, actions) {
     const ta = $("#rules");
     ta.addEventListener("input", () => {
       if (state.previewRules != null) return;
-      state.rules = ta.value;
-      actions.save("rules");
-      actions.refresh();
+      actions.commit(setRules(state, { rules: ta.value }));
       actions.caretHighlight();
     });
     ta.addEventListener("scroll", actions.syncGutter);
@@ -188,10 +187,9 @@ export function createChrome(runtime, actions) {
     });
     $("#suggestBtn").onclick = actions.suggestThreads;
     $("#keepPreview").onclick = () => {
-      state.rules = state.previewRules;
+      const rules = state.previewRules;
       state.previewRules = null;
-      actions.save("rules");
-      actions.refresh();
+      actions.commit(setRules(state, { rules }));
       toast("Threads updated. Edit them any time.");
     };
     $("#dropPreview").onclick = () => {
@@ -245,12 +243,11 @@ export function createChrome(runtime, actions) {
         return;
       }
       if (act === "reset-lenses") {
-        const have = new Set(state.lenses.map((l) => l.id));
         // The drawn starters, and the app's other own lens.
-        [...STARTER_LENSES, ...OTHER_LENSES].forEach((l) => {
-          if (!have.has(l.id)) state.lenses.push({ ...l });
+        const lenses = [...STARTER_LENSES, ...OTHER_LENSES];
+        actions.commit(restoreStarterLenses(state, { lenses }), {
+          refresh: "none",
         });
-        actions.save("lenses");
         actions.redraw();
         return;
       }
@@ -318,6 +315,7 @@ export const contract = {
     "AI",
     "caretHighlight",
     "clearFocus",
+    "commit",
     "highlight",
     "importFiles",
     "openAISettings",
