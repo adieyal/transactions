@@ -43,7 +43,7 @@ export function suggestionHTML(sg, byId, done) {
   return `<div class="yr-suggest">
     <div class="yr-suggestlabel">Suggested change · nothing changes until you apply it</div>
     <p>Add <b>${esc(tags)}</b> to <span class="sp" tabindex="0" data-ids="${esc(sg.txnIds.join(","))}">${esc(plain(suggestionWhat(sg, byId)))}</span>.</p>
-    <div class="yr-chips"><button class="yr-dark small" data-suggest-apply="${key}">Apply</button><button class="yr-small" data-suggest-discard="${key}">Discard</button></div>
+    <div class="yr-chips"><button class="bn-dark" data-suggest-apply="${key}">Apply</button><button class="bn-small" data-suggest-discard="${key}">Discard</button></div>
   </div>`;
 }
 
@@ -60,14 +60,14 @@ export function savedHTML(r, story, { canRun, since, byId, suggested }) {
     <div class="yr-side top">A saved question</div>
     <div class="yr-col-story">
       <h1 class="yr-qh1" dir="auto">${esc(r.q)}</h1>
-      <div class="yr-runrow"><span>${esc(ran)}</span>${canRun && !r.running ? `<button class="yr-small" data-run-question="${esc(r.id)}">Run again</button>` : ""}</div>
+      <div class="yr-runrow"><span>${esc(ran)}</span>${canRun && !r.running ? `<button class="bn-small" data-run-question="${esc(r.id)}">Run again</button>` : ""}</div>
       ${since && !r.running ? `<p role="status" class="yr-since">${esc(plain(since))}</p>` : ""}
       ${r.error ? `<p class="yr-fine">${esc(r.error)}</p>` : ""}
       ${r.answer ? answerHTML(story) : ""}
       ${receipts}
       ${r.answer ? suggestionHTML(story.suggestion, byId, story.suggestion && suggested?.(story.suggestion)) : ""}
       ${r.answer && r.by ? `<p class="yr-answered">Answered by ${esc(r.by)}${story.checked ? ` · ${CHECKED}` : ""}</p>` : ""}
-      <div class="yr-chips"><button class="yr-small" data-change-question="${esc(r.id)}">Change the question</button><button class="yr-small" data-remove-question="${esc(r.id)}">Remove</button></div>
+      <div class="yr-chips"><button class="bn-small" data-change-question="${esc(r.id)}">Change the question</button><button class="bn-small" data-remove-question="${esc(r.id)}">Remove</button></div>
     </div>
   </div>`;
 }
