@@ -48,13 +48,20 @@ const STARTER_LENSES = [
     id: "l-where",
     title: "Where it went, by thread",
     code: `// Money out per thread, largest first. Click a bar to light up its beads.
+// Each currency is added up on its own.
 const out = txns.filter(t => t.amount > 0);
-const g = lib.groupBy(out, t => t.thread);
+const several = lib.currencies.length > 1;
+const g = lib.groupBy(out, t => t.thread + "|" + t.currency);
 return {
   kind: "bars",
-  items: Object.entries(g)
-    .map(([name, ts]) => ({ label: name, value: lib.sum(ts, t => t.amount), ids: ts.map(t => t.id) }))
-    .sort((a, b) => b.value - a.value)
+  items: Object.values(g)
+    .map(ts => ({
+      label: several ? ts[0].thread + " (" + ts[0].currency + ")" : ts[0].thread,
+      value: lib.sum(ts, t => t.amount),
+      currency: ts[0].currency,
+      ids: ts.map(t => t.id)
+    }))
+    .sort((a, b) => a.currency.localeCompare(b.currency) || b.value - a.value)
 };`,
   },
   {
@@ -62,13 +69,16 @@ return {
     title: "Already spoken for",
     code: `// What's expected in the coming months: recurring charges
 // that showed up in your latest statement, plus instalments still to run.
-const g = lib.groupBy(lib.expected, t => lib.month(t.date));
+// Each currency is added up on its own.
+const several = lib.currencies.length > 1;
+const g = lib.groupBy(lib.expected, t => lib.month(t.date) + "|" + t.currency);
 return {
   kind: "bars",
-  items: Object.keys(g).sort().map(m => ({
-    label: m,
-    value: lib.sum(g[m], t => t.amount),
-    ids: g[m].map(t => t.id)
+  items: Object.keys(g).sort().map(k => ({
+    label: several ? k.replace("|", " ") : k.split("|")[0],
+    value: lib.sum(g[k], t => t.amount),
+    currency: g[k][0].currency,
+    ids: g[k].map(t => t.id)
   }))
 };`,
   },
@@ -84,7 +94,7 @@ const rows = Object.values(g)
 return {
   kind: "table",
   columns: ["Merchant", "Seen", "Latest"],
-  rows: rows.map(ts => [ts.at(-1).merchant, ts.length + "×", lib.fmt(ts.at(-1).amount)]),
+  rows: rows.map(ts => [ts.at(-1).merchant, ts.length + "×", lib.fmt(ts.at(-1).amount, ts.at(-1).currency)]),
   rowIds: rows.map(ts => ts.map(t => t.id))
 };`,
   },

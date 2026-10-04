@@ -1,9 +1,12 @@
-import { BIDI, fnv, monthOf, pad2 } from "../helpers.js";
+import { BIDI, fnv, isCurrency, monthOf, pad2 } from "../helpers.js";
 import { HE_MONTHS, INST_RE, parseAmount, parseDateCell } from "./parse.js";
 
 // A Leumi card statement saved as a web page, from its table rows (see
 // tableRows in files.js): { nested, text } for a row wrapping other tables,
 // { cells } for the rest. Returns a batch, or null when it isn't one.
+// The Israeli card format's amounts are in shekels.
+const LEUMI_CURRENCY = "ILS";
+
 function parseLeumiRows(tableRows, file) {
   if (!tableRows.some((r) => r.cells?.includes("תאריך העסקה"))) return null;
   const rows = [];
@@ -97,7 +100,11 @@ function parseLeumiRows(tableRows, file) {
       date: r.date,
       chargeDate: inst ? `${period}-10` : r.date,
       merchant: r.merchant,
-      orig: o ? { amount: o.amount, currency: o.currency || "ILS" } : null,
+      currency: LEUMI_CURRENCY,
+      // The format's original-amount column without a symbol is in shekels.
+      orig: o
+        ? { amount: o.amount, currency: o.currency || LEUMI_CURRENCY }
+        : null,
       type: r.type,
       details: r.details,
       amount: r.amount,
@@ -106,7 +113,14 @@ function parseLeumiRows(tableRows, file) {
       file,
     };
   });
-  return { kind: "leumi", account, periods: [period], file, rows: out };
+  return {
+    kind: "leumi",
+    currency: LEUMI_CURRENCY,
+    account,
+    periods: [period],
+    file,
+    rows: out,
+  };
 }
 
 // A generic table from a web page: the rows that aren't wrappers, without
@@ -183,6 +197,51 @@ function guessHeaderRow(m) {
   return 0;
 }
 
+// A row's currency: from the currency column when it holds an ISO code or a
+// symbol, otherwise the one the file was found or said to be in.
+function rowCurrency(row, map) {
+  if (map.currencyColumn != null) {
+    const c = currencyIn(row[map.currencyColumn]);
+    if (c) return c;
+  }
+  return map.currency || null;
+}
+
+// The currency a cell names: an ISO code ("EUR") or a symbol ("€12.50").
+function currencyIn(cell) {
+  const s = String(cell ?? "").replace(BIDI, "");
+  const code = s
+    .toUpperCase()
+    .match(/\b[A-Z]{3}\b/g)
+    ?.find(isCurrency);
+  return code || parseAmount(s)?.currency || symbolOnly(s);
+}
+const symbolOnly = (s) => parseAmount(s + "1")?.currency || null;
+
+// The one currency a statement file shows, or null when it shows none or
+// several: a currency column, ISO codes or symbols in the heading or the
+// money columns.
+function detectCurrency(matrix, map) {
+  const found = new Set();
+  const cols = [map.amount, map.debit, map.credit, map.currencyColumn].filter(
+    (c) => c != null && c !== "",
+  );
+  const head = matrix[map.headerRow ?? 0] || [];
+  for (const c of cols) {
+    const h = String(head[c] ?? "").replace(BIDI, "");
+    const fromHead = currencyIn(h.replace(/\b(amount|debit|credit)\b/gi, ""));
+    if (fromHead) found.add(fromHead);
+  }
+  for (let r = (map.headerRow ?? 0) + 1; r < matrix.length; r++)
+    for (const c of cols) {
+      const v = matrix[r]?.[c];
+      const cur =
+        c === map.currencyColumn ? currencyIn(v) : parseAmount(v)?.currency;
+      if (cur) found.add(cur);
+    }
+  return found.size === 1 ? [...found][0] : null;
+}
+
 function applyMapping(matrix, map, file) {
   const out = [];
   const occ = {};
@@ -206,6 +265,8 @@ function applyMapping(matrix, map, file) {
     const merchant = String(row[map.merchant] ?? "")
       .replace(BIDI, "")
       .trim();
+    const currency = rowCurrency(row, map);
+    if (!currency) continue;
     const o = map.orig != null ? parseAmount(row[map.orig]) : null;
     const details =
       map.details != null ? String(row[map.details] ?? "").trim() : "";
@@ -220,7 +281,9 @@ function applyMapping(matrix, map, file) {
       date,
       chargeDate: inst ? `${monthOf(date)}-10` : date,
       merchant,
-      orig: o ? { amount: o.amount, currency: o.currency || "ILS" } : null,
+      currency,
+      // An original amount is kept only when it says its currency.
+      orig: o?.currency ? { amount: o.amount, currency: o.currency } : null,
       type: map.type != null ? String(row[map.type] ?? "").trim() : "",
       details,
       amount,
@@ -229,8 +292,10 @@ function applyMapping(matrix, map, file) {
       file,
     });
   }
+  const currencies = [...new Set(out.map((r) => r.currency))];
   return {
     kind: "generic",
+    currency: currencies.length === 1 ? currencies[0] : null,
     account,
     periods: [...new Set(out.map((r) => r.period))].sort(),
     file,
@@ -238,6 +303,8 @@ function applyMapping(matrix, map, file) {
   };
 }
 export {
+  currencyIn,
+  detectCurrency,
   applyMapping,
   csvMatrix,
   decodeText,

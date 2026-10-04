@@ -74,7 +74,7 @@ export function createTour(runtime, actions) {
       },
       !state.answers[move.id] && {
         title: "The app asks, so you don't have to",
-        body: `${money(move.facts.total)} went out in one week in ${M}, so the app asks about it. Answer if you like: pick an option, name it yourself, write a note or skip. Only you see your answer. Press Next and the tour will answer “Moving house” for you.`,
+        body: `${money(move.facts.total, move.currency)} went out in one week in ${M}, so the app asks about it. Answer if you like: pick an option, name it yourself, write a note or skip. Only you see your answer. Press Next and the tour will answer “Moving house” for you.`,
         target: () => $(`#month .qcard[data-qid="${move.id}"]`),
         before: () => showMonth(move.month),
       },

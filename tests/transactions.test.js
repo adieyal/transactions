@@ -26,6 +26,7 @@ function row(id, date, amount = 100, extra = {}) {
     merchant: "Electric",
     account: "Bank",
     amount,
+    currency: "EUR",
     details: "",
     ...extra,
   };
@@ -89,6 +90,7 @@ test("CSV import preserves quoted merchants, stable occurrence IDs and sign mapp
     amount: 2,
     expenseSign: "negative",
     account: "Bank",
+    currency: "EUR",
   };
   const a = applyMapping(matrix, map, "bank.csv"),
     b = applyMapping(matrix, map, "bank.csv");
@@ -151,7 +153,7 @@ test("instalments infer missing payments and retain purchase amount", () => {
   const state = stateWith([
     row("a", "2026-08-10", 50, {
       inst: { n: 1, of: 4 },
-      orig: { amount: 200, currency: "ILS" },
+      orig: { amount: 200, currency: "EUR" },
     }),
   ]);
   const result = deriveTransactions(state, { today: "2026-09-30" });
@@ -184,6 +186,7 @@ test("transfers pair accounts, match card statement payments and respect overrid
   );
   const card = {
     kind: "leumi",
+    currency: "EUR",
     account: "Card",
     periods: ["2026-09"],
     rows: [row("charge", "2026-09-01", 300, { account: "Card" })],

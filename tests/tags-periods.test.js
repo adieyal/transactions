@@ -57,11 +57,12 @@ test("periodStats sums a period's charges by thread", () => {
   const st = periodStats(derived.allTxns, trip);
   assert.equal(st.days, 6);
   assert.equal(st.out.length, 7);
-  assert.equal(st.sum, 984);
+  assert.deepEqual(st.sums, [["ILS", 984]]);
   assert.equal(
     st.byThread.reduce((s, [, v]) => s + v, 0),
-    st.sum,
+    984,
   );
+  assert.ok(st.byThread.every(([, , c]) => c === "ILS"));
   assert.deepEqual(
     st.biggest.map((t) => t.amount),
     [...st.out.map((t) => t.amount)].sort((a, b) => b - a).slice(0, 6),

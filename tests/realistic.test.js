@@ -14,6 +14,7 @@ import { answerOptions, money, questionText } from "../story/copy.js";
 import {
   M,
   PURCHASE_MONTHS,
+  CURRENCY,
   REALISTIC_TODAY,
   createRealisticData,
 } from "./fixtures/realistic.js";
@@ -69,7 +70,7 @@ test("usual amounts compare like with like: monthly thread totals, and a merchan
   assert.match(
     sectionText(regular),
     new RegExp(
-      `Bills came to ${money(billsIn("2026-09"))}, against a usual ${money(Math.round(usual))}\\.`,
+      `Bills came to ${money(billsIn("2026-09"), CURRENCY)}, against a usual ${money(Math.round(usual), CURRENCY)}\\.`,
     ),
   );
   // Electricity every two months and a fixed phone charge are not large or
@@ -150,7 +151,7 @@ test("charges in no thread become one question that offers to sort them", () => 
   assert.deepEqual([...m.txnIds].sort(), [...ids].sort());
   assert.equal(
     questionText(m),
-    `${m.facts.count} charges at ${m.facts.places} places, ${money(m.facts.total)} in all, aren't in any thread yet. Want to sort them into threads?`,
+    `${m.facts.count} charges at ${m.facts.places} places, ${money(m.facts.total, CURRENCY)} in all, aren't in any thread yet. Want to sort them into threads?`,
   );
   assert.deepEqual(
     answerOptions(m).map((o) => [o.label, o.action]),

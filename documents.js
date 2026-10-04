@@ -298,6 +298,7 @@ export function loadDocuments(docs, state) {
     const b = (state.batches[p.batchId] ||= {
       id: p.batchId,
       kind: p.kind,
+      currency: p.currency,
       card: !!p.card,
       account: p.account,
       periods: p.periods,
@@ -308,7 +309,27 @@ export function loadDocuments(docs, state) {
     });
     b.rows.push(...(p.rows || []));
   }
+  for (const b of Object.values(state.batches)) withCurrencies(b);
   return { invalid, legacyDemo };
+}
+
+// Statements saved before batches recorded a currency take the currency of
+// their recognised format; any other is left without one, for the app to ask
+// once (see needsCurrency). Rows take their statement's currency.
+const FORMAT_CURRENCY = { leumi: "ILS" };
+export function withCurrencies(batch) {
+  batch.currency ??= FORMAT_CURRENCY[batch.kind] ?? null;
+  if (batch.currency) for (const r of batch.rows) r.currency ??= batch.currency;
+  return batch;
+}
+// Statements with rows in no known currency.
+export const needsCurrency = (state) =>
+  Object.values(state.batches).filter((b) => b.rows.some((r) => !r.currency));
+// The person's answer for statements that had no currency.
+export function setCurrency(batch, currency) {
+  batch.currency = currency;
+  for (const r of batch.rows) r.currency ??= currency;
+  return batch;
 }
 
 // The workspace that replaces the demo when someone adds their own first

@@ -8,6 +8,8 @@
 // October. Today is 4 October: October's own purchases have no statement yet.
 
 export const REALISTIC_TODAY = "2026-10-04";
+// The fictional card's statements are in shekels.
+export const CURRENCY = "ILS";
 // A Hebrew account label with digits, as Israeli card exports have.
 export const ACCOUNT = "כרטיס בדוי 4821";
 
@@ -106,6 +108,7 @@ export function createRealisticData() {
         chargeDate: `${statement}-10`,
         merchant,
         amount,
+        currency: CURRENCY,
         orig: null,
         type: "Fictional purchase",
         details: "",
@@ -165,6 +168,7 @@ export function createRealisticData() {
     batches[id] = {
       id,
       kind: "generic",
+      currency: CURRENCY,
       card: true,
       account: ACCOUNT,
       periods: [statement],

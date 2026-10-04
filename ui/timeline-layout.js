@@ -66,7 +66,8 @@ function budgetBand(row, budget, drag, cy, months, colX) {
     if (!sp && !ex) continue;
     bars.push({ k, a, b, sp, ex, over: sp + ex > budget + 0.005 });
   }
-  return { budget, base, bandH, bandMax, yv, yb: yv(budget), bars };
+  const currency = row.items[0]?.currency;
+  return { budget, currency, base, bandH, bandMax, yv, yb: yv(budget), bars };
 }
 
 // width: the timeline's width in pixels.
@@ -120,11 +121,11 @@ export function layoutTimeline({ derived, state, today, width }) {
   for (let m = monthOf(isoFromMs(t0)) + "-01"; ms(m) <= t1; m = addMonths(m, 1))
     monthsShown.push(m);
   const every = monthsShown.length > 30 ? 3 : monthsShown.length > 16 ? 2 : 1;
+  // Expected charges per month, kept as items so each currency is added up
+  // on its own.
   const expByMonth = {};
   for (const e of derived.expected)
-    if (inRange(e) && !e.inflow)
-      expByMonth[monthOf(e.date)] =
-        (expByMonth[monthOf(e.date)] || 0) + e.amount;
+    if (inRange(e) && !e.inflow) (expByMonth[monthOf(e.date)] ||= []).push(e);
   const colX = (mm) => ({
     a: Math.max(labelW, X(ms(mm))) + 2,
     b: Math.min(W - padR, X(ms(addMonths(mm, 1)))) - 2,
@@ -171,7 +172,16 @@ export function layoutTimeline({ derived, state, today, width }) {
     row.thread = threadOf(row.name) || null;
     row.drag = state.budgetDrag?.thread === row.name ? state.budgetDrag : null;
     const budget = row.drag ? row.drag.value : row.thread?.budget;
-    if (row.name !== "__parked" && row.thread && budget != null && !narrow) {
+    // A budget band compares one currency; a thread with charges in several
+    // has its budget told per currency in the summaries instead.
+    const oneCurrency = new Set(row.items?.map((t) => t.currency)).size <= 1;
+    if (
+      row.name !== "__parked" &&
+      row.thread &&
+      budget != null &&
+      !narrow &&
+      oneCurrency
+    ) {
       row.band = budgetBand(row, budget, row.drag, row.cy, monthsShown, colX);
       const { base, bandH, bandMax } = row.band;
       budgetMeta[row.name] = { base, bandH, bandMax };

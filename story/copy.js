@@ -1,4 +1,4 @@
-import { MONTHS } from "../helpers.js";
+import { MONTHS, fmt, withCurrency } from "../helpers.js";
 
 // Friendly, facts-only phrasing. Every sentence here states something the
 // data shows; nothing guesses at what it meant to the person.
@@ -30,29 +30,25 @@ const WORDS = [
   "nine",
 ];
 
-// Sentences round to whole shekels: ₪2,313, ₪27. Under ₪1 keeps agorot, so
-// a small amount never reads as ₪0.
-export function money(n) {
+// Sentences round to whole units of the amount's currency: €2,313, $27.
+// Under one unit keeps the cents, so a small amount never reads as €0. The
+// currency is the one named, or the one the story is being told in (see
+// withCurrency in helpers.js).
+export function money(n, currency) {
   const v = Number(n) || 0;
-  return Math.abs(v) < 1 ? exactMoney(v) : exactMoney(Math.round(v));
+  return Math.abs(v) < 1
+    ? exactMoney(v, currency)
+    : exactMoney(Math.round(v), currency);
 }
 
-// The exact amount, for prices and anywhere a few agorot matter: ₪26.50.
-export function exactMoney(n) {
+// The exact amount, for prices and anywhere a few cents matter: €26.50.
+export function exactMoney(n, currency) {
   const v = Math.round((Number(n) || 0) * 100) / 100;
-  const whole = Number.isInteger(v);
-  return (
-    (v < 0 ? "−" : "") +
-    "₪" +
-    Math.abs(v).toLocaleString("en-US", {
-      minimumFractionDigits: whole ? 0 : 2,
-      maximumFractionDigits: whole ? 0 : 2,
-    })
-  );
+  return fmt(v, Number.isInteger(v) ? 0 : 2, currency);
 }
 
 // A name from the data or the person (a merchant, thread, period or account),
-// isolated so a Hebrew name keeps its own direction inside an English
+// isolated so a right-to-left name keeps its own direction inside an English
 // sentence. FSI … PDI works in HTML, in SVG and in plain text alike.
 export const name = (s) => `\u2068${s}\u2069`;
 // Text without the isolates, for comparing and for an assistant.
@@ -147,7 +143,10 @@ export function momentWhen(m) {
 }
 
 // The fact the question is about, in one or two sentences.
-export function momentFact(m) {
+// A moment's sentence, with its amounts in the moment's own currency.
+export const momentFact = (m) => withCurrency(m.currency, () => factOf(m));
+
+function factOf(m) {
   const f = m.facts;
   const who = name(f.merchant),
     thread = name(f.thread);
@@ -165,7 +164,7 @@ export function momentFact(m) {
         return `${who} last appeared on ${dayLong(f.last)}, and not in ${monthLong(f.months[0])}.`;
       return `No ${who} in ${monthList(f.months, "or")}, though there was one in each of the other ${plural(f.seen, "month")}.`;
     case "price":
-      return `${who} went ${f.after > f.before ? "up" : "down"} from ${exactMoney(f.before)} to ${exactMoney(f.after)} a month.`;
+      return `${who} went ${f.after > f.before ? "up" : "down"} from ${exactMoney(f.before, f.currency)} to ${exactMoney(f.after, f.currency)} a month.`;
     case "spike":
       return `${who} came to ${money(f.amount)} in ${monthLong(m.month)}, compared with the usual ${money(f.usual)}.`;
     case "rhythm":

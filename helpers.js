@@ -59,29 +59,82 @@ const monthName = (ym) => {
   return `${MONTHS[m - 1]} ${y}`;
 };
 
-const fmt = (n, dp) => {
+// Money is always shown in its own currency, an ISO code such as "EUR".
+// Story code that tells one currency at a time names it once with
+// withCurrency; an amount with no currency at all is an error, never a guess.
+let scoped = null;
+function withCurrency(currency, fn) {
+  const before = scoped;
+  scoped = currency;
+  try {
+    return fn();
+  } finally {
+    scoped = before;
+  }
+}
+function currencyFor(currency) {
+  const c = currency ?? scoped;
+  if (!c) throw new Error("An amount has no currency.");
+  return c;
+}
+const formatters = new Map();
+function formatter(currency, d) {
+  const k = currency + d;
+  if (!formatters.has(k))
+    formatters.set(
+      k,
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency,
+        minimumFractionDigits: d,
+        maximumFractionDigits: d,
+      }),
+    );
+  return formatters.get(k);
+}
+const fractionDigits = (currency) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).resolvedOptions().maximumFractionDigits;
+// The ISO 4217 codes this browser knows, for checks and for the import
+// dialog's list.
+const CURRENCIES = Intl.supportedValuesOf("currency");
+const known = new Set(CURRENCIES);
+const isCurrency = (c) => known.has(c);
+
+const fmt = (n, dp, currency) => {
+  const c = currencyFor(currency);
   const v = Number(n) || 0;
-  const d = dp ?? (Math.abs(v) >= 1000 ? 0 : 2);
-  return (
-    (v < 0 ? "−" : "") +
-    "₪" +
-    Math.abs(v).toLocaleString("en-US", {
-      minimumFractionDigits: d,
-      maximumFractionDigits: d,
-    })
-  );
+  const d = dp ?? (Math.abs(v) >= 1000 ? 0 : fractionDigits(c));
+  return (v < 0 ? "−" : "") + formatter(c, d).format(Math.abs(v));
 };
 
-const fmtShort = (n) => {
+const fmtShort = (n, currency) => {
+  const c = currencyFor(currency);
   const a = Math.abs(n);
+  const short = (x, d) => formatter(c, d).format(x);
   const s =
     a >= 10000
-      ? (a / 1000).toFixed(0) + "k"
+      ? short(a / 1000, 0) + "k"
       : a >= 1000
-        ? (a / 1000).toFixed(1) + "k"
-        : a.toFixed(0);
-  return (n < 0 ? "−" : "") + "₪" + s;
+        ? short(a / 1000, 1) + "k"
+        : short(a, 0);
+  return (n < 0 ? "−" : "") + s;
 };
+
+// Amounts in several currencies, each summed on its own and never converted:
+// "€120 · £40". items are { amount, currency }.
+function sumsByCurrency(items) {
+  const sums = new Map();
+  for (const t of items)
+    sums.set(t.currency, (sums.get(t.currency) || 0) + t.amount);
+  return [...sums].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+}
+const fmtByCurrency = (items, dp, f = fmt) =>
+  sumsByCurrency(items)
+    .map(([c, v]) => (f === fmt ? fmt(v, dp, c) : f(v, c)))
+    .join(" · ");
 
 const fmtDate = (iso) => {
   const [y, m, d] = iso.split("-").map(Number);
@@ -107,13 +160,19 @@ function normText(s) {
 }
 export {
   BIDI,
+  CURRENCIES,
   MONTHS,
   addMonths,
   debounce,
   esc,
   fmt,
   fmtDate,
+  fmtByCurrency,
   fmtShort,
+  isCurrency,
+  sumsByCurrency,
+  withCurrency,
+  currencyFor,
   fnv,
   isoOf,
   monthName,

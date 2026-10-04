@@ -1,4 +1,4 @@
-import { BIDI, isoOf, pad2 } from "../helpers.js";
+import { BIDI, isCurrency, isoOf, pad2 } from "../helpers.js";
 
 function parseAmount(v) {
   if (v == null || v === "") return null;
@@ -6,11 +6,19 @@ function parseAmount(v) {
     return isFinite(v) ? { amount: v, currency: null } : null;
   let s = String(v).replace(BIDI, "").trim();
   if (!s) return null;
-  let currency = null;
-  if (s.includes("$")) currency = "USD";
+  // A symbol names its most common currency; the import dialog shows the
+  // result so it can be changed. An ISO code in the cell wins.
+  let currency =
+    s
+      .toUpperCase()
+      .match(/(?<![A-Z])[A-Z]{3}(?![A-Z])/g)
+      ?.find(isCurrency) || null;
+  if (currency) s = s.replace(/[A-Za-z]+/g, "");
+  else if (s.includes("$")) currency = "USD";
   else if (s.includes("€")) currency = "EUR";
   else if (s.includes("£")) currency = "GBP";
   else if (s.includes("₪") || /ש"ח|ש״ח/.test(s)) currency = "ILS";
+  else if (s.includes("¥")) currency = "JPY";
   const neg = /-|−/.test(s) || /^\(.*\)$/.test(s);
   let num = s.replace(/[^\d.,]/g, "");
   if (!/\d/.test(num)) return null;

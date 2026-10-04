@@ -1,4 +1,11 @@
-import { esc, fmt, fmtDate, monthName, normText } from "../helpers.js";
+import {
+  esc,
+  fmt,
+  fmtByCurrency,
+  fmtDate,
+  monthName,
+  normText,
+} from "../helpers.js";
 import { $, toast } from "./dom.js";
 import { wireHoverHighlight } from "./highlight.js";
 import { addToThread as addLines } from "../transactions/rules-edit.js";
@@ -71,9 +78,9 @@ export function createInspector(runtime, actions) {
         (x) => x.account === account && x.period === period,
       );
       el.innerHTML =
-        `<div class="ins-m" dir="auto">${esc(account)}</div><div class="sub">${monthName(period)}${stT ? ` · statement total ${fmt(stT.total)}` : ""}</div>` +
+        `<div class="ins-m" dir="auto">${esc(account)}</div><div class="sub">${monthName(period)}${stT ? ` · statement total ${fmt(stT.total, undefined, stT.currency)}` : ""}</div>` +
         (paid
-          ? `<p class="sub">Paid from <span dir="auto">${esc(paid.account)}</span> on ${fmtDate(paid.date)}: <button class="cite" data-cite="${paid.id}"><span dir="auto">${esc(paid.merchant.slice(0, 22))}</span> ${fmt(paid.amount, 0)}</button>. That payment isn't counted as spending, so these charges aren't counted twice.</p>`
+          ? `<p class="sub">Paid from <span dir="auto">${esc(paid.account)}</span> on ${fmtDate(paid.date)}: <button class="cite" data-cite="${paid.id}"><span dir="auto">${esc(paid.merchant.slice(0, 22))}</span> ${fmt(paid.amount, 0, paid.currency)}</button>. That payment isn't counted as spending, so these charges aren't counted twice.</p>`
           : stT
             ? `<p class="sub">No payment for this statement found in your other accounts yet.</p>`
             : "") +
@@ -124,13 +131,10 @@ export function createInspector(runtime, actions) {
       const kv = [];
       kv.push([
         t.kind === "purchase" ? "Full price" : "Charged",
-        `${fmt(t.amount)}${t.kind === "ghost" ? " (expected)" : t.kind === "inferred" ? " (worked out)" : ""}`,
+        `${fmt(t.amount, undefined, t.currency)}${t.kind === "ghost" ? " (expected)" : t.kind === "inferred" ? " (worked out)" : ""}`,
       ]);
       if (t.orig && t.kind === "actual")
-        kv.push([
-          "Original amount",
-          `${t.orig.currency} ${t.orig.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-        ]);
+        kv.push(["Original amount", fmt(t.orig.amount, 2, t.orig.currency)]);
       kv.push([
         t.kind === "purchase" ? "Bought" : "Date",
         fmtDate(t.date) +
@@ -216,10 +220,9 @@ export function createInspector(runtime, actions) {
     } else {
       const ts = ids.map((id) => runtime.derived.byId.get(id));
       const real = ts.filter((t) => t.kind === "actual");
-      const sum = real.reduce((a, t) => a + t.amount, 0);
       const dates = ts.map((t) => t.date).sort();
       const merch = [...new Set(ts.map((t) => t.merchant))];
-      el.innerHTML = `<div class="ins-m">${ids.length} beads</div><div class="sub">${fmt(sum)} on statements${ts.length > real.length ? `, plus ${ts.length - real.length} expected` : ""}, ${fmtDate(dates[0])} to ${fmtDate(dates.at(-1))}</div>
+      el.innerHTML = `<div class="ins-m">${ids.length} beads</div><div class="sub">${real.length ? fmtByCurrency(real) : "Nothing"} on statements${ts.length > real.length ? `, plus ${ts.length - real.length} expected` : ""}, ${fmtDate(dates[0])} to ${fmtDate(dates.at(-1))}</div>
       <p class="sub" dir="auto" style="margin:6px 0 0">${merch.slice(0, 8).map(esc).join(" · ")}${merch.length > 8 ? ` and ${merch.length - 8} more` : ""}</p>
       <div class="row-actions"><input id="threadName" placeholder="Thread name" aria-label="Thread name" list="threadNames"><datalist id="threadNames">${runtime.derived.R.threads.map((t) => `<option value="${esc(t.name)}">`).join("")}</datalist>
       <button class="btn small" id="makeThread">Thread these</button><button class="btn small quiet" id="makePeriod" title="A period from ${fmtDate(dates[0])} to ${fmtDate(dates.at(-1))}">Mark as a period</button>${caps.sample ? `<button class="btn small quiet" id="askThese">Ask about these</button>` : ""}<button class="btn small quiet" id="clearSel">Clear</button></div>

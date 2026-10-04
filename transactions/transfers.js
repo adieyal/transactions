@@ -10,6 +10,7 @@ function detectTransfers(rows, { batches, transferOv }) {
       key: b.account + "|" + b.periods[0],
       account: b.account,
       period: b.periods[0],
+      currency: b.currency,
       total: +b.rows.reduce((a, r) => a + r.amount, 0).toFixed(2),
     }));
   const cand = rows
@@ -21,6 +22,7 @@ function detectTransfers(rows, { batches, transferOv }) {
       (s) =>
         !paid[s.key] &&
         s.account !== r.account &&
+        s.currency === r.currency &&
         Math.abs(s.total - r.amount) <= 1 &&
         ms(r.date) >= ms(s.period + "-01") - 7 * 864e5 &&
         ms(r.date) <= ms(addMonths(s.period + "-01", 1)) + 12 * 864e5,

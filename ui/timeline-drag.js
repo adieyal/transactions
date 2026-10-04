@@ -160,7 +160,7 @@ export function wireTimelineDrag(host, runtime, actions, ctx) {
       setBudget(name, v);
       if (v > 0)
         toast(
-          `${name}: ${fmt(v, 0)} a month. Drag the line again any time, or edit it in Threads.`,
+          `${name}: ${fmt(v, 0, runtime.derived.allTxns.find((t) => t.thread === name)?.currency)} a month. Drag the line again any time, or edit it in Threads.`,
         );
       else toast(`Removed the budget for ${name}.`);
       return;

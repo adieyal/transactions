@@ -9,7 +9,15 @@ import { addMonths } from "./helpers.js";
 const CAR = 3,
   MOVE = 7;
 
-export function createDemoData(today) {
+// The demo's statements are in shekels, said here rather than assumed
+// anywhere else. currencyOf(account) can give each account its own currency,
+// for workspaces in other or several currencies.
+export const DEMO_CURRENCY = "ILS";
+
+export function createDemoData(
+  today,
+  { currencyOf = () => DEMO_CURRENCY } = {},
+) {
   const batches = {},
     notes = {};
   const months = Array.from({ length: 12 }, (_, i) =>
@@ -31,6 +39,7 @@ export function createDemoData(today) {
         chargeDate: date,
         merchant,
         amount,
+        currency: currencyOf(account),
         orig: null,
         type: "Demo purchase",
         details: "",
@@ -94,7 +103,7 @@ export function createDemoData(today) {
       const desk = add(card, "Demo Card", "Oak & Loom", 14, 60, {
         date: day(latest - 2, 14),
         inst: { n: 2, of: 6 },
-        orig: { amount: 360, currency: "ILS" },
+        orig: { amount: 360, currency: currencyOf("Demo Card") },
         details: "Demo desk, payment 2 of 6",
       });
       note(desk, "A desk for the reading corner in the new flat. #home");
@@ -141,6 +150,7 @@ export function createDemoData(today) {
       batches[id] = {
         id,
         kind: "generic",
+        currency: currencyOf(account),
         card: isCard,
         account,
         periods: [month],

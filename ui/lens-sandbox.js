@@ -1,4 +1,4 @@
-import { fmt } from "../helpers.js";
+import { lensFmt } from "../lens-api.js";
 
 // Lens code runs in a hidden frame with an opaque origin (sandbox without
 // allow-same-origin) and a CSP that allows only its own inline script: it
@@ -25,7 +25,7 @@ function runner(fmtSource) {
           return o;
         }, {}),
       month: (d) => String(d).slice(0, 7),
-      fmt: (n) => fmt(n),
+      fmt: (n, currency) => fmt(n, currency, data.currencies),
       ...data,
     };
     let reply;
@@ -43,7 +43,7 @@ function runner(fmtSource) {
   });
 }
 
-const srcdoc = `<!doctype html><meta http-equiv="Content-Security-Policy" content="${CSP}"><script>(${runner})(${JSON.stringify(String(fmt))})<\/script>`;
+const srcdoc = `<!doctype html><meta http-equiv="Content-Security-Policy" content="${CSP}"><script>(${runner})(${JSON.stringify(String(lensFmt))})<\/script>`;
 
 export function newLensSandbox(doc = document) {
   let frame = null,

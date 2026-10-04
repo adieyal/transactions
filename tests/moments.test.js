@@ -359,14 +359,18 @@ test("question copy states the facts and offers options without an assistant", (
 });
 
 test("copy helpers and a typical month", () => {
-  assert.equal(money(2313), "₪2,313");
-  // Sentences use whole shekels; exact amounts keep agorot.
-  assert.equal(money(26.5), "₪27");
-  assert.equal(money(0.4), "₪0.40");
-  assert.equal(exactMoney(26.5), "₪26.50");
+  assert.equal(money(2313, "ILS"), "₪2,313");
+  // Sentences use whole units; exact amounts keep the cents.
+  assert.equal(money(26.5, "ILS"), "₪27");
+  assert.equal(money(0.4, "ILS"), "₪0.40");
+  assert.equal(exactMoney(26.5, "ILS"), "₪26.50");
+  assert.equal(money(2313, "USD"), "$2,313");
+  assert.equal(exactMoney(26.5, "EUR"), "€26.50");
+  assert.equal(money(-18, "GBP"), "−£18");
+  assert.throws(() => money(5), /no currency/);
   assert.equal(plain(name("מאפייה 2")), "מאפייה 2");
   assert.equal(name("מאפייה 2"), "\u2068מאפייה 2\u2069");
-  assert.equal(money(-18), "−₪18");
+  assert.equal(money(-18, "ILS"), "−₪18");
   assert.equal(
     dateRange("2026-03-28", "2026-04-02"),
     "28 March – 2 April 2026",

@@ -145,7 +145,7 @@ export function large(ctx) {
 }
 
 // A merchant seen for the first time, after the account's first covered
-// month, with a material amount (at least ₪100 and a fifth of a typical month).
+// month, with a material amount (at least 100 in its currency and a fifth of a typical month).
 export function newMerchants(ctx) {
   if (ctx.typical == null) return [];
   const floor = Math.max(100, ctx.typical / 5);
@@ -203,12 +203,13 @@ export function prices(ctx, spiked) {
   const out = [];
   for (const f of ctx.derived.flags) {
     if (f.type !== "price" || spiked.has(f.t.id)) continue;
+    if (f.t.currency !== ctx.derived.currency) continue;
     if (!(f.a > 0 && f.b > 0) || f.t.inflow) continue;
     const before = f.group
       .map((id) => ctx.derived.byId.get(id))
       .filter((t) => t && t.id !== f.t.id)
       .map((t) =>
-        f.cur !== "ILS" && t.orig?.currency === f.cur
+        f.cur !== t.currency && t.orig?.currency === f.cur
           ? t.orig.amount
           : t.amount,
       );

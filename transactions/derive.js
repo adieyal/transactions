@@ -7,8 +7,13 @@ import { findChanges } from "./changes.js";
 function deriveTransactions(state, { today }) {
   const R = parseRules(state.previewRules ?? state.rules);
   const all = new Map();
+  // Rows whose currency isn't known yet wait until the person says it (see
+  // needsCurrency in documents.js); an amount is never shown in a guessed one.
+  let unpriced = 0;
   for (const b of Object.values(state.batches))
-    for (const r of b.rows) if (!all.has(r.id)) all.set(r.id, r);
+    for (const r of b.rows)
+      if (!r.currency) unpriced++;
+      else if (!all.has(r.id)) all.set(r.id, r);
   const accounts = [...new Set([...all.values()].map((r) => r.account))].sort();
   const coverage = {};
   for (const b of Object.values(state.batches)) {
@@ -213,6 +218,7 @@ function deriveTransactions(state, { today }) {
     filtered: !!Q,
     flags,
     stmts: TR.stmts,
+    unpriced,
     stmtPaid: TR.paid,
   };
 }

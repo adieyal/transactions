@@ -1,4 +1,4 @@
-import { debounce, fmt } from "../helpers.js";
+import { debounce, fmtByCurrency } from "../helpers.js";
 import { $, html } from "./dom.js";
 
 export function createFilter(runtime, actions) {
@@ -12,12 +12,12 @@ export function createFilter(runtime, actions) {
     const has = state.loaded && runtime.derived?.allTxns?.length;
     $(".filterbar").style.display = has ? "" : "none";
     if (!has) return;
-    const sum = runtime.derived.txns.reduce((a, t) => a + t.amount, 0);
     const qi = $("#qInfo");
     if (!q) qi.innerHTML = "";
     else if (!qi.querySelector("#qTagForm input:focus")) {
       const n = runtime.derived.txns.length;
-      qi.innerHTML = html`${n} of ${runtime.derived.allTxns.length} match, ${fmt(sum, 0)}${
+      const sums = n ? ", " + fmtByCurrency(runtime.derived.txns, 0) : "";
+      qi.innerHTML = html`${n} of ${runtime.derived.allTxns.length} match${sums}${
         n
           ? html` · <span id="qTagForm"><input placeholder="#tag" aria-label="Tag everything that matches" list="allTags2"><datalist id="allTags2">${Object.keys(
               runtime.derived.tags,

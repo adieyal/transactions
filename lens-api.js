@@ -1,5 +1,3 @@
-import { fmt } from "./helpers.js";
-
 // What a lens can use, for the editor's reference panel and autocomplete.
 // tests/lens-api.test.js checks this against the objects lenses receive.
 
@@ -29,6 +27,11 @@ export const TXN_FIELDS = [
     name: "amount",
     type: "number",
     doc: "Positive is money out; negative is a refund or money in.",
+  },
+  {
+    name: "currency",
+    type: "string",
+    doc: 'The ISO code of the amount\'s currency, e.g. "EUR". Never add up amounts in different currencies.',
   },
   {
     name: "orig",
@@ -84,7 +87,16 @@ export const LIB_MEMBERS = [
     sig: "month(date)",
     doc: 'Turns "YYYY-MM-DD" into "YYYY-MM".',
   },
-  { name: "fmt", sig: "fmt(number)", doc: 'Formats money, e.g. "₪1,234.00".' },
+  {
+    name: "fmt",
+    sig: "fmt(number, currency)",
+    doc: 'Formats money in a currency, e.g. fmt(1234, "EUR") → "€1,234". The currency may be left out when the workspace has only one.',
+  },
+  {
+    name: "currencies",
+    sig: "currencies",
+    doc: 'The ISO codes of the currencies in the statements, e.g. ["EUR", "GBP"].',
+  },
   { name: "today", sig: "today", doc: 'Today as "YYYY-MM-DD".' },
   { name: "threads", sig: "threads", doc: "Thread names, in order." },
   { name: "accounts", sig: "accounts", doc: "Account names." },
@@ -186,6 +198,7 @@ export function publicTxn(t) {
     merchant: t.merchant,
     original: t.original || t.merchant,
     amount: t.amount,
+    currency: t.currency,
     orig: t.orig,
     type: t.type,
     details: t.details,
@@ -202,7 +215,30 @@ export function publicTxn(t) {
 }
 
 // The helpers and data a lens gets as `lib` (LIB_MEMBERS documents them).
+// lib.fmt, self-contained so the lens sandbox can rebuild it from its source.
+// Without a currency it uses the workspace's only one; with several it asks
+// the lens to say which, rather than guessing.
+export function lensFmt(n, currency, currencies) {
+  const c = currency ?? (currencies.length === 1 ? currencies[0] : null);
+  if (!c)
+    throw new Error(
+      `Say which currency, e.g. lib.fmt(n, "${currencies[0] || "EUR"}"): these statements are in ${currencies.join(" and ") || "no known currency"}.`,
+    );
+  const v = Number(n) || 0;
+  const d = Math.abs(v) >= 1000 ? 0 : 2;
+  const s = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: c,
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  }).format(Math.abs(v));
+  return (v < 0 ? "−" : "") + s;
+}
+
 export function lensLib(derived, state, today) {
+  const currencies = [
+    ...new Set(derived.allTxns.map((t) => t.currency)),
+  ].sort();
   return {
     sum: (a, f = (x) => x) => a.reduce((s, x) => s + (Number(f(x)) || 0), 0),
     groupBy: (a, f) =>
@@ -212,7 +248,8 @@ export function lensLib(derived, state, today) {
         return o;
       }, {}),
     month: (d) => String(d).slice(0, 7),
-    fmt: (n) => fmt(n),
+    fmt: (n, currency) => lensFmt(n, currency, currencies),
+    currencies,
     today,
     threads: derived.names,
     accounts: derived.accounts,

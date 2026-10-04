@@ -186,7 +186,7 @@ export function createImport(runtime, actions) {
               .slice(0, 6)
               .map(
                 (r) =>
-                  `<tr><td>${r.date}</td><td dir="auto">${esc(r.merchant)}</td><td>${fmt(r.amount)}</td></tr>`,
+                  `<tr><td>${r.date}</td><td dir="auto">${esc(r.merchant)}</td><td>${fmt(r.amount, undefined, r.currency)}</td></tr>`,
               )
               .join("") +
             `<tr><td colspan="3" class="sub">${b.rows.length} rows in total</td></tr>`

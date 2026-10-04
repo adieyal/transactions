@@ -1,4 +1,11 @@
-import { DOCUMENTS, isDate, isId, toDocument } from "./documents.js";
+import {
+  DOCUMENTS,
+  isDate,
+  isId,
+  toDocument,
+  withCurrencies,
+} from "./documents.js";
+import { isCurrency } from "./helpers.js";
 import { STARTER_LENSES } from "./defaults.js";
 import { markFromBackup } from "./lens-api.js";
 
@@ -74,7 +81,10 @@ export function parseBackup(source, today) {
       "statement months",
     );
     requireValue(Array.isArray(batch.rows), "statement rows");
+    const code = (c) => c == null || (text(c) && isCurrency(c));
+    requireValue(code(batch.currency), "statement currency");
     for (const row of batch.rows) {
+      requireValue(code(row.currency), "transaction currency");
       requireValue(
         record(row) &&
           id(row.id) &&
@@ -108,12 +118,12 @@ export function parseBackup(source, today) {
           "original currency amount",
         );
     }
-    batches[batch.id] = {
+    batches[batch.id] = withCurrencies({
       ...batch,
       file: batch.file ?? "imported-backup.json",
       added: batch.added ?? today,
       parts: Math.max(1, Math.ceil(batch.rows.length / BATCH_CHUNK_SIZE)),
-    };
+    });
   }
   // Every saved document, through the same checks as loading at boot. A
   // field an older backup lacks gets the value it had before the field existed.
@@ -138,6 +148,7 @@ export function batchDocuments(batch) {
       {
         batchId: batch.id,
         kind: batch.kind,
+        currency: batch.currency,
         card: !!batch.card,
         account: batch.account,
         periods: batch.periods,

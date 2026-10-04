@@ -8,15 +8,16 @@ function findChanges(groups, coverage, dismissed = {}) {
     g.forEach((t) => (perPeriod[t.period] = (perPeriod[t.period] || 0) + 1));
     const oncePer = Object.values(perPeriod).every((n) => n === 1);
     const prev = [...g].reverse().find((t) => t.period !== last.period);
-    if (prev && oncePer) {
+    if (prev && oncePer && prev.currency === last.currency) {
+      // A foreign charge is compared in the currency it was charged in.
       const useOrig =
         last.orig &&
         prev.orig &&
-        last.orig.currency !== "ILS" &&
+        last.orig.currency !== last.currency &&
         last.orig.currency === prev.orig.currency;
       const a = useOrig ? prev.orig.amount : prev.amount,
         b = useOrig ? last.orig.amount : last.amount,
-        cur = useOrig ? last.orig.currency : "ILS";
+        cur = useOrig ? last.orig.currency : last.currency;
       if (
         Math.abs(b - a) >= 1 &&
         Math.abs(b - a) / Math.max(1, Math.abs(a)) >= 0.03

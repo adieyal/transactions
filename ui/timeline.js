@@ -4,6 +4,7 @@ import {
   esc,
   fmt,
   fmtDate,
+  fmtByCurrency,
   fmtShort,
   monthName,
   monthOf,
@@ -44,7 +45,7 @@ export function createTimeline(runtime, actions) {
       return;
     }
     if (!runtime.derived.txns.length) {
-      host.innerHTML = html`<div class="empty"><div><h2>Drop statements here</h2><p>Leumi card exports are read as they are. For any other bank, you show Transactions the columns once and it remembers that format.</p><button class="btn" id="emptyAdd">Choose files</button></div></div>`;
+      host.innerHTML = html`<div class="empty"><div><h2>Drop statements here</h2><p>Some statement exports are recognised as they are. For any other, you show Transactions the columns and the currency once, and it remembers that format.</p><button class="btn" id="emptyAdd">Choose files</button></div></div>`;
       POS = [];
       TL = null;
       return;
@@ -102,7 +103,7 @@ export function createTimeline(runtime, actions) {
       });
       const ex = L.expByMonth[monthOf(mm)];
       if (ex && x1 - x0 > 40)
-        s += `<text class="exp" data-thin x="${(x0 + x1) / 2}" y="${expY}" text-anchor="middle"><title>Expected charges this month</title>≈ ${fmtShort(ex)}</text>`;
+        s += `<text class="exp" data-thin x="${(x0 + x1) / 2}" y="${expY}" text-anchor="middle"><title>Expected charges this month</title>≈ ${fmtByCurrency(ex, 0, fmtShort)}</text>`;
     });
     accts.forEach((a, ai) => {
       const off = state.hiddenAccounts.has(a);
@@ -178,14 +179,14 @@ export function createTimeline(runtime, actions) {
       const { budget, base, bandH, yv, yb, bars } = row.band;
       for (const { k, a, b, sp, ex, over } of bars) {
         if (sp > 0)
-          s += `<rect class="bbar${over ? " over" : ""}" x="${a}" y="${yv(sp)}" width="${b - a}" height="${base - yv(sp)}" style="--c:${row.color}"><title>${monthName(k)}: ${fmt(sp, 0)} of ${fmt(budget, 0)}</title></rect>`;
+          s += `<rect class="bbar${over ? " over" : ""}" x="${a}" y="${yv(sp)}" width="${b - a}" height="${base - yv(sp)}" style="--c:${row.color}"><title>${monthName(k)}: ${fmt(sp, 0, row.band.currency)} of ${fmt(budget, 0, row.band.currency)}</title></rect>`;
         if (ex > 0)
-          s += `<rect class="bexp${over ? " over" : ""}" x="${a}" y="${yv(sp + ex)}" width="${b - a}" height="${yv(sp) - yv(sp + ex)}" style="--c:${row.color}"><title>${monthName(k)}: ${fmt(ex, 0)} expected</title></rect>`;
+          s += `<rect class="bexp${over ? " over" : ""}" x="${a}" y="${yv(sp + ex)}" width="${b - a}" height="${yv(sp) - yv(sp + ex)}" style="--c:${row.color}"><title>${monthName(k)}: ${fmt(ex, 0, row.band.currency)} expected</title></rect>`;
         if (over && b - a > 34)
-          s += `<text class="bover" x="${(a + b) / 2}" y="${Math.max(yv(sp + ex) - 3, cy - bandH / 2 + 9)}" text-anchor="middle">${fmtShort(sp + ex)}</text>`;
+          s += `<text class="bover" x="${(a + b) / 2}" y="${Math.max(yv(sp + ex) - 3, cy - bandH / 2 + 9)}" text-anchor="middle">${fmtShort(sp + ex, row.band.currency)}</text>`;
       }
       s += `<line class="bline" x1="${labelW}" x2="${W - padR - 8}" y1="${yb}" y2="${yb}" stroke="${row.color}"/>`;
-      const blabel = `${fmt(budget, 0)} a month`,
+      const blabel = `${fmt(budget, 0, row.band.currency)} a month`,
         bx = labelW + 4 + blabel.length * 6 + 8;
       s += `<text class="blabel" x="${labelW + 4}" y="${yb - 4}">${blabel}</text>`;
       s += `<g class="xbtn" data-bdel="${esc(row.name)}" role="button" aria-label="Remove the budget for ${esc(row.name)}"><title>Remove this budget</title><circle cx="${bx}" cy="${yb - 8}" r="6"/><path d="M${bx - 2.5},${yb - 10.5}l5,5m0,-5l-5,5"/></g>`;
@@ -201,11 +202,9 @@ export function createTimeline(runtime, actions) {
       if (thr && thr.budget == null && !row.drag)
         s += `<g class="budgetbtn" data-budget="${esc(row.name)}" data-cy="${cy}" transform="translate(${W - padR - 4},${cy - 16})" tabindex="0" role="button" aria-label="Set a budget for ${esc(row.name)}"><title>Give this thread a monthly budget line you can drag</title><rect x="-62" y="-9" width="62" height="17" rx="8.5"/><text x="-31" y="3.5" text-anchor="middle">+ Budget</text></g>`;
     }
-    const total = row.items
-      .filter((t) => t.kind === "actual" && !t.inflow)
-      .reduce((a, t) => a + t.amount, 0);
+    const out = row.items.filter((t) => t.kind === "actual" && !t.inflow);
     s += `<text class="rowlabel" data-thread="${esc(row.name)}" data-line="${thr ? thr.line : ""}" data-fit="${labelW - 16 - (narrow ? 0 : 22)}" x="${labelW - 12}" y="${cy - 2}" ${anchorEnd(row.name)} style="fill:${row.color}"><title>${esc(bidi(row.name))}</title><tspan>${esc(row.name)}</tspan></text>`;
-    s += `<text class="rowtotal" x="${labelW - 12}" y="${cy + 14}" text-anchor="end">${row.items.some((t) => t.kind === "actual") ? (row.name === TRANSFERS ? "moved " : "") + fmt(total, 0) : ""}</text>`;
+    s += `<text class="rowtotal" x="${labelW - 12}" y="${cy + 14}" text-anchor="end">${row.items.some((t) => t.kind === "actual") ? (row.name === TRANSFERS ? "moved " : "") + (out.length ? fmtByCurrency(out, 0) : fmt(0, 0, row.items.find((t) => t.kind === "actual").currency)) : ""}</text>`;
     return s;
   }
 

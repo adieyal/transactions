@@ -1,4 +1,4 @@
-import { esc, fmtShort } from "../helpers.js";
+import { esc, fmtByCurrency, fmtShort } from "../helpers.js";
 import { $, html, paneShown } from "./dom.js";
 
 export function createThreads(runtime, actions) {
@@ -31,10 +31,8 @@ export function createThreads(runtime, actions) {
       if (err) g += `<div class="bad" title="${esc(err)}">!</div>`;
       else if (threadAt[i]) {
         const ts = tsByThread[threadAt[i].name] || [];
-        const sum = ts
-          .filter((t) => !t.inflow)
-          .reduce((a, t) => a + t.amount, 0);
-        g += `<div class="th" title="${ts.length} transactions">${ts.length ? fmtShort(sum) : "–"}</div>`;
+        const out = ts.filter((t) => !t.inflow);
+        g += `<div class="th" title="${ts.length} transactions">${out.length ? fmtByCurrency(out, 0, fmtShort) : "–"}</div>`;
       } else if (/^\s+\S/.test(l) && !l.trim().startsWith("//"))
         g += `<div class="${counts[i] ? "" : "zero"}">${counts[i] || 0}</div>`;
       else g += `<div></div>`;

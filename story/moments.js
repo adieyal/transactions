@@ -16,6 +16,7 @@ import {
   rhythms,
   spikes,
 } from "./moment-rules.js";
+import { eachCurrency } from "./currency.js";
 
 // Moments are things in the data worth an optional question. The rules that
 // find them are in moment-rules.js; this module chooses which to ask.
@@ -37,7 +38,19 @@ const subjects = (m) =>
       : m.facts.keys;
 
 // Every moment the rules find, highest rank first, before anything is dropped.
+// Each currency is looked at on its own, so no rule ever compares or adds
+// amounts in different currencies; a moment carries its currency.
 export function detectMoments(derived, state) {
+  const all = eachCurrency(derived, derived.allTxns, (view) =>
+    momentsIn(view, state).map((m) => ({ ...m, currency: view.currency })),
+  ).flatMap((r) => r.value);
+  const seen = new Set();
+  return all
+    .filter((m) => !seen.has(m.id) && seen.add(m.id))
+    .sort((a, b) => b.rank - a.rank || a.id.localeCompare(b.id));
+}
+
+function momentsIn(derived, state) {
   const spend = derived.allTxns.filter(spending);
   const ctx = {
     derived,
@@ -60,10 +73,7 @@ export function detectMoments(derived, state) {
     ...budgets(ctx),
     ...loose(ctx),
   ];
-  const seen = new Set();
-  return all
-    .filter((m) => !seen.has(m.id) && seen.add(m.id))
-    .sort((a, b) => b.rank - a.rank || a.id.localeCompare(b.id));
+  return all;
 }
 
 // A transaction is explained by a note written for it (a note repeated on the

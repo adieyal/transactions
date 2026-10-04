@@ -15,6 +15,14 @@ export function createLenses(runtime, actions) {
       lensInput(runtime.derived, state, runtime.today),
     );
 
+  // A lens value in the currency it names, or the workspace's only one. With
+  // several currencies and none named, it is shown as a plain number.
+  function amount(value, currency) {
+    const all = [...new Set(runtime.derived.allTxns.map((t) => t.currency))];
+    const c = currency ?? (all.length === 1 ? all[0] : null);
+    return c ? fmt(value, 0, c) : Math.round(value).toLocaleString("en-US");
+  }
+
   function renderView(v) {
     const problem = viewProblem(v);
     if (problem) throw new Error(problem);
@@ -22,13 +30,13 @@ export function createLenses(runtime, actions) {
       const items = (v.items || []).slice(0, 40);
       const max = Math.max(1e-9, ...items.map((i) => Math.abs(+i.value || 0)));
       if (!items.length) return `<p class="sub">Nothing to show yet.</p>`;
-      return `<div class="bars">${items.map((i) => `<button class="bar" data-ids="${esc((i.ids || []).join(","))}"><span class="l" dir="auto">${esc(/^\d{4}-\d{2}$/.test(i.label) ? monthName(i.label) : i.label)}</span><span class="t"><i style="width:${((Math.abs(+i.value || 0) / max) * 100).toFixed(1)}%"></i></span><span class="v">${v.unit === "" ? esc(i.value) : fmt(+i.value || 0, 0)}</span></button>`).join("")}</div>`;
+      return `<div class="bars">${items.map((i) => `<button class="bar" data-ids="${esc((i.ids || []).join(","))}"><span class="l" dir="auto">${esc(/^\d{4}-\d{2}$/.test(i.label) ? monthName(i.label) : i.label)}</span><span class="t"><i style="width:${((Math.abs(+i.value || 0) / max) * 100).toFixed(1)}%"></i></span><span class="v">${v.unit === "" ? esc(i.value) : esc(amount(+i.value || 0, i.currency))}</span></button>`).join("")}</div>`;
     }
     if (v.kind === "table") {
       const rows = (v.rows || []).slice(0, 60);
       const isNum = (c) =>
         typeof c === "number" ||
-        /^\s*[−-]?\s*[₪$€£]?\s*[−-]?[\d.,]+\s*(%|×|x)?\s*$|^\d{4}-\d{2}(-\d{2})?$/.test(
+        /^\s*[−-]?\s*[^\d\s−-]{0,3}\s*[−-]?[\d.,]+\s*(%|×|x)?\s*$|^\d{4}-\d{2}(-\d{2})?$/.test(
           String(c ?? ""),
         );
       const numCol = (v.columns || []).map(
@@ -41,7 +49,7 @@ export function createLenses(runtime, actions) {
       return `<div class="scroll"><table class="ltable"><thead><tr>${(v.columns || []).map((c, j) => `<th${numCol[j] ? ` class="num"` : ""}>${esc(c)}</th>`).join("")}</tr></thead><tbody>${rows.map((r, i) => `<tr${v.rowIds?.[i] ? ` data-ids="${esc(v.rowIds[i].join(","))}"` : ""}>${r.map(cell).join("")}</tr>`).join("")}</tbody></table></div>`;
     }
     if (v.kind === "number")
-      return `<div class="lnum"${v.ids ? ` data-ids="${esc(v.ids.join(","))}" style="cursor:pointer"` : ""}>${typeof v.value === "number" ? fmt(v.value, 0) : esc(v.value)}</div><div class="sub">${esc(v.label || "")}</div>`;
+      return `<div class="lnum"${v.ids ? ` data-ids="${esc(v.ids.join(","))}" style="cursor:pointer"` : ""}>${typeof v.value === "number" ? esc(amount(v.value, v.currency)) : esc(v.value)}</div><div class="sub">${esc(v.label || "")}</div>`;
     return `<p dir="auto" style="margin:0">${esc(v.text)}</p>`;
   }
 

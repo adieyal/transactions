@@ -9,7 +9,7 @@ export function markdown(text, byId) {
     .replace(/\[\[([a-z0-9\-]+)\]\]/gi, (_, id) => {
       const t = byId.get(id);
       return t
-        ? `<button class="cite" data-cite="${id}" title="${esc(t.merchant)}"><span dir="auto">${esc(t.merchant.slice(0, 22))}</span> ${fmt(t.amount, 0)}</button>`
+        ? `<button class="cite" data-cite="${id}" title="${esc(t.merchant)}"><span dir="auto">${esc(t.merchant.slice(0, 22))}</span> ${fmt(t.amount, 0, t.currency)}</button>`
         : "";
     })
     .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");

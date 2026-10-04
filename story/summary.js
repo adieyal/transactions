@@ -21,6 +21,8 @@ import {
   plural,
   questionText,
 } from "./copy.js";
+import { eachCurrency, sectionsPerCurrency } from "./currency.js";
+import { groupBy, median } from "./moment-kit.js";
 
 // A month told in plain sentences. Each part that states a figure carries
 // the ids of the transactions behind it, so the page can light them up.
@@ -36,21 +38,6 @@ const monthWord = (ym) => monthLong(ym).split(" ")[0];
 const pick = (month, kind, variants) =>
   variants[parseInt(fnv(month + "|" + kind), 16) % variants.length];
 
-function median(values) {
-  const s = [...values].sort((a, b) => a - b);
-  if (!s.length) return null;
-  const mid = s.length >> 1;
-  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
-}
-function groupBy(items, key) {
-  const out = new Map();
-  for (const item of items) {
-    const k = key(item);
-    if (!out.has(k)) out.set(k, []);
-    out.get(k).push(item);
-  }
-  return out;
-}
 // Text parts joined as "a, b and c", each item keeping its own ids.
 function listParts(items) {
   const out = [];
@@ -331,6 +318,20 @@ export function summarizeMonth(
   month,
   moments = findMoments(derived, state),
 ) {
+  if (!coveredMonths(derived).includes(month))
+    return monthSections(derived, state, month, moments);
+  const inMonth = derived.allTxns.filter((t) => monthOf(t.date) === month);
+  return sectionsPerCurrency(derived, inMonth, (view) =>
+    monthSections(
+      view,
+      state,
+      month,
+      moments.filter((m) => m.currency === view.currency),
+    ),
+  );
+}
+
+function monthSections(derived, state, month, moments) {
   const months = coveredMonths(derived);
   if (!months.includes(month))
     return [
@@ -389,12 +390,16 @@ export const sectionText = (section) =>
 
 // A period told on its own: what went out in its dates, leaving regular
 // spending aside unless asked for, and how it compares with other periods.
-export function summarizePeriod(
-  derived,
-  state,
-  period,
-  { regular = false } = {},
-) {
+export function summarizePeriod(derived, state, period, options = {}) {
+  const inDates = derived.allTxns.filter(
+    (t) => t.date >= period.start && t.date <= period.end,
+  );
+  return sectionsPerCurrency(derived, inDates, (view) =>
+    periodStory(view, state, period, options),
+  );
+}
+
+function periodStory(derived, state, period, { regular = false } = {}) {
   const spend = derived.allTxns.filter(spending);
   const seen = monthsSeen(spend);
   const routine = (t) => seen.get(t.key)?.size >= 3;
@@ -497,12 +502,39 @@ export function periodNotes(derived, period, { regular = false } = {}) {
       date: t.date,
       merchant: t.merchant,
       amount: t.amount,
+      currency: t.currency,
       note: t.note,
     }));
 }
 
 // A thread told as a summary, a month strip and a blow-by-blow list.
+// With several currencies, each is told on its own and has its own strip.
 export function summarizeThread(derived, state, name) {
+  const inThread = derived.allTxns.filter((t) => t.thread === name);
+  const runs = eachCurrency(derived, inThread, (view) =>
+    threadStory(view, state, name),
+  );
+  if (!runs.length) {
+    const story = threadStory(derived, state, name);
+    return { ...story, strips: [] };
+  }
+  const strips = runs.map((r) => ({
+    currency: r.currency,
+    months: r.value.months,
+  }));
+  return {
+    sections: sectionsPerCurrency(
+      derived,
+      inThread,
+      (view) => threadStory(view, state, name).sections,
+    ),
+    months: runs.length === 1 ? runs[0].value.months : [],
+    strips,
+    items: runs.flatMap((r) => r.value.items).sort(byDate),
+  };
+}
+
+function threadStory(derived, state, name) {
   const inThread = derived.allTxns
     .filter((t) => t.thread === name)
     .sort(byDate);
@@ -523,6 +555,7 @@ export function summarizeThread(derived, state, name) {
     date: t.date,
     merchant: t.merchant,
     amount: t.amount,
+    currency: t.currency,
     inflow: !!t.inflow,
     periods: t.periods || [],
     note: t.note || "",
