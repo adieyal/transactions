@@ -36,11 +36,15 @@ test("build produces identical single-file HTML from any working directory", () 
     !/cdnjs|xlsx\.full/.test(html.split("</head>")[0]),
     "no SheetJS in <head>",
   );
-  // The fonts stay on Google Fonts (ADR 0007, the user's decision).
-  assert.match(
-    html,
-    /<link href="https:\/\/fonts\.googleapis\.com\/css2\?family=Frank\+Ruhl\+Libre[^"]*" rel="stylesheet">/,
-  );
+  // The fonts are embedded, so the page requests none (ADR 0010).
+  assert.ok(!/fonts\.googleapis|fonts\.gstatic|<link\b/.test(html));
+  for (const family of ["Frank Ruhl Libre", "Instrument Sans"])
+    assert.match(
+      html,
+      new RegExp(
+        `@font-face\\{font-family:"${family}";[^}]*src:url\\(data:font/woff2;base64,`,
+      ),
+    );
   const template = readFileSync(new URL("index.html", root), "utf8");
   const stripBlocks = (text) =>
     text

@@ -17,7 +17,16 @@ const result = await build({
   legalComments: "inline",
 });
 const template = await readFile(path.join(root, "index.html"), "utf8");
-const css = await readFile(path.join(root, "styles.css"), "utf8");
+// The fonts go into the page as data URLs, so it requests nothing (ADR 0010).
+const fonts = /url\(fonts\/([a-z0-9-]+\.woff2)\)/g;
+let css = await readFile(path.join(root, "styles.css"), "utf8");
+for (const [ref, file] of [...css.matchAll(fonts)]) {
+  const data = await readFile(path.join(root, "fonts", file));
+  css = css.replace(
+    ref,
+    `url(data:font/woff2;base64,${data.toString("base64")})`,
+  );
+}
 const script = result.outputFiles[0].text;
 for (const marker of [
   "<!-- TRANSACTIONS_STYLES -->",
