@@ -315,3 +315,16 @@ test("backups keep each statement's currency and reject an unknown code", () => 
   backup.batches[0].currency = "XYZ";
   assert.throws(() => parseBackup(JSON.stringify(backup), TODAY), /currency/);
 });
+
+test("statements waiting for a currency are named as the cause, not shown as empty", async () => {
+  const { waitingForCurrency, sectionsPerCurrency } =
+    await import("../story/currency.js");
+  assert.match(waitingForCurrency(1), /^1 transaction is saved .* currency/);
+  assert.match(waitingForCurrency(161), /^161 transactions are saved/);
+  const [empty] = sectionsPerCurrency(
+    { allTxns: [], txns: [], unpriced: 3 },
+    [],
+    () => [],
+  );
+  assert.match(empty.parts[0].text, /waiting for their currency/);
+});

@@ -3,6 +3,7 @@ import { coveredMonths } from "../story/moments.js";
 import { summarizeMonth } from "../story/summary.js";
 import { polishFacts, polishSummary } from "../story/assist.js";
 import { monthLong } from "../story/copy.js";
+import { waitingForCurrency } from "../story/currency.js";
 import { phraseHTML, wireHoverHighlight } from "./highlight.js";
 import { $, html, paneShown, raw } from "./dom.js";
 import { markdown } from "./markdown.js";
@@ -40,8 +41,14 @@ export function createMonth(runtime, actions) {
     const el = $("#month");
     if (!el || !state.loaded || !paneShown("month")) return;
     const ms = months();
+    const { unpriced } = runtime.derived;
+    const waiting = unpriced
+      ? `<p class="mwaiting" role="status">${esc(waitingForCurrency(unpriced))} <button class="btn small" data-mcurrency>Choose the currency</button></p>`
+      : "";
     if (!ms.length) {
-      el.innerHTML = html`<p class="sub">No statements yet. Add some and a summary of each month appears here.</p>`;
+      el.innerHTML = waiting
+        ? html`${raw(waiting)}`
+        : html`<p class="sub">No statements yet. Add some and a summary of each month appears here.</p>`;
       return;
     }
     const m = current();
@@ -75,7 +82,7 @@ export function createMonth(runtime, actions) {
         <span class="mkick">Your month</span>
         <button class="mstep" data-mstep="1" aria-label="Next month"${i >= ms.length - 1 ? " disabled" : ""}>›</button>
       </div>
-      <h2 class="mtitle">${monthLong(m)}</h2>
+      <h2 class="mtitle">${monthLong(m)}</h2>${raw(waiting)}
       <div class="msum">${raw(body)}</div>${raw(controls)}
       <p class="sub">Hover or tab to underlined text to find it on the timeline.</p>`;
   }
@@ -122,6 +129,7 @@ export function createMonth(runtime, actions) {
       const b = e.target.closest("[data-mstep]");
       if (b) step(+b.dataset.mstep);
       if (e.target.closest("[data-mpolish]")) polish();
+      if (e.target.closest("[data-mcurrency]")) actions.askCurrencies();
       if (e.target.closest("[data-moriginal]")) {
         original.add(current());
         renderMonth();
@@ -143,6 +151,7 @@ export const contract = {
   provides: ["renderMonth", "wireMonth"],
   requires: [
     "AI",
+    "askCurrencies",
     "highlight",
     "openQuestions",
     "questionCard",

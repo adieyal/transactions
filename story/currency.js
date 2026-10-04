@@ -9,6 +9,11 @@ const sorted = (xs) => [...new Set(xs)].sort();
 
 export const currenciesOf = (txns) => sorted(txns.map((t) => t.currency));
 
+// Why some transactions aren't shown: statements saved before they recorded
+// a currency, waiting for the person to say which.
+export const waitingForCurrency = (unpriced) =>
+  `${unpriced} transaction${unpriced === 1 ? " is" : "s are"} saved from statements that don't say their currency. Their amounts stay off the page until you choose it.`;
+
 // The derived data as if only one currency's transactions existed. Coverage
 // keeps the accounts that hold that currency.
 export function currencyView(derived, currency) {
@@ -47,7 +52,7 @@ export function sectionsPerCurrency(derived, txns, fn) {
         parts: [
           {
             text: derived.unpriced
-              ? "Some statements are waiting for you to say their currency, so their amounts aren't shown yet."
+              ? "Nothing to tell yet: the amounts here are waiting for their currency."
               : "Nothing went out or came in here.",
           },
         ],

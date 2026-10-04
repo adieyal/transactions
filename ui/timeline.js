@@ -17,6 +17,7 @@ import { describeTransfer, showBeadTip } from "./timeline-text.js";
 import { $, html, toast } from "./dom.js";
 import { setBudget as setThreadBudget } from "../transactions/rules-edit.js";
 import { name as bidi } from "../story/copy.js";
+import { waitingForCurrency } from "../story/currency.js";
 import {
   anchorEnd,
   fitLabels,
@@ -40,6 +41,12 @@ export function createTimeline(runtime, actions) {
     }
     if (!runtime.derived.txns.length && runtime.derived.allTxns?.length) {
       host.innerHTML = html`<div class="empty" style="min-height:220px"><div><p>Nothing matches “${state.query.trim()}”.</p><button class="btn quiet" id="emptyClear">Clear the filter</button></div></div>`;
+      POS = [];
+      TL = null;
+      return;
+    }
+    if (!runtime.derived.txns.length && runtime.derived.unpriced) {
+      host.innerHTML = html`<div class="empty"><div><h2>Which currency are your statements in?</h2><p>${waitingForCurrency(runtime.derived.unpriced)}</p><button class="btn" id="emptyCurrency">Choose the currency</button></div></div>`;
       POS = [];
       TL = null;
       return;
@@ -332,6 +339,7 @@ export function createTimeline(runtime, actions) {
       // The empty states' buttons.
       if (ev.target.closest("#emptyClear")) return $("#qClear").click();
       if (ev.target.closest("#emptyAdd")) return $("#file").click();
+      if (ev.target.closest("#emptyCurrency")) return actions.askCurrencies();
       const c = ev.target.closest("circle[data-id]");
       if (c) {
         const id = c.dataset.id;
@@ -548,7 +556,7 @@ export const contract = {
     "wireParkbar",
     "wireTimeline",
   ],
-  requires: ["addPeriod", "refresh", "removePeriod", "save"],
+  requires: ["addPeriod", "askCurrencies", "refresh", "removePeriod", "save"],
   renders: ["renderParkbar", "renderTimeline"],
   wires: ["wireTimeline", "wireParkbar"],
 };
