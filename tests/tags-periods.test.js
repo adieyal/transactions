@@ -7,6 +7,7 @@ import {
   parseTags,
   restoreNotes,
   retag,
+  taggedIds,
   tagsOf,
 } from "../transactions/tags.js";
 import { periodPayments, periodStats } from "../transactions/period-stats.js";
@@ -86,4 +87,17 @@ test("periodPayments finds a period's payments by its id, not its name", () => {
   const other = periodPayments(derived.allTxns, twin);
   assert.ok(other.length > 0);
   assert.ok(other.every((id) => !ids.includes(id)));
+});
+
+test("taggedIds finds a tag across all notes, whatever its case", () => {
+  const notes = {
+    a: "Dinner in Tirana #Travel",
+    b: "#travel #bankcharges",
+    c: "#travelling, not the same tag",
+    d: "no tags",
+  };
+  assert.deepEqual(taggedIds(notes, "#travel"), ["a", "b"]);
+  assert.deepEqual(taggedIds(notes, "#TRAVEL"), ["a", "b"]);
+  assert.deepEqual(taggedIds(notes, "#bankcharges"), ["b"]);
+  assert.deepEqual(taggedIds({}, "#travel"), []);
 });

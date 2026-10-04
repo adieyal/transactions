@@ -85,7 +85,7 @@ function manyHTML(ui, runtime, ts) {
     <label for="many-name" class="bn-label">Name</label>
     <input id="many-name" class="bn-input" dir="auto" value="${esc(ui.manyName)}" placeholder="For a new thread or a period">
     <div class="bn-row bn-acts"><button class="bn-dark" data-bench-thread>Thread these</button><button class="bn-small" data-bench-period>Mark as a period</button><button class="bn-small" data-bench-clear>Clear</button></div>
-    <div class="bn-row bn-tags"><button class="bn-small" data-bench-tag>Add a tag to ${ts.length}</button>${m.tags.map((g) => `<span class="bn-tagchip" dir="auto">${esc(g)}</span>`).join("")}</div>
+    <div class="bn-row bn-tags"><button class="bn-small" data-bench-tag>Add a tag to ${ts.length}</button>${m.tags.map((g) => `<span class="bn-tagchip" dir="auto" tabindex="0" data-ref data-tag="${esc(g.split(" ")[0])}">${esc(g)}</span>`).join("")}</div>
     ${ui.manyMsg ? `<p role="status" class="bn-msg">${esc(ui.manyMsg)}</p>` : ""}
     ${tagRow(ui, ts.length)}
     <div class="bn-tell">

@@ -66,3 +66,10 @@ export function restoreNotes(notes, previous) {
   }
   return next;
 }
+
+// The transactions whose note carries a tag, matched without regard to
+// case, across all notes: what a tag chip stands for.
+export function taggedIds(notes, tag) {
+  const t = String(tag).toLowerCase();
+  return Object.keys(notes || {}).filter((id) => tagsOf(notes[id]).includes(t));
+}

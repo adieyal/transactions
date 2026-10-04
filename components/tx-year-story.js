@@ -86,7 +86,7 @@ const noteText = (text) =>
     .split(/(#[\p{L}\p{N}_-]+)/u)
     .map((bit, i) =>
       i % 2
-        ? `<span class="yr-tag">${esc(bit)}</span>`
+        ? `<span class="yr-tag" tabindex="0" data-ref data-tag="${esc(bit.toLowerCase())}">${esc(bit)}</span>`
         : bit.trim()
           ? `<span>${esc(bit.trim())}</span>`
           : "",

@@ -1,10 +1,12 @@
 import { periodPayments } from "../transactions/period-stats.js";
+import { taggedIds } from "../transactions/tags.js";
 import { emitHighlight } from "./base.js";
 
 // Linked references (ADR 0012): anything that stands for a set of payments.
 // That covers a dotted story phrase (.sp[data-ids]), a citation
 // ([data-cite]), and an element marked data-ref: a period chip
 // (data-period-ref, its payments found from the period's id, not its name),
+// a tag chip (data-tag, every payment whose note carries it, any case),
 // a thread name, or a bench line (data-ids). One delegated controller per
 // host gives them all the same behaviour:
 // - hovering or focusing lights up their beads (tx-highlight), and leaving
@@ -21,6 +23,10 @@ export const REF = ".sp[data-ids], [data-cite], [data-ref]";
 // The payment ids a reference stands for.
 export function refIds(el, runtime) {
   const d = el.dataset;
+  if (d.tag) {
+    const byId = runtime.derived?.byId;
+    return taggedIds(runtime.state.notes, d.tag).filter((id) => byId?.has(id));
+  }
   if (d.periodRef) {
     const p = runtime.state.periods.find((x) => x.id === d.periodRef);
     return p && runtime.derived
@@ -69,7 +75,7 @@ export function markRefs(host, runtime) {
 // that redraws it: found again by what it stands for.
 let refocus = null;
 const keyOf = (el) =>
-  `${el.classList[0]} ${el.dataset.periodRef ?? el.dataset.ids ?? el.dataset.cite}`;
+  `${el.classList[0]} ${el.dataset.periodRef ?? el.dataset.tag ?? el.dataset.ids ?? el.dataset.cite}`;
 
 // One event is handled once, by the innermost host that wired it.
 const handled = new WeakSet();
