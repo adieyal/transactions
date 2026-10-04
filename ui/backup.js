@@ -94,6 +94,7 @@ export function createBackupImport(runtime, actions) {
       $("#backupCancel").disabled = true;
       try {
         await actions.restoreBackup(pending);
+        actions.endTour();
         Object.assign(runtime.state, createRuntime().state, pending, {
           loaded: true,
         });
@@ -120,7 +121,13 @@ export const contract = {
   name: "backup",
   create: createBackupImport,
   provides: ["replaceDemo", "restartDemo", "wireBackupImport"],
-  requires: ["applyPanel", "refresh", "resetPanelScroll", "restoreBackup"],
+  requires: [
+    "applyPanel",
+    "endTour",
+    "refresh",
+    "resetPanelScroll",
+    "restoreBackup",
+  ],
   renders: [],
   wires: ["wireBackupImport"],
 };

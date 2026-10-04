@@ -282,13 +282,17 @@ export function createTour(runtime, actions) {
     if (!flags.has("tourSeen")) startTour();
   }
 
-  return { maybeStartTour, startTour };
+  // The tour walks through the demo year, so it closes when the workspace
+  // is replaced (a backup or someone's own statements).
+  const endTour = end;
+
+  return { endTour, maybeStartTour, startTour };
 }
 
 export const contract = {
   name: "tour",
   create: createTour,
-  provides: ["maybeStartTour", "startTour"],
+  provides: ["endTour", "maybeStartTour", "startTour"],
   requires: [
     "Store",
     "answerQuestion",
