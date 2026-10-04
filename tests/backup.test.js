@@ -12,7 +12,7 @@ import { deriveTransactions } from "../transactions/derive.js";
 
 function source() {
   const { state } = createRuntime();
-  Object.assign(state, createDemoData("2026-09-30"));
+  Object.assign(state, createDemoData("2026-09-30"), { isDemo: true });
   state.notes[Object.values(state.batches)[0].rows[0].id] =
     "Round-trip note #custom";
   state.names["brightwell energy"] = { name: "Renamed energy", by: "user" };

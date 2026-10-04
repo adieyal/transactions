@@ -434,7 +434,12 @@ export function createTimeline(runtime, actions) {
   function highlight(ids, { clearSelection = false } = {}) {
     state.highlight = ids instanceof Set ? ids : new Set(ids);
     if (clearSelection) state.selection.clear();
-    renderTimeline();
+    // The month view and first-run page hide the timeline; showing it
+    // again goes through refresh, which draws it.
+    const hidden = ["onemonth", "firstrun"].some((c) =>
+      document.body.classList.contains(c),
+    );
+    if (!hidden) renderTimeline();
     runtime.store.notify("highlight");
   }
   // Selects beads and lights them up, as clicking a citation does.

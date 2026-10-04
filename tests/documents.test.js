@@ -19,7 +19,7 @@ const TODAY = "2026-09-30";
 const fresh = () => createRuntime().state;
 const clone = (v) => JSON.parse(JSON.stringify(v));
 function demoState() {
-  const state = Object.assign(fresh(), createDemoData(TODAY));
+  const state = Object.assign(fresh(), createDemoData(TODAY), { isDemo: true });
   state.view.parked = ["Home"];
   state.answers = {
     "cluster-2026-04-84d1cf4d": { status: "skipped", at: "2026-10-04" },
@@ -213,4 +213,22 @@ test("the first real statements replace the demo: no demo data stays, and it's n
   );
   // The input is left as it was, so a cancelled import changes nothing.
   assert.ok(Object.keys(demo.batches).length > 0 && demo.isDemo);
+});
+
+// A person's first import, from the first-run page, saves their statements
+// and the documents they touched, but never the demo flag.
+test("a workspace without the demo flag is the person's own, after a reload", () => {
+  const theirs = Object.assign(fresh(), createDemoData(TODAY), {
+    isDemo: false,
+  });
+  const docs = {
+    adapters: toDocument(documentFor("adapters"), theirs),
+    ...Object.assign({}, ...Object.values(theirs.batches).map(batchDocuments)),
+  };
+  const reloaded = fresh();
+  assert.deepEqual(loadDocuments(docs, reloaded).invalid, []);
+  assert.ok(Object.keys(reloaded.batches).length > 0);
+  assert.equal(reloaded.isDemo, false, "their statements are not the demo");
+  // A new, empty workspace is not a demo either.
+  assert.equal(fresh().isDemo, false);
 });

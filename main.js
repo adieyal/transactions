@@ -193,9 +193,6 @@ async function boot() {
       );
     }
   } else docs = await actions.Store.backend.all();
-  // A new workspace starts empty, on the first-run page; the example year
-  // loads only when the person opens it.
-  if (!Object.keys(docs).length) runtime.state.isDemo = false;
   const { invalid, legacyDemo } = loadDocuments(docs, runtime.state);
   // A workspace seeded before `workspace` existed: record it the current way.
   if (legacyDemo) actions.save("workspace");

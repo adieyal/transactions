@@ -6,7 +6,9 @@ import { createStore } from "./store.js";
 export function createRuntime({ today = null } = {}) {
   const state = {
     loaded: false,
-    isDemo: true,
+    // Only a saved `workspace` document (or the legacy marker) says the
+    // data is the example year; anything else is the person's own.
+    isDemo: false,
     batches: {},
     rules: STARTER_RULES,
     previewRules: null,
