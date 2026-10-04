@@ -126,6 +126,21 @@
 </dialog>
 <div id="toast" role="status" aria-live="polite"></div>
 
+<dialog id="lensDlg" class="lensdlg" aria-label="Edit lens">
+  <div class="lensdlg-head">
+    <input id="lensTitle" aria-label="Lens title" spellcheck="false" dir="auto">
+    <span class="sub">The body of a function <code>(txns, lib) =&gt; view</code>. Type <code>lib.</code> or <code>t.</code> for suggestions.</span>
+    <button class="btn small" id="lensDone">Done</button>
+  </div>
+  <div class="lensdlg-body">
+    <div class="lensdlg-code" id="lensCode"></div>
+    <aside class="lensdlg-side">
+      <div class="lensdlg-preview"><div class="lensdlg-label">Preview <span id="lensStatus" class="lens-status"></span></div><div id="lensPreview"></div></div>
+      <div class="lensdlg-ref" id="lensRef"></div>
+    </aside>
+  </div>
+</dialog>
+
 <dialog id="backupDlg" aria-labelledby="backupTitle">
   <div class="dlg">
   <h2 id="backupTitle">Import backup</h2>

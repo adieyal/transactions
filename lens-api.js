@@ -1,0 +1,141 @@
+// What a lens can use, for the editor's reference panel and autocomplete.
+// tests/lens-api.test.js checks this against the objects lenses receive.
+
+export const TXN_FIELDS = [
+  {
+    name: "id",
+    type: "string",
+    doc: "Unique id. Pass ids to a view to light up beads.",
+  },
+  { name: "date", type: '"YYYY-MM-DD"', doc: "Purchase date." },
+  {
+    name: "chargeDate",
+    type: '"YYYY-MM-DD"',
+    doc: "Date it was charged, if different.",
+  },
+  {
+    name: "merchant",
+    type: "string",
+    doc: "Display name, possibly renamed or translated.",
+  },
+  {
+    name: "original",
+    type: "string",
+    doc: "Description exactly as on the statement.",
+  },
+  {
+    name: "amount",
+    type: "number",
+    doc: "Positive is money out; negative is a refund or money in.",
+  },
+  {
+    name: "orig",
+    type: "{amount, currency} | null",
+    doc: "Original or foreign-currency amount.",
+  },
+  { name: "type", type: "string", doc: "Transaction type from the statement." },
+  { name: "details", type: "string", doc: "Extra text from the statement." },
+  { name: "inst", type: "{n, of} | null", doc: "Instalment n of `of`." },
+  {
+    name: "thread",
+    type: "string",
+    doc: "Your category, from the Threads rules.",
+  },
+  { name: "account", type: "string", doc: "Account or card name." },
+  { name: "note", type: "string", doc: "Your note, which may contain #tags." },
+  { name: "period", type: '"YYYY-MM"', doc: "Statement month." },
+  {
+    name: "periods",
+    type: "string[]",
+    doc: "Names of the periods you marked that include it.",
+  },
+  {
+    name: "recurring",
+    type: "boolean",
+    doc: "The merchant appears in two or more statements.",
+  },
+  {
+    name: "key",
+    type: "string",
+    doc: "Merchant identity used to group repeats.",
+  },
+  {
+    name: "kind",
+    type: "string",
+    doc: '"actual" for statement rows; expected charges differ.',
+  },
+];
+
+export const LIB_MEMBERS = [
+  {
+    name: "sum",
+    sig: "sum(array, fn?)",
+    doc: "Adds up fn(x) for each item, or the items themselves.",
+  },
+  {
+    name: "groupBy",
+    sig: "groupBy(array, fn)",
+    doc: "Returns { key: [items] } grouped by fn(x).",
+  },
+  {
+    name: "month",
+    sig: "month(date)",
+    doc: 'Turns "YYYY-MM-DD" into "YYYY-MM".',
+  },
+  { name: "fmt", sig: "fmt(number)", doc: 'Formats money, e.g. "₪1,234.00".' },
+  { name: "today", sig: "today", doc: 'Today as "YYYY-MM-DD".' },
+  { name: "threads", sig: "threads", doc: "Thread names, in order." },
+  { name: "accounts", sig: "accounts", doc: "Account names." },
+  {
+    name: "expected",
+    sig: "expected",
+    doc: "Projected future charges, shaped like txns.",
+  },
+  {
+    name: "periods",
+    sig: "periods",
+    doc: "[{ name, start, end, story }] for the periods you marked.",
+  },
+  { name: "budgets", sig: "budgets", doc: "{ thread: monthly budget }." },
+  {
+    name: "transfers",
+    sig: "transfers",
+    doc: "Moves between your own accounts, left out of txns.",
+  },
+];
+
+export const VIEW_KINDS = [
+  {
+    kind: "bars",
+    shape: '{ kind: "bars", items: [{ label, value, ids? }], unit? }',
+    doc: 'Horizontal bars. Labels like "2026-03" show as month names. unit: "" shows raw values.',
+  },
+  {
+    kind: "table",
+    shape: '{ kind: "table", columns: [..], rows: [[..]], rowIds? }',
+    doc: "A table. rowIds[i] lists the ids behind row i.",
+  },
+  {
+    kind: "number",
+    shape: '{ kind: "number", value, label?, ids? }',
+    doc: "One big figure with a caption.",
+  },
+  { kind: "text", shape: '{ kind: "text", text }', doc: "A sentence or two." },
+];
+
+export const ARRAY_METHODS = [
+  ["filter", "filter(t => …)", "Keep the items where the test is true."],
+  ["map", "map(t => …)", "Turn each item into something else."],
+  ["reduce", "reduce((acc, t) => …, start)", "Fold the items into one value."],
+  [
+    "sort",
+    "sort((a, b) => …)",
+    "Sort in place; return negative to put a first.",
+  ],
+  ["slice", "slice(start, end)", "A part of the array."],
+  ["find", "find(t => …)", "The first item where the test is true."],
+  ["some", "some(t => …)", "True if any item passes."],
+  ["every", "every(t => …)", "True if every item passes."],
+  ["forEach", "forEach(t => …)", "Run something for each item."],
+  ["length", "length", "How many items."],
+].map(([name, sig, doc]) => ({ name, sig, doc }));

@@ -27,7 +27,6 @@ export function createRuntime() {
     highlight: new Set(),
     statement: null,
     turns: [],
-    editing: new Set(),
   };
   const caps = {
     sample: null,

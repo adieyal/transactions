@@ -22,6 +22,7 @@ import { createSuggestions } from "./suggestions.js";
 import { createChat } from "./ui/chat.js";
 import { createImport } from "./ui/import.js";
 import { createTour } from "./ui/tour.js";
+import { createLensEditor } from "./ui/lens-editor.js";
 
 const runtime = createRuntime();
 const actions = {
@@ -47,6 +48,7 @@ Object.assign(actions, createChat(runtime, actions));
 Object.assign(actions, createImport(runtime, actions));
 Object.assign(actions, createBackupImport(runtime, actions));
 Object.assign(actions, createTour(runtime, actions));
+Object.assign(actions, createLensEditor(runtime, actions));
 
 function renderAll() {
   if (!runtime.state.loaded) {
@@ -81,6 +83,7 @@ async function boot() {
   actions.wireBackupImport();
   actions.wireTimeline();
   actions.wireLenses();
+  actions.wireLensEditor();
   actions.wireAsk();
   actions.wireConnect();
   actions.wireFilter();

@@ -11,6 +11,8 @@ const result = await build({
   format: "iife",
   platform: "browser",
   target: "es2022",
+  // The bundle is for running; the readable source lives in the repository.
+  minify: true,
   write: false,
   legalComments: "inline",
 });

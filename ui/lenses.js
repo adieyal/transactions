@@ -116,12 +116,10 @@ export function createLenses(runtime, actions) {
         err = e.message || String(e);
         body = "";
       }
-      const open = state.editing.has(l.id);
       const wide =
         l.wide ?? (view?.kind === "table" && (view.columns || []).length >= 4);
       h += `<article class="lens${wide ? " wide" : ""}" data-lens="${l.id}"><h3><span contenteditable="true" spellcheck="false" data-title="${l.id}">${esc(l.title)}</span></h3>${body}${err ? `<div class="err">${esc(err)}</div>` : ""}
-      ${open ? `<textarea spellcheck="false" data-code="${l.id}" aria-label="Lens code">${esc(l.code)}</textarea>` : ""}
-      <div class="foot"><button data-toggle="${l.id}">${open ? "Hide code" : "Open code"}</button><button data-wide="${l.id}" data-was="${wide ? 1 : 0}">${wide ? "Narrower" : "Full width"}</button>${caps.sample ? `<button data-fix="${l.id}">${err ? "Fix with " + actions.AI() : "Change with " + actions.AI()}</button>` : ""}<button data-del="${l.id}">Remove</button></div></article>`;
+      <div class="foot"><button data-edit="${l.id}">Edit code</button><button data-wide="${l.id}" data-was="${wide ? 1 : 0}">${wide ? "Narrower" : "Full width"}</button>${caps.sample ? `<button data-fix="${l.id}">${err ? "Fix with " + actions.AI() : "Change with " + actions.AI()}</button>` : ""}<button data-del="${l.id}">Remove</button></div></article>`;
     });
     h += `<div class="newlens">${
       caps.sample
@@ -135,7 +133,7 @@ export function createLenses(runtime, actions) {
     const el = $("#lenses");
     el.addEventListener("click", async (ev) => {
       const b = ev.target.closest("[data-ids]");
-      if (b && !ev.target.closest("textarea")) {
+      if (b) {
         const ids = b.dataset.ids ? b.dataset.ids.split(",") : [];
         const same =
           ids.length &&
@@ -158,14 +156,9 @@ export function createLenses(runtime, actions) {
         renderLenses();
         return;
       }
-      const t = ev.target.closest("[data-toggle]");
+      const t = ev.target.closest("[data-edit]");
       if (t) {
-        const id = t.dataset.toggle;
-        state.editing.has(id)
-          ? state.editing.delete(id)
-          : state.editing.add(id);
-        renderLenses();
-        el.querySelector(`[data-code="${id}"]`)?.focus();
+        actions.openLensEditor(t.dataset.edit);
         return;
       }
       const d = ev.target.closest("[data-del]");
@@ -199,7 +192,6 @@ export function createLenses(runtime, actions) {
           l.code = r.code;
           if (r.title && !brief) l.title = l.title || r.title;
           actions.saveLenses();
-          state.editing.add(l.id);
         } catch (e) {
           toast(actions.sampleErr(e));
         }
@@ -213,9 +205,9 @@ export function createLenses(runtime, actions) {
           code: `// txns: your transactions. lib: sum, groupBy, month, fmt, expected, threads.\nreturn { kind: "number", value: lib.sum(txns, t => t.amount), label: "Everything on your statements" };`,
         };
         state.lenses.push(l);
-        state.editing.add(l.id);
         actions.saveLenses();
         renderLenses();
+        actions.openLensEditor(l.id);
         return;
       }
       if (ev.target.id === "lensGo") {
@@ -244,45 +236,7 @@ export function createLenses(runtime, actions) {
         }
       }
     });
-    const rerun = debounce((id) => {
-      const art = el.querySelector(`[data-lens="${id}"]`);
-      const l = state.lenses.find((x) => x.id === id);
-      if (!art || !l) return;
-      let body = "",
-        err = null;
-      try {
-        body = renderView(runLens(l.code));
-      } catch (e) {
-        err = e.message || String(e);
-      }
-      art
-        .querySelectorAll(
-          ".bars,.ltable,.lnum,.lnum+.sub,.err,article>p,article>div[style]",
-        )
-        .forEach((n) => {
-          if (!n.closest("textarea")) n.remove();
-        });
-      art
-        .querySelector("h3")
-        .insertAdjacentHTML(
-          "afterend",
-          body + (err ? `<div class="err">${esc(err)}</div>` : ""),
-        );
-      const fx = art.querySelector("[data-fix]");
-      if (fx)
-        fx.textContent = err
-          ? "Fix with " + actions.AI()
-          : "Change with " + actions.AI();
-    }, 250);
     el.addEventListener("input", (ev) => {
-      const c = ev.target.closest("[data-code]");
-      if (c) {
-        const l = state.lenses.find((x) => x.id === c.dataset.code);
-        l.code = c.value;
-        actions.saveLenses();
-        rerun(l.id);
-        return;
-      }
       const t = ev.target.closest("[data-title]");
       if (t) {
         const l = state.lenses.find((x) => x.id === t.dataset.title);
@@ -290,18 +244,49 @@ export function createLenses(runtime, actions) {
         actions.saveLenses();
       }
     });
-    el.addEventListener("keydown", (ev) => {
-      if (ev.target.matches("[data-code]") && ev.key === "Tab") {
-        ev.preventDefault();
-        const ta = ev.target;
-        const s = ta.selectionStart;
-        ta.setRangeText("  ", s, ta.selectionEnd, "end");
-        ta.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-    });
   }
+
+  // Re-runs one lens card in place, e.g. while its code is being edited.
+  const rerunLens = debounce((id) => {
+    const art = $(`#lenses [data-lens="${id}"]`);
+    const l = state.lenses.find((x) => x.id === id);
+    if (!art || !l) return;
+    let body = "",
+      err = null;
+    try {
+      body = renderView(runLens(l.code));
+    } catch (e) {
+      err = e.message || String(e);
+    }
+    art
+      .querySelectorAll(
+        ".bars,.ltable,.lnum,.lnum+.sub,.err,article>p,article>div[style]",
+      )
+      .forEach((n) => n.remove());
+    art
+      .querySelector("h3")
+      .insertAdjacentHTML(
+        "afterend",
+        body + (err ? `<div class="err">${esc(err)}</div>` : ""),
+      );
+    art.querySelector("[data-title]").textContent = l.title;
+    const fx = art.querySelector("[data-fix]");
+    if (fx)
+      fx.textContent = err
+        ? "Fix with " + actions.AI()
+        : "Change with " + actions.AI();
+  }, 250);
 
   const renderLensesSoon = debounce(() => renderLenses(), 300);
 
-  return { publicTxn, renderLenses, renderLensesSoon, wireLenses };
+  return {
+    lensLib,
+    publicTxn,
+    renderLenses,
+    renderLensesSoon,
+    renderView,
+    rerunLens,
+    runLens,
+    wireLenses,
+  };
 }

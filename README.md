@@ -106,7 +106,7 @@ Lenses are saved views calculated from the current transactions. The starter len
 
 ### 12. Edit lens code
 
-Choose **Open code** on a lens to edit the JavaScript that calculates its result. You can also rename a lens, expand it, remove it, or add a blank one. If an assistant is connected, you can ask it to write a lens from a question.
+Choose **Edit code** on a lens to open the editor. It highlights the JavaScript that calculates the result, suggests `txns`, `lib` and transaction fields as you type, marks syntax errors, and shows a live preview beside a reference of everything a lens can use. Press Escape or **Done** to close it. You can also rename a lens, expand it, remove it, or add a blank one. If an assistant is connected, you can ask it to write a lens from a question.
 
 The screenshot shows the code behind the spending-by-thread chart.
 
@@ -175,7 +175,7 @@ npm ci
 npm run check
 ```
 
-`npm run build` bundles the JavaScript and inlines it with the CSS into a single HTML file. It writes identical copies to `dist/transactions.html` and `transactions.html`. `abacus.html` is the restored original application with browser export support; the build does not overwrite it. The root copy is ready for serving or publishing. Both are generated files; edit the source modules instead.
+`npm run build` bundles and minifies the JavaScript and inlines it with the CSS into a single HTML file. It writes identical copies to `dist/transactions.html` and `transactions.html`. `abacus.html` is the restored original application with browser export support; the build does not overwrite it. The root copy is ready for serving or publishing. Both are generated files; edit the source modules instead.
 
 Serve the generated file from any static HTTP server, or open it directly in a browser. Node.js is only needed to build and test, not to serve the app.
 
