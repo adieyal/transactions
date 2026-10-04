@@ -228,12 +228,18 @@ const columnWords = (k) =>
   );
 
 // A row's currency: from the currency column when it holds an ISO code or a
-// symbol, otherwise the one the file was found or said to be in.
+// symbol, then from the amount cell itself ("EUR 90.00"), and only then the
+// one the file was found or said to be in.
 function rowCurrency(row, map) {
   if (map.currencyColumn != null) {
     const c = currencyIn(row[map.currencyColumn]);
     if (c) return c;
   }
+  for (const k of ["amount", "debit", "credit"])
+    if (map[k] != null && map[k] !== "") {
+      const c = parseAmount(row[map[k]])?.currency;
+      if (c) return c;
+    }
   return map.currency || null;
 }
 

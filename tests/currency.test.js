@@ -169,6 +169,26 @@ test("currency is detected from headings, symbols, codes and a currency column",
   assert.equal(b.currency, null, "a batch in two currencies names neither");
 });
 
+test("an amount cell's own currency wins over the one chosen for the file", () => {
+  const map = { headerRow: 0, date: 0, merchant: 1, amount: 2, account: "X" };
+  const m = [
+    ["Date", "Description", "Amount"],
+    ["2026-09-02", "Fictional Diner", "USD 12.50"],
+    ["2026-09-04", "Fictional Inn", "EUR 90.00"],
+    ["2026-09-05", "Fictional Kiosk", "7.00"],
+  ];
+  assert.equal(detectCurrency(m, map), null);
+  const b = applyMapping(m, { ...map, currency: "USD" }, "mixed.csv");
+  assert.deepEqual(
+    b.rows.map((r) => [r.amount, r.currency]),
+    [
+      [12.5, "USD"],
+      [90, "EUR"],
+      [7, "USD"],
+    ],
+  );
+});
+
 test("old statements take their format's currency, and others wait to be asked", () => {
   const rows = (id) => [
     {
