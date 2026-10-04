@@ -54,10 +54,7 @@ const PURE = new Set(["core", "domain"]);
 // (review finding 1). It may only shrink: lower this when it does.
 const CYCLE_MAX = 13;
 
-const LAYER_ALLOW = [
-  // R7: persistence.js shows its own toasts; main.js will pass in onError.
-  { v: "persistence.js (persistence) imports ui/dom.js (ui)", fix: "R7" },
-];
+const LAYER_ALLOW = [];
 
 // No document, window, storage, network, DOM parsing or ambient clock in the
 // pure layers. Matched outside strings, comments and regular expressions.

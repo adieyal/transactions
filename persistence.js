@@ -1,12 +1,17 @@
 import { batchDocuments, restoreBackupDocuments } from "./backup.js";
 import { documentFor, toDocument } from "./documents.js";
-import { toast } from "./ui/dom.js";
 import { localBackend } from "./storage.js";
-import { $ } from "./helpers.js";
 
+// Saving and restoring documents. Persistence shows no UI of its own: a
+// failed write goes to actions.onSaveError, and a finished save to
+// actions.showSaveStatus with where it was saved.
 export function createPersistence(runtime, actions) {
   const { state } = runtime;
-  const Store = { backend: localBackend(localStorage, toast) };
+  const Store = {
+    backend: localBackend(localStorage, (message) =>
+      actions.onSaveError(message),
+    ),
+  };
 
   const saveTimers = new Map();
   function saveSoon(key, get, wait = 700) {
@@ -14,7 +19,7 @@ export function createPersistence(runtime, actions) {
     const timer = setTimeout(() => {
       saveTimers.delete(key);
       Store.backend.put(key, get());
-      setStatus();
+      actions.showSaveStatus(Store.backend.kind);
     }, wait);
     saveTimers.set(key, { timer, get });
   }
@@ -31,13 +36,6 @@ export function createPersistence(runtime, actions) {
     );
     await restoreBackupDocuments(Store.backend, backup);
     blocked.clear();
-  }
-
-  function setStatus() {
-    $("#saveStatus").textContent =
-      Store.backend.kind === "account"
-        ? "Saved privately to your Claude account"
-        : "Saved in this browser only";
   }
 
   function saveBatch(batch) {
@@ -72,7 +70,6 @@ export function createPersistence(runtime, actions) {
     removeBatch,
     save,
     saveBatch,
-    setStatus,
   };
 }
 
@@ -86,9 +83,8 @@ export const contract = {
     "restoreBackup",
     "save",
     "saveBatch",
-    "setStatus",
   ],
-  requires: [],
+  requires: ["onSaveError", "showSaveStatus"],
   renders: [],
   wires: [],
 };

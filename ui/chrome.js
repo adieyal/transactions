@@ -37,7 +37,7 @@ export function createChrome(runtime, actions) {
       : "No AI assistant here yet. Set one up under More.";
     $("#sendBtn").disabled = !caps.sample || !runtime.derived?.allTxns.length;
     $("#askInput").disabled = !caps.sample;
-    actions.setStatus();
+    showSaveStatus(actions.Store.backend.kind);
     actions.renderPrivacy();
   }
 
@@ -46,6 +46,14 @@ export function createChrome(runtime, actions) {
   function resetPanelScroll() {
     const panel = $(".right");
     if (panel) panel.scrollTop = 0;
+  }
+
+  // Where the last save went, from the storage backend's kind.
+  function showSaveStatus(kind) {
+    $("#saveStatus").textContent =
+      kind === "account"
+        ? "Saved privately to your Claude account"
+        : "Saved in this browser only";
   }
 
   function openTab(which) {
@@ -229,6 +237,7 @@ export function createChrome(runtime, actions) {
     openTab,
     renderChrome,
     resetPanelScroll,
+    showSaveStatus,
     wireChrome,
   };
 }
@@ -241,6 +250,7 @@ export const contract = {
     "openTab",
     "renderChrome",
     "resetPanelScroll",
+    "showSaveStatus",
     "wireChrome",
   ],
   requires: [
@@ -257,8 +267,8 @@ export const contract = {
     "renderTimeline",
     "restartDemo",
     "save",
-    "setStatus",
     "startTour",
+    "Store",
     "suggestThreads",
     "syncGutter",
   ],

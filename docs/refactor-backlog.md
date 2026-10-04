@@ -19,7 +19,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 |    3 | [R1](#r1-declared-module-contracts-and-registry) Declared module contracts and registry                         |      M      |    Low     | none (turns the provider test into a contract test)                          |        **Done** (`next`)         |
 |    4 | [R4](#r4-pure-logic-out-of-the-ui) Pure logic out of the UI                                                     | L (4 × S/M) | Low–medium | none directly; shrinks `ui/chat.js` and `ui/timeline.js`                     |  R4a, c, d done; R4b part done   |
 |    5 | [R6](#r6-browser-file-readers-out-of-transactionsimportjs) Browser file readers out of `transactions/import.js` |      S      |    Low     | 3: `transactions/import.js uses window`, `… DOMParser`, `… XLSX`             |        **Done** (`next`)         |
-|    6 | [R7](#r7-persistence-stops-importing-the-ui) Persistence stops importing the UI                                 |      S      |    Low     | `persistence.js (persistence) imports ui/dom.js (ui)`                        |               Yes                |
+|    6 | [R7](#r7-persistence-stops-importing-the-ui) Persistence stops importing the UI                                 |      S      |    Low     | `persistence.js (persistence) imports ui/dom.js (ui)`                        |        **Done** (`next`)         |
 |    7 | [R5](#r5-split-helpersjs) Split `helpers.js`                                                                    |      S      |    Low     | `helpers.js uses document`, `helpers.js uses new Date()`                     | Yes (touches every `$` importer) |
 |    8 | [R11](#r11-storage-keys-into-storagejs) Storage keys into `storage.js`                                          |      S      |    Low     | `ui/assistant-settings.js uses storage`, `ui/tour.js uses storage`           |   Settings: **no**; tour: yes    |
 |    9 | [R9](#r9-split-uichatjs) Split `ui/chat.js`                                                                     |      M      | Low–medium | `ui/chat.js` size ceiling                                                    |        Yes (milestone 6)         |
@@ -150,6 +150,10 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Size:** S. **Risk:** low.
 - **Removes:** `persistence.js (persistence) imports ui/dom.js (ui)`.
 - **Wait:** yes (`persistence.js`, `main.js`).
+- **Done** on branch `next`, 4 October 2026:
+  - `persistence.js` imports nothing from `ui/`. It reports failed writes through `actions.onSaveError` (provided by `main.js`, which shows a toast) and finished saves through `actions.showSaveStatus(kind)` (provided by `ui/chrome.js`, which now owns the status text). Both are declared in its contract.
+  - The R7 allowlist entry is deleted.
+  - Not done: moving `suggestions.js` into `ui/` stays with the rest of R4b, because its prompts should move to `assistant/prompts.js` first.
 
 ### R5. Split `helpers.js`
 

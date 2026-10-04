@@ -60,6 +60,8 @@ const registry = createRegistry(runtime, MODULES, {
   redraw,
   refresh,
   refreshSoon: debounce(() => refresh(), 250),
+  // Storage reports failed writes here, so persistence needs no UI.
+  onSaveError: (message) => toast(message),
 });
 const actions = registry.actions;
 
