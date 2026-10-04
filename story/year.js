@@ -11,7 +11,9 @@ import { count, dateRange, list, money, monthLong, name } from "./copy.js";
 import {
   addFact,
   aheadSection,
+  expectedIn,
   gapSentence,
+  nextMonth,
   priceSentence,
   rhythmSentence,
   transferSentence,
@@ -83,18 +85,18 @@ function standouts(derived, state, first, last, moments) {
   );
 }
 
-export function yearStory(derived, state) {
+export function yearStory(derived, state, today) {
   const months = coveredMonths(derived);
   if (months.length < 2) return null;
   const inRange = derived.allTxns.filter((t) =>
     months.includes(monthOf(t.date)),
   );
   return withCurrency(mainCurrency(inRange.filter(pay)), () =>
-    tell(derived, state, months, inRange),
+    tell(derived, state, months, inRange, today),
   );
 }
 
-function tell(derived, state, months, inRange) {
+function tell(derived, state, months, inRange, today) {
   const currency = mainCurrency(inRange.filter(pay));
   const pays = inRange.filter((t) => pay(t) && t.currency === currency);
   const byMonth = new Map(months.map((m) => [m, []]));
@@ -176,10 +178,23 @@ function tell(derived, state, months, inRange) {
   // What's ahead: recent price changes and the charges that repeat. The
   // latest month, when nothing stood out in it, is told with them.
   const recent = prices.filter((p) => p.month >= months.at(-3));
+  // The month after the statements is told, and drawn, from the latest
+  // month until it is over; later, it would be told as still to come.
+  const expected =
+    typical != null && [last, nextMonth(last)].includes(monthOf(today))
+      ? expectedIn(derived, last, currency)
+      : [];
   const ahead =
     typical == null
       ? null
-      : aheadSection(derived, last, !busy.has(last), currency, recent);
+      : aheadSection(
+          derived,
+          last,
+          !busy.has(last),
+          currency,
+          recent,
+          expected,
+        );
   const ctx = {
     byMonth,
     months,
@@ -245,6 +260,7 @@ function tell(derived, state, months, inRange) {
     allIds: ids(pays),
     lead,
     sections,
+    expected,
   };
 }
 
@@ -362,6 +378,17 @@ export function yearMonthStory(
     lead,
     periods,
     paragraphs,
-    numbersHint: budgets && !numbers,
+    // Only when a thread with a budget caught a payment this month: a
+    // budget nothing is in has nothing to show.
+    numbersHint:
+      budgets &&
+      !numbers &&
+      derived.allTxns.some(
+        (t) =>
+          monthOf(t.date) === month &&
+          derived.R.threads.some(
+            (th) => th.name === t.thread && th.budget != null,
+          ),
+      ),
   };
 }

@@ -243,7 +243,7 @@ test("the demo year tells the facts its data supports, and no others", () => {
   const today = "2026-09-30";
   const demo = { ...createRuntime().state, ...createDemoData(today) };
   const derived = deriveTransactions(demo, { today });
-  const y = yearStory(derived, demo);
+  const y = yearStory(derived, demo, today);
   const text = y.sections
     .flatMap((s) => [...s.paragraphs, s.after ?? []])
     .map(words);
@@ -273,5 +273,9 @@ test("the demo year tells the facts its data supports, and no others", () => {
   assert.ok(!text.some((t) => t.includes("..")));
   for (const s of y.sections)
     for (const p of [...s.paragraphs, s.after ?? []].flat())
-      for (const id of p.txnIds ?? []) assert.ok(derived.byId.has(id), p.text);
+      for (const id of p.txnIds ?? [])
+        assert.ok(
+          derived.byId.has(id) || y.expected.some((e) => e.id === id),
+          p.text,
+        );
 });

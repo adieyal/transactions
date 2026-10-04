@@ -1,6 +1,14 @@
 import { monthOf } from "../helpers.js";
 import { groupBy, median } from "./moment-kit.js";
-import { count, dateRange, money, monthLong, name } from "./copy.js";
+import {
+  count,
+  dateRange,
+  list,
+  money,
+  monthLong,
+  name,
+  ordinal,
+} from "./copy.js";
 import { monthRange } from "./year-dates.js";
 
 // The months with nothing standing out, told together (Copy rules, sections
@@ -296,6 +304,49 @@ function opening(run, byMonth, vsTypical) {
   ];
 }
 
+// "The largest single payment was …". When several payments share the
+// largest amount, all of them are told (M3 verifier finding 7): one merchant
+// on the same day of every month is a rhythm ("on the 1st, every month"), one
+// merchant otherwise is counted, and several merchants are listed.
+export function largestSentence(ts, run, big) {
+  const ties = ts.filter((t) => t.amount === big.amount);
+  const what = { txnIds: ties.map((t) => t.id) };
+  if (ties.length === 1)
+    return [
+      { text: "The largest single payment was " },
+      {
+        ...what,
+        text: `${money(big.amount)} to ${name(big.merchant)} on ${dateRange(big.date, big.date)}`,
+      },
+      { text: "." },
+    ];
+  const merchants = [...new Set(ties.map((t) => t.merchant))];
+  if (merchants.length > 1)
+    return [
+      { text: "The largest single payments were " },
+      {
+        ...what,
+        text: `${money(big.amount)} each, to ${list(merchants.map(name))}`,
+      },
+      { text: "." },
+    ];
+  const days = new Set(ties.map((t) => t.date.slice(8)));
+  const monthly =
+    days.size === 1 &&
+    ties.length === run.length &&
+    new Set(ties.map((t) => monthOf(t.date))).size === run.length;
+  return [
+    { text: "The largest single payment was " },
+    {
+      ...what,
+      text: monthly
+        ? `${money(big.amount)} to ${name(big.merchant)} on the ${ordinal(Number([...days][0]))}, every month`
+        : `${money(big.amount)} to ${name(big.merchant)}, ${ties.length === 2 ? "twice" : `${count(ties.length)} times`}`,
+    },
+    { text: "." },
+  ];
+}
+
 // facts: { rhythm, transfer } sentences from year-facts.js; transfer is a
 // clause, joined to the cadence and thread total as drawn.
 export function quietSection(
@@ -326,15 +377,7 @@ export function quietSection(
   if (rhythm) shape.push(...(shape.length ? [{ text: " " }] : []), ...rhythm);
   const paragraphs = [first];
   if (shape.length) paragraphs.push(shape);
-  if (big)
-    paragraphs.push([
-      { text: "The largest single payment was " },
-      {
-        text: `${money(big.amount)} to ${name(big.merchant)} on ${dateRange(big.date, big.date)}`,
-        txnIds: [big.id],
-      },
-      { text: "." },
-    ]);
+  if (big) paragraphs.push(largestSentence(ts, run, big));
   return {
     id: `months-${run[0]}`,
     label: monthRange(run[0], run.at(-1)),

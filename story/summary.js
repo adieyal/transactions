@@ -1,5 +1,5 @@
 import { fnv, monthOf } from "../helpers.js";
-import { TRANSFERS } from "../transactions/constants.js";
+import { LOOSE, TRANSFERS } from "../transactions/constants.js";
 import {
   coveredMonths,
   detectMoments,
@@ -12,6 +12,7 @@ import {
   count,
   dateRange,
   list,
+  merchantList,
   money,
   monthList,
   monthLong,
@@ -165,8 +166,9 @@ function regular(month, ctx) {
       ];
   const shown = threads.slice(0, 4);
   const rest = threads.slice(4).flatMap((th) => th.ts);
+  // Loose ends is no thread to someone with none: its merchants are named.
   const items = shown.map((th) => ({
-    text: `${money(th.sum)} on ${bidi(th.name)}`,
+    text: `${money(th.sum)} ${th.name === LOOSE ? `to ${merchantList(th.ts)}` : `on ${bidi(th.name)}`}`,
     txnIds: ids(th.ts),
   }));
   if (rest.length)

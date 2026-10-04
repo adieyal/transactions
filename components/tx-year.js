@@ -209,7 +209,7 @@ export function createYearComponent(runtime, actions) {
           const month = currentMonth(ms);
           const d = runtime.derived;
           this.story = year
-            ? yearStory(d, state)
+            ? yearStory(d, state, runtime.today)
             : yearMonthStory(d, state, month, { numbers: state.numbers });
           if (year && !this.story?.sections.some((s) => s.id === ui.sec))
             ui.sec = this.story?.sections[0]?.id ?? null;
@@ -219,6 +219,7 @@ export function createYearComponent(runtime, actions) {
             months: ms,
             month,
             today: runtime.today,
+            expected: year ? (this.story?.expected ?? []) : [],
             compact: !!state.compactTimeline,
             numbers: state.numbers,
             typical: typicalMonth(d),
