@@ -299,19 +299,15 @@ function guessColumns(matrix, headerRow = 0) {
 }
 
 // A row's currency: from the currency column when it holds an ISO code or a
-// symbol, then from the amount cell itself ("EUR 90.00"), and only then the
-// one the file was found or said to be in.
-function rowCurrency(row, map) {
+// symbol, then from the cell that holds the row's amount ("EUR 90.00"), and
+// only then the one the file was found or said to be in. A cell that adds
+// nothing to the amount (an empty or zero money-in cell) never names it.
+function rowCurrency(row, map, cell) {
   if (map.currencyColumn != null) {
     const c = currencyIn(row[map.currencyColumn]);
     if (c) return c;
   }
-  for (const k of ["amount", "debit", "credit"])
-    if (map[k] != null && map[k] !== "") {
-      const c = parseAmount(row[map[k]])?.currency;
-      if (c) return c;
-    }
-  return map.currency || null;
+  return cell?.currency || map.currency || null;
 }
 
 // The currency a cell names: an ISO code ("EUR") or a symbol ("€12.50").
@@ -410,7 +406,8 @@ function applyMapping(matrix, map, file) {
 }
 
 // A generic file read with a mapping: the batch, and the rows that couldn't
-// be read, each with its reason ("date", "amount", "zero" or "currency").
+// be read, each with its reason ("date", "amount", "zero", "currency" or
+// "mixed").
 function readMapping(matrix, map, file) {
   const out = [];
   const unread = [];
@@ -424,15 +421,23 @@ function readMapping(matrix, map, file) {
       unread.push({ row: r, reason: "date" });
       continue;
     }
-    let amount = null;
+    let amount = null,
+      cell = null;
     if (map.amount != null && map.amount !== "") {
       const a = parseAmount(row[map.amount]);
       if (a) amount = map.expenseSign === "negative" ? -a.amount : a.amount;
+      cell = a;
     } else if (map.debit != null || map.credit != null) {
       const d = map.debit != null ? parseAmount(row[map.debit]) : null,
         c = map.credit != null ? parseAmount(row[map.credit]) : null;
+      // Money out and in in different currencies can't be netted.
+      if (d?.amount && c?.amount && d.currency !== c.currency) {
+        unread.push({ row: r, reason: "mixed" });
+        continue;
+      }
       if (d || c)
         amount = (d ? Math.abs(d.amount) : 0) - (c ? Math.abs(c.amount) : 0);
+      cell = d?.amount ? d : c?.amount ? c : null;
     }
     if (amount == null || amount === 0) {
       unread.push({ row: r, reason: amount == null ? "amount" : "zero" });
@@ -441,7 +446,7 @@ function readMapping(matrix, map, file) {
     const merchant = String(row[map.merchant] ?? "")
       .replace(BIDI, "")
       .trim();
-    const currency = rowCurrency(row, map);
+    const currency = rowCurrency(row, map, cell);
     if (!currency) {
       unread.push({ row: r, reason: "currency" });
       continue;

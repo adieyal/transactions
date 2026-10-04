@@ -48,6 +48,10 @@ export function createImport(runtime, actions) {
     amount: ["has no amount", "have no amount"],
     zero: ["has an amount of 0", "have an amount of 0"],
     currency: ["doesn't say its currency", "don't say their currency"],
+    mixed: [
+      "has money out and in in different currencies",
+      "have money out and in in different currencies",
+    ],
   };
   function unreadText(unread) {
     if (!unread.length) return "";

@@ -148,3 +148,35 @@ test("the mapping dialog asks for the currency among the first fields", async ()
     MAP_FIELDS.indexOf("currency") < MAP_FIELDS.indexOf("currencyColumn"),
   );
 });
+
+// A fictional statement with money out in euros and money in in dollars.
+test("money out and in each keep the currency of the cell that holds them", () => {
+  const dc = { headerRow: 0, date: 0, merchant: 1, debit: 2, credit: 3 };
+  const rows = (...r) => [["Date", "Description", "Debit", "Credit"], ...r];
+  const read = (m, extra = {}) =>
+    readMapping(m, { ...dc, ...extra }, "x.csv").batch.rows.map((t) => [
+      t.amount,
+      t.currency,
+    ]);
+  const m = rows(
+    ["2026-09-17", "Fictional refund", "EUR 0", "USD 35"],
+    ["2026-09-18", "Fictional shop", "EUR 20", "USD 0"],
+  );
+  assert.deepEqual(read(m), [
+    [-35, "USD"],
+    [20, "EUR"],
+  ]);
+  // A chosen currency fills only cells that don't say theirs.
+  assert.deepEqual(read(m, { currency: "GBP" }), [
+    [-35, "USD"],
+    [20, "EUR"],
+  ]);
+  // Both sides filled in different currencies: held back, never netted.
+  const both = readMapping(
+    rows(["2026-09-19", "Fictional swap", "EUR 20", "USD 35"]),
+    dc,
+    "x.csv",
+  );
+  assert.equal(both.batch.rows.length, 0);
+  assert.deepEqual(both.unread, [{ row: 1, reason: "mixed" }]);
+});
