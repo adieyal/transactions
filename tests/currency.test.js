@@ -328,3 +328,11 @@ test("statements waiting for a currency are named as the cause, not shown as emp
   );
   assert.match(empty.parts[0].text, /waiting for their currency/);
 });
+
+test("original amounts keep their currency's own decimals", async () => {
+  const { fmtExact } = await import("../helpers.js");
+  assert.equal(fmtExact(1280, "JPY"), "¥1,280");
+  assert.equal(fmtExact(41.2, "USD"), "$41.20");
+  assert.equal(fmtExact(1234.5, "EUR"), "€1,234.50");
+  assert.match(fmtExact(12.345, "BHD"), /BHD\s12\.345$/);
+});

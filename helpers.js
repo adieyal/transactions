@@ -110,6 +110,11 @@ const fmt = (n, dp, currency) => {
   return (v < 0 ? "−" : "") + formatter(c, d).format(Math.abs(v));
 };
 
+// An amount as written on a statement: always the currency's own decimals
+// (¥1,280, $1,234.50).
+const fmtExact = (n, currency) =>
+  fmt(n, fractionDigits(currencyFor(currency)), currency);
+
 const fmtShort = (n, currency) => {
   const c = currencyFor(currency);
   const a = Math.abs(n);
@@ -168,6 +173,7 @@ export {
   fmt,
   fmtDate,
   fmtByCurrency,
+  fmtExact,
   fmtShort,
   isCurrency,
   sumsByCurrency,

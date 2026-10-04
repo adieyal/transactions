@@ -2,6 +2,7 @@ import {
   esc,
   fmt,
   fmtByCurrency,
+  fmtExact,
   fmtDate,
   monthName,
   normText,
@@ -134,7 +135,7 @@ export function createInspector(runtime, actions) {
         `${fmt(t.amount, undefined, t.currency)}${t.kind === "ghost" ? " (expected)" : t.kind === "inferred" ? " (worked out)" : ""}`,
       ]);
       if (t.orig && t.kind === "actual")
-        kv.push(["Original amount", fmt(t.orig.amount, 2, t.orig.currency)]);
+        kv.push(["Original amount", fmtExact(t.orig.amount, t.orig.currency)]);
       kv.push([
         t.kind === "purchase" ? "Bought" : "Date",
         fmtDate(t.date) +

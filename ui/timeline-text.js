@@ -1,4 +1,4 @@
-import { fmt, fmtDate, monthName } from "../helpers.js";
+import { fmt, fmtDate, fmtExact, monthName } from "../helpers.js";
 import { $, html } from "./dom.js";
 
 // What the timeline says about a bead: its tooltip, and how a transfer is
@@ -31,7 +31,9 @@ function describe(t, byId) {
     (t.orig.currency !== t.currency ||
       Math.abs(t.orig.amount - t.amount) > 0.01)
   )
-    bits.push(`originally ${fmt(Math.abs(t.orig.amount), 2, t.orig.currency)}`);
+    bits.push(
+      `originally ${fmtExact(Math.abs(t.orig.amount), t.orig.currency)}`,
+    );
   if (t.periods?.length) bits.push(t.periods.join(", "));
   return bits.join(" · ");
 }
