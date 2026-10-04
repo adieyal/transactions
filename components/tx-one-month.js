@@ -9,6 +9,7 @@ import {
 } from "../story/one-month.js";
 import { phraseHTML, sameIds } from "../ui/highlight.js";
 import { wireLinkedRefs } from "./linked-ref.js";
+import { beadStops, wireBeadKeys } from "./bead-keys.js";
 import { subscribeWhileConnected } from "./base.js";
 
 const ACCEPT = ".xls,.xlsx,.csv,.txt,.html,.htm";
@@ -78,7 +79,7 @@ export function createOneMonthComponent(runtime, actions) {
           <div class="om-track"><div class="om-line"></div>${r.beads
             .map(
               (b) =>
-                `<div class="om-bead" data-id="${esc(b.id)}" data-tip="${esc(`${dayShort(b.date)} · ${b.merchant} · ${b.amount}`)}" aria-label="${esc(`${dayShort(b.date)} · ${b.merchant} · ${b.amount}`)}" style="left: ${x(b.day)}%; width: ${esc(b.size)}px; height: ${esc(b.size)}px; background: ${esc(r.color)}"></div>`,
+                `<div class="om-bead" data-id="${esc(b.id)}" tabindex="-1" data-tip="${esc(`${dayShort(b.date)} · ${b.merchant} · ${b.amount}`)}" aria-label="${esc(`${dayShort(b.date)} · ${b.merchant} · ${b.amount}`)}" style="left: ${x(b.day)}%; width: ${esc(b.size)}px; height: ${esc(b.size)}px; background: ${esc(r.color)}"></div>`,
             )
             .join("")}</div>
         </div>`,
@@ -176,6 +177,7 @@ export function createOneMonthComponent(runtime, actions) {
             : null;
           const left = this.querySelector(".om-scroll")?.scrollLeft;
           this.innerHTML = this.story ? pageHTML(this.story) : "";
+          beadStops(this, ".om-bead[data-id]");
           const sc = this.querySelector(".om-scroll");
           if (sc && left) sc.scrollLeft = left;
           this.mark();
@@ -231,6 +233,7 @@ export function createOneMonthComponent(runtime, actions) {
           this.wired = true;
           wireTip(this, () => runtime.derived?.byId);
           wireLinkedRefs(this, runtime);
+          wireBeadKeys(this, ".om-bead[data-id]");
           this.addEventListener("click", (e) => {
             const a = e.target.closest("[data-answer]");
             if (a) this.answer(a.dataset.answer);

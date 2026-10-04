@@ -83,11 +83,13 @@ function rowsHTML(derived, txns, scale, { year, compact, numbers }) {
             : back
               ? `${dayShort(t.date)} · ${t.merchant} refund · ${money(a, t.currency)} back`
               : `${dayShort(t.date)} · ${t.merchant} · ${money(a, t.currency)}`;
-          return `<div class="yr-bead${back ? " back" : ""}${t.expected ? " expected" : ""}" data-id="${esc(t.id)}" data-tip="${esc(title)}" aria-label="${esc(title)}" style="top: ${WY}px; left: ${pct(scale.mid(t.date))}%; width: ${sz}px; height: ${sz}px; ${look}">${back ? `<span class="yr-minus" style="background: ${esc(col)}"></span>` : ""}</div>`;
+          return `<div class="yr-bead${back ? " back" : ""}${t.expected ? " expected" : ""}" data-id="${esc(t.id)}" tabindex="-1" role="button" data-tip="${esc(title)}" aria-label="${esc(title)}" style="top: ${WY}px; left: ${pct(scale.mid(t.date))}%; width: ${sz}px; height: ${sz}px; ${look}">${back ? `<span class="yr-minus" style="background: ${esc(col)}"></span>` : ""}</div>`;
         })
         .join("");
+      // Arcs join the repeats in compact rows too, lower to fit 26px.
       let arcs = "";
-      if (year && !compact) {
+      const lift = compact ? 12 : 30;
+      if (year) {
         const by = new Map();
         for (const t of ts)
           if (t.amount > 0 && !t.expected && seen.get(t.key)?.size >= 3)
@@ -99,7 +101,7 @@ function rowsHTML(derived, txns, scale, { year, compact, numbers }) {
             const gap = (Date.parse(b.date) - Date.parse(a.date)) / 864e5;
             if (gap > 70) continue;
             const [x1, x2] = [scale.mid(a.date) * 10, scale.mid(b.date) * 10];
-            arcs += `M${x1.toFixed(1)} ${WY} Q${((x1 + x2) / 2).toFixed(1)} ${WY - 30} ${x2.toFixed(1)} ${WY} `;
+            arcs += `M${x1.toFixed(1)} ${WY} Q${((x1 + x2) / 2).toFixed(1)} ${WY - lift} ${x2.toFixed(1)} ${WY} `;
           }
         }
       }

@@ -743,6 +743,8 @@ tx-year[hidden]{display:none}
 .yr-suggestmsg{margin:0 0 14px; font-size:14px; color:var(--ink-body)}
 .yr-gather{position:absolute; z-index:4; pointer-events:none; border:1px dashed var(--link); background:rgba(36,70,200,.07)}
 .yr-rows .yr-bead{cursor:pointer}
+/* Beads take focus from the keyboard (components/bead-keys.js). */
+.yr-bead:focus-visible, .om-bead:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
 .yr-seclabel.strong{font-weight:600; color:var(--ink)}
 .yr-lensfigs{display:flex; flex-direction:column; gap:14px}
 .yr-lensfig{margin:0; background:var(--raised); border:1px solid var(--grid); border-radius:12px; padding:16px 18px}

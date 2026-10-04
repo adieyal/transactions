@@ -5,6 +5,7 @@ import { monthLong } from "../story/copy.js";
 import { yearMonthStory, yearStory } from "../story/year.js";
 import { sameIds } from "../ui/highlight.js";
 import { wireLinkedRefs } from "./linked-ref.js";
+import { beadStops, wireBeadKeys } from "./bead-keys.js";
 import { subscribeWhileConnected } from "./base.js";
 import { bandHTML } from "./tx-year-band.js";
 import { answeredHTML, askClick, askHTML } from "./tx-year-ask.js";
@@ -182,6 +183,7 @@ export function createYearComponent(runtime, actions) {
           const left = this.querySelector(".yr-scroll")?.scrollLeft;
           this.innerHTML = pageHTML(band, ms, year, month, this.story);
           if (left) this.querySelector(".yr-scroll").scrollLeft = left;
+          beadStops(this, ".yr-bead[data-id]");
           const back = f?.id && this.querySelector(`#${CSS.escape(f.id)}`);
           if (back && "value" in back) {
             back.focus();
@@ -264,6 +266,7 @@ export function createYearComponent(runtime, actions) {
           this.wired = true;
           wireTip(this, () => runtime.derived?.byId);
           wireLinkedRefs(this, runtime);
+          wireBeadKeys(this, ".yr-bead[data-id]");
           this.addEventListener("mouseover", (e) => {
             const sec = e.target.closest?.(".yr-sec[data-sec]");
             if (sec && sec.dataset.sec !== ui.sec) {
