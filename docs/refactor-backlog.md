@@ -248,3 +248,44 @@ Items that can start now: R6, R11 for the settings, and R4d.
   - **SheetJS (user's decision): on demand.** The page-load script tag is gone. `files.js` `loadSheetJS()` adds the pinned 0.18.5 script with its `sha512` integrity hash (checked against cdnjs's published value) and `crossorigin="anonymous"`, when an `.xlsx` or `.xls` file is chosen.
   - **Failure.** A failed load rejects with a clear message, shown in a 12-second toast that suggests CSV. CSV import never needs the script.
   - **Tests.** `tests/build.test.js` asserts no external scripts on load and that the font link stays. `tests/transactions.test.js` covers the loader with a fake page. A new guardrail allows `<script>` creation only in `files.js`.
+
+### R13. Web components for the Story view
+
+The user decided this on 2026-10-04 ([ADR 0009](adr/0009-web-components-as-the-ui-boundary.md)). It comes first because the Story view needs these pieces: a story column, a small timeline, budgets, and light authoring (answering questions, naming periods, writing notes).
+
+- **Done in the first slice** (`webcomponents`):
+  - `store.js`;
+  - `<tx-month>` (`ui/month.js` deleted);
+  - `<tx-questions>`;
+  - `<tx-lens>`;
+  - the `#lab` layout;
+  - the guardrail "components draw only inside themselves".
+- **Next, in order:**
+  1. **`<tx-question id>`.** The card from `ui/questions.js` (`questionCard`, `wireCards`, `answer`), emitting `tx-answer`. After it, `<tx-month>` and `<tx-questions>` stop requiring `questionCard` and `wireCards`. `#qCount` and the privacy dialog move to the shell (R15).
+  2. **`<tx-timeline>`.** It takes `ui/timeline.js`, `timeline-drag.js`, `timeline-labels.js` and `timeline-text.js`. Its `range` and `compact` attributes give the small timeline beside the story. It emits `tx-select` and `tx-highlight`. `actions.highlight` and `select` stay commands, answered by `main.js` from the events.
+  3. **`<tx-inspector>`** (`ui/inspector.js`).
+  4. **`<tx-period id>`** (`ui/periods.js`), **`<tx-thread name>`** (`ui/thread-summary.js`) and **`<tx-threads>`** with budgets (`ui/threads.js`).
+- **Removes:** the nine R13 entries in `REACH_ALLOW`.
+- **Risk:** medium. The timeline is the biggest module and has drag interactions. Check it in headless Chrome against the demo and a backup.
+
+### R14. Web components for the other side-panel panes
+
+- **Pieces:**
+  - `<tx-lenses>`, the list. `<tx-lens>` exists already.
+  - `<tx-lens-editor lens>`.
+  - `<tx-reports>`.
+  - `<tx-ask>` (`ui/chat.js`, `suggestions.js`).
+  - `<tx-filter>`.
+- **Removes:** the six R14 entries.
+- **Risk:** low to medium. Ask is large, and R9 split it already.
+
+### R15. Web components for the shell and dialogs
+
+- **Pieces:**
+  - The tabs and panel (`ui/chrome.js`), so a layout picks its own panes.
+  - The import, backup and assistant settings dialogs.
+  - The tour. Its targets become component selectors, such as `tx-month .msum`.
+  - The privacy chip and dialog, and `#qCount`.
+- **Then:** `$` leaves `ui/dom.js`.
+- **Removes:** the last six entries, so `REACH_ALLOW` is empty.
+- **Risk:** low. The work is mostly wiring.

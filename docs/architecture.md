@@ -13,6 +13,7 @@ The architecture that new code in Transactions follows, and that existing code m
 - **Pure logic is tested in Node against the demo year; UI is checked in headless Chrome** ([ADR 0006](adr/0006-testing-pure-logic-and-the-ui.md)).
 - **One HTML file, no backend, and network access only from named adapters**, each run only when the person asks ([ADR 0007](adr/0007-single-file-no-backend-network-boundary.md)).
 - **Money carries its statement's currency, with no default and no conversion.** Story code meets money only through `story/currency.js`, one currency at a time ([ADR 0008](adr/0008-statement-currency.md)).
+- **UI pieces become plain web components.** Custom elements in `components/`, light DOM, configured by attributes, subscribed to one store (`store.js`), asking for things with events such as `tx-highlight`, and drawing only inside themselves, so a layout is just markup ([ADR 0009](adr/0009-web-components-as-the-ui-boundary.md), section 4a).
 
 ## 1. Layers and dependency direction
 
@@ -360,6 +361,27 @@ flowchart LR
 
 A factory lists its refresh renders in a `renders` array in the object it returns, and `main.js` calls them in registration order. A render checks whether its pane is open (`paneShown` in `ui/dom.js`) and returns early if not; `openTab` calls `redraw()` so the opened pane catches up. The inspector skips a refresh while someone is typing in one of its text fields, so the field keeps its caret. The calls left outside the owning module are deliberate: the timeline relayout when the panel or window changes size, the inspector's period and thread sub-renders, the privacy chip inside `renderChrome`, and the lens view helper `renderView`.
 
+## 4a. Web components
+
+New UI is a custom element in `components/` (layer `ui`), and the `ui/` modules move there in steps R13 to R15. The reasons are in [ADR 0009](adr/0009-web-components-as-the-ui-boundary.md).
+
+| Component        | Attributes                                     | Emits                         | Replaces                                |
+| ---------------- | ---------------------------------------------- | ----------------------------- | --------------------------------------- |
+| `<tx-month>`     | `month="YYYY-MM"`; without it, the app's month | `tx-highlight` (hover)        | `ui/month.js` (deleted)                 |
+| `<tx-questions>` | `limit` (default 5, the rest folded)           | `tx-highlight` via the cards  | the Questions pane of `ui/questions.js` |
+| `<tx-lens>`      | `lens` (a lens id), `titled`                   | `tx-highlight`, `tx-lens-ran` | each card body in `ui/lenses.js`        |
+
+The rules for a component:
+
+- **Its file exports a `contract`** whose `create` captures `runtime` and the scoped `actions`. It provides only `defineX`, listed in `wires`, and has empty `renders`.
+- **It subscribes in `connectedCallback`.** `subscribeWhileConnected` in `components/base.js` handles this. It redraws on `"refresh"` and re-marks on `"highlight"`.
+- **It draws only into `this`**, with the escaping `html` tag. It skips drawing while it isn't visible.
+- **It never calls another component, or a render.** It emits a bubbling `CustomEvent`. `main.js` answers app-wide events such as `tx-highlight`.
+- **Its state stays inside itself.** A per-element setting, such as the month shown or whether More questions is open, lives on the element. State shared across the app goes in the runtime's `state`.
+- **No ids inside a component.** A host may give the element an id (`<tx-month id="month">` for the tour), but the component never looks one up.
+
+`main.js` shows a prototype layout at `transactions.html#lab`, taken from `<template id="layoutLab">` in `index.html`. It is kept out of the normal app.
+
 ## 5. Testing conventions
 
 | What                                                                                                   | Where                                                                                                                                 | How                                                                                                                                                                                                                         |
@@ -391,22 +413,22 @@ flowchart TD
   copy[story/copy.js] --> summary
   copy --> questionsUI
   moments --> questionsUI[ui/questions.js]
-  summary --> monthUI[ui/month.js]
+  summary --> monthUI[components/tx-month.js]
   docs[documents.js: answers, merchantAnswers] --> state[state.js]
   questionsUI -- "actions.answer / save" --> state
-  monthUI -- "actions.highlight" --> timeline[ui/timeline.js]
+  monthUI -- "tx-highlight event" --> timeline[ui/timeline.js]
   helpers[helpers.js core] --> moments & copy & summary
 ```
 
-| Module                       | Layer       | May import                                  | Contract                                                                                                                                                                                                      |
-| ---------------------------- | ----------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `story/moments.js`           | domain      | `helpers.js` (pure parts), `transactions/*` | Pure: `findMoments(derived, state)` and `applyAnswer(...)`, which returns the changes and an undo record without mutating its inputs. `today` is passed in.                                                   |
-| `story/summary.js`           | domain      | core, `transactions/*`, `story/*`           | Pure: `summarise(derived, state, month) → Section[]`, where each part carries `txnIds`.                                                                                                                       |
-| `story/copy.js`              | domain      | core                                        | Pure strings: numbers, dates, plurals, question and privacy wording                                                                                                                                           |
-| `story/currency.js`          | domain      | core, `story/copy.js`                       | Pure: `currencyView(derived, currency)` and `sectionsPerCurrency(derived, txns, fn)`; amounts are never added or compared across currencies (ADR 0008)                                                        |
-| `ui/questions.js`            | ui          | `story/*`, core, `ui/dom.js`                | provides `renderQuestions`, `wireQuestions`, `answer`; requires `refresh`, `save`, `addPeriod`, `bulkTag`, `highlight`, `openTab`; renders `renderQuestions`                                                  |
-| `ui/month.js`                | ui          | `story/*`, core, `ui/dom.js`                | provides `renderMonth`, `wireMonth`, `showMonth`; requires `refresh`, `highlight`, `openTab`; renders `renderMonth`                                                                                           |
-| `answers`, `merchantAnswers` | persistence | —                                           | Two `DOCUMENTS` entries. Until `documents.js` exists, the hand edits story-first already made (in `state.js`, `main.js`, `persistence.js` and `backup.js`) are correct and covered by `tests/backup.test.js`. |
+| Module                       | Layer       | May import                                                            | Contract                                                                                                                                                                                                      |
+| ---------------------------- | ----------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `story/moments.js`           | domain      | `helpers.js` (pure parts), `transactions/*`                           | Pure: `findMoments(derived, state)` and `applyAnswer(...)`, which returns the changes and an undo record without mutating its inputs. `today` is passed in.                                                   |
+| `story/summary.js`           | domain      | core, `transactions/*`, `story/*`                                     | Pure: `summarise(derived, state, month) → Section[]`, where each part carries `txnIds`.                                                                                                                       |
+| `story/copy.js`              | domain      | core                                                                  | Pure strings: numbers, dates, plurals, question and privacy wording                                                                                                                                           |
+| `story/currency.js`          | domain      | core, `story/copy.js`                                                 | Pure: `currencyView(derived, currency)` and `sectionsPerCurrency(derived, txns, fn)`; amounts are never added or compared across currencies (ADR 0008)                                                        |
+| `ui/questions.js`            | ui          | `story/*`, core, `ui/dom.js`                                          | provides `renderQuestions`, `wireQuestions`, `answer`; requires `refresh`, `save`, `addPeriod`, `bulkTag`, `highlight`, `openTab`; renders `renderQuestions`                                                  |
+| `components/tx-month.js`     | ui          | `story/*`, core, `ui/dom.js`, `ui/highlight.js`, `components/base.js` | provides `defineMonth` (wires); requires `openQuestions`, `questionCard`, `wireCards`, `askCurrencies`; emits `tx-highlight` (ADR 0009)                                                                       |
+| `answers`, `merchantAnswers` | persistence | —                                                                     | Two `DOCUMENTS` entries. Until `documents.js` exists, the hand edits story-first already made (in `state.js`, `main.js`, `persistence.js` and `backup.js`) are correct and covered by `tests/backup.test.js`. |
 
 Retiring "Worth a look" removes `ui/changes.js` and its `renderChanges` and `wireChanges` from the registry. `findChanges` stays in `transactions/changes.js` as an input to moments.
 
@@ -430,9 +452,9 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | R10  | `html` tag and delegated events, adopted as modules are touched (started: tag, guardrail, 5 modules)                       | 8                      |
 | R11  | `localStorage` keys into `storage.js` (done)                                                                               | 8                      |
 | R12  | Fonts kept external; SheetJS loaded on demand, pinned with an integrity hash (done, the user's decisions)                  | 10                     |
-| R13  | Web components for what the Story view needs: timeline, inspector, periods, threads, question cards (ADR 0009)             | 11                     |
-| R14  | Web components for the other side-panel panes: lens list, lens editor, reports, Ask, filter                                | 11                     |
-| R15  | Web components for the shell and dialogs: chrome, import, backup, assistant settings, tour; `$` retired                    | 11                     |
+| R13  | Web components for what the Story view needs: timeline, inspector, periods, threads, question cards (ADR 0009)             | user decision          |
+| R14  | Web components for the other side-panel panes: lens list, lens editor, reports, Ask, filter                                | user decision          |
+| R15  | Web components for the shell and dialogs: chrome, import, backup, assistant settings, tour; `$` retired                    | user decision          |
 
 ## 9. Guardrails
 
