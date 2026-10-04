@@ -22,6 +22,10 @@ export function createChrome(runtime, actions) {
     $("#firstRun").hidden = !first;
     const months = runtime.derived ? coveredMonths(runtime.derived).length : 0;
     const year = months > 1 && state.scale !== "month";
+    // Artboard 2: one month of statements, or Month chosen.
+    const month = !first && months > 0 && !year && !state.bench;
+    document.body.classList.toggle("onemonth", month);
+    $("#oneMonth").hidden = !month;
     $("#scaleYear").disabled = months < 2;
     $("#scaleYear").title =
       months < 2 ? "Appears when you have more than one month" : "";
@@ -97,14 +101,14 @@ export function createChrome(runtime, actions) {
     });
     $("#addBtn").onclick = () => $("#file").click();
     $("#restoreBtn").onclick = () => $("#backupFile").click();
-    // Until the year and month views of the canvas arrive, Year shows the
-    // whole timeline and Month opens Your month.
+    // Month shows the month view (artboard 2). Until the year view arrives,
+    // Year shows the whole timeline.
     document.querySelector(".scale").onclick = (e) => {
       const b = e.target.closest("[data-scale]");
       if (!b || b.disabled) return;
       state.scale = b.dataset.scale;
       if (state.scale === "year") state.range = "all";
-      else openTab("month");
+      state.bench = false;
       actions.refresh();
     };
     $("#numbersBtn").onclick = () => {
@@ -205,6 +209,11 @@ export function createChrome(runtime, actions) {
       if (!act) return;
       if (act === "import-backup") {
         $("#backupFile").click();
+        return;
+      }
+      if (act === "bench") {
+        state.bench = true;
+        actions.refresh();
         return;
       }
       if (act === "tour") {

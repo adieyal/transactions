@@ -34,6 +34,9 @@ export function createRuntime({ today = null } = {}) {
     // The header's Year/Month switch and Numbers toggle (canvas M1).
     scale: null,
     numbers: false,
+    // The timeline and panel ("the bench") open over the month view, from
+    // More or "Put them in threads" (canvas M2). Not saved.
+    bench: false,
     selection: new Set(),
     highlight: new Set(),
     statement: null,

@@ -10,6 +10,7 @@
   /* The canvas palette (design artboards 1 to 4). */
   --band:#F3F4F0; --ink-body:#3E474B; --ink-label:#4A5458; --ink-off:#7D878A; --dash:#9AA3A2; --track:#C9CFCB;
   --link:#2446C8; --link-hover:#1A338F; --mark:#EFE3C2; --mark-edge:#C9AE6A; --seg-off:#3E474B;
+  --lit:#F3E7B8; --gridline:#E1E5E1; --dotted:#6F787B;
   --code:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   --syn-kw:#7A3E9D; --syn-str:#2E7D4F; --syn-num:#B0521C; --syn-com:#8D9699; --syn-prop:#1F5F8B; --syn-fn:#2446C8; --syn-def:#1E2528;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
@@ -20,6 +21,7 @@
   --wire:#3B4447; --grid:#252C2F; --future:#1A2231; --focus:#8EA4FF; --warn:#F08A6E; --sel:#F4F6F5; color-scheme:dark;
   --band:#1B2023; --ink-body:#B9C2C4; --ink-label:#9AA4A7; --ink-off:#6C7679; --dash:#4A5458; --track:#3B4447;
   --link:#8EA4FF; --link-hover:#B5C3FF; --mark:#4A4130; --mark-edge:#8C7A4A; --seg-off:#B9C2C4;
+  --lit:#5A4F2E; --gridline:#2A3134; --dotted:#8D9699;
   --syn-kw:#C79BE8; --syn-str:#8FD19E; --syn-num:#F2A877; --syn-com:#6C7679; --syn-prop:#86BEE8; --syn-fn:#8EA4FF; --syn-def:#E4E9E7;
 }}
 :root[data-theme="dark"]{
@@ -27,6 +29,7 @@
   --wire:#3B4447; --grid:#252C2F; --future:#1A2231; --focus:#8EA4FF; --warn:#F08A6E; --sel:#F4F6F5; color-scheme:dark;
   --band:#1B2023; --ink-body:#B9C2C4; --ink-label:#9AA4A7; --ink-off:#6C7679; --dash:#4A5458; --track:#3B4447;
   --link:#8EA4FF; --link-hover:#B5C3FF; --mark:#4A4130; --mark-edge:#8C7A4A; --seg-off:#B9C2C4;
+  --lit:#5A4F2E; --gridline:#2A3134; --dotted:#8D9699;
   --syn-kw:#C79BE8; --syn-str:#8FD19E; --syn-num:#F2A877; --syn-com:#6C7679; --syn-prop:#86BEE8; --syn-fn:#8EA4FF; --syn-def:#E4E9E7;
 }
 *,*::before,*::after{box-sizing:inherit}
@@ -512,3 +515,64 @@ body.dragging .fr-drop{border-color:var(--focus)}
 .fr-card{background:var(--panel); border:1px solid var(--grid); border-radius:12px; padding:16px 18px}
 .fr-cardtitle{font-size:15px; font-weight:600; margin-bottom:4px}
 .fr-cardtext{font-size:14px; line-height:1.5; color:var(--ink-body)}
+
+/* Artboard 2, one month (components/tx-one-month.js) */
+body.onemonth .app > main{display:none}
+body.onemonth .app{height:auto; min-height:100%; display:block}
+body.onemonth{height:auto}
+tx-one-month{display:block}
+tx-one-month[hidden]{display:none}
+.om-band{background:var(--band); border-bottom:1px solid var(--grid); padding:10px 28px 12px}
+.om-scroll{overflow-x:auto}
+.om-inner{min-width:900px}
+.om-axisrow{display:flex; align-items:flex-end; height:26px}
+.om-month{flex:0 0 150px; font-size:12px; color:var(--ink-label)}
+.om-axis{position:relative; flex:1; height:26px}
+.om-day{position:absolute; bottom:4px; transform:translateX(-50%); font-size:11px; white-space:nowrap; color:var(--ink-label)}
+.om-day.on{color:var(--ink); font-weight:600}
+.om-periodsrow{display:flex; align-items:center; height:36px}
+.om-periodslabel{flex:0 0 150px; font-size:13px; color:var(--ink-label)}
+.om-periods{flex:1; height:28px; display:flex; align-items:center; padding:0 12px; border:1.5px dashed var(--track); border-radius:6px; font-size:13px; color:var(--ink-label)}
+.om-rows{position:relative}
+.om-grid{position:absolute; left:150px; right:0; top:0; bottom:0; pointer-events:none}
+.om-gridline{position:absolute; top:0; bottom:0; width:1px; background:var(--gridline)}
+.om-row{display:flex; align-items:center; height:34px}
+.om-rowhead{flex:0 0 150px; display:flex; align-items:baseline; gap:8px}
+.om-thread{font-weight:500; font-size:14px; white-space:nowrap}
+.om-starter{font-size:11px; color:var(--ink-label)}
+.om-track{position:relative; flex:1; height:34px}
+.om-line{position:absolute; left:0; right:0; top:17px; height:1px; background:var(--track)}
+.om-bead{position:absolute; top:17px; transform:translate(-50%,-50%); border-radius:50%; border:1.5px solid var(--band); box-sizing:border-box; transition:opacity .2s, box-shadow .2s; opacity:.9}
+.om-bead.dim{opacity:.12}
+.om-bead.ring{box-shadow:0 0 0 3px var(--lit), 0 0 0 4.5px var(--ink); z-index:2}
+.om-main{max-width:1320px; margin:0 auto; padding:36px 28px 72px; display:flex; flex-wrap:wrap; gap:40px 24px; align-items:flex-start}
+.om-source{flex:0 0 150px; padding-top:10px; font-size:13px; color:var(--ink-label)}
+.om-story{flex:999 1 480px; max-width:700px; min-width:0}
+.om-story h1{font:500 46px/1.12 var(--display); margin:0 0 18px}
+.om-lead{font:400 23px/1.6 var(--display); margin:0 0 22px}
+.om-body{font:400 20px/1.7 var(--display)}
+.om-body p{margin:0 0 18px}
+.om-body p:last-child{margin-bottom:22px}
+tx-one-month .sp{text-decoration:none; border-bottom:1.5px dotted var(--dotted); border-radius:0; cursor:default; outline:none; transition:background .15s}
+tx-one-month .sp.on{background:var(--lit); border-bottom-color:var(--ink)}
+.om-card{background:var(--raised); border:1px solid var(--grid); border-radius:12px; padding:18px 20px; margin-bottom:16px}
+.om-loose{margin-bottom:0}
+.om-qwhen{font-size:13px; color:var(--ink-label); margin-bottom:6px}
+.om-qtext{margin:0 0 14px; font-size:17px; line-height:1.5}
+.om-chips{display:flex; flex-wrap:wrap; gap:8px}
+.om-chip{font:500 15px var(--ui); min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--wire); background:var(--raised); color:var(--ink); cursor:pointer}
+.om-chip.quiet{background:transparent; border-color:transparent; color:var(--ink-body)}
+.om-qnote{margin:14px 0 0; font-size:13px; color:var(--ink-label)}
+.om-result{margin:0 0 16px; font-size:15px; color:var(--ink-label)}
+.om-aside{flex:1 1 300px; max-width:380px; min-width:0; background:var(--panel); border:1px solid var(--grid); border-radius:14px; padding:22px}
+.om-aside h2{margin:0 0 6px; font:500 22px/1.25 var(--display)}
+.om-asidenote{margin:0 0 18px; font-size:14px; line-height:1.5; color:var(--ink-label)}
+.om-aside ol{list-style:none; margin:0 0 20px; padding:0; display:flex; flex-direction:column; gap:14px}
+.om-aside li{display:flex; gap:12px}
+.om-tick{flex:0 0 22px; height:22px; border-radius:11px; border:1.5px solid var(--ink-off); box-sizing:border-box}
+.om-tick.done{border:0; background:var(--ink); color:var(--panel); font-size:13px; display:flex; align-items:center; justify-content:center}
+.om-steptitle{font-size:15px; font-weight:600}
+.om-steptext{font-size:14px; line-height:1.45; color:var(--ink-body)}
+.om-add{display:flex; align-items:center; justify-content:center; width:100%; box-sizing:border-box; font:500 15px var(--ui); min-height:44px; border:1px solid var(--ink); border-radius:8px; background:var(--ink); color:var(--paper); cursor:pointer}
+.om-add:focus-within{outline:2px solid var(--focus); outline-offset:2px}
+.om-tip{margin:12px 0 0; font-size:13px; line-height:1.5; color:var(--ink-label)}

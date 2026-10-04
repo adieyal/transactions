@@ -30,6 +30,7 @@ import { contract as txMonth } from "./components/tx-month.js";
 import { contract as txQuestions } from "./components/tx-questions.js";
 import { contract as txLens } from "./components/tx-lens.js";
 import { contract as txFirstRun } from "./components/tx-first-run.js";
+import { contract as txOneMonth } from "./components/tx-one-month.js";
 import { coveredMonths } from "./story/moments.js";
 
 const runtime = createRuntime({ today: isoOf(new Date()) });
@@ -59,6 +60,7 @@ const MODULES = [
   txQuestions,
   txLens,
   txFirstRun,
+  txOneMonth,
 ];
 const registry = createRegistry(runtime, MODULES, {
   derive() {
@@ -101,6 +103,14 @@ document.addEventListener("tx-import-files", (e) =>
   actions.importFiles(e.detail.files),
 );
 document.addEventListener("tx-open-example", () => actions.openExample());
+// "Put them in threads": the timeline and panel, on the tab asked for, with
+// the payments lit up.
+document.addEventListener("tx-open-bench", (e) => {
+  runtime.state.bench = true;
+  refresh();
+  actions.openTab(e.detail.tab);
+  actions.highlight(e.detail.ids);
+});
 
 // Sam's fictional year, saved as a demo workspace. Importing statements
 // later offers to replace it.
