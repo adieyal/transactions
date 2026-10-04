@@ -169,6 +169,23 @@ test("currency is detected from headings, symbols, codes and a currency column",
   assert.equal(b.currency, null, "a batch in two currencies names neither");
 });
 
+test("heading words are never read as currency codes", () => {
+  const map = { headerRow: 0, date: 0, merchant: 1, amount: 2 };
+  const head = (h) =>
+    detectCurrency(
+      [
+        ["Date", "Description", h],
+        ["2026-09-02", "Fictional Shop", "3"],
+      ],
+      map,
+    );
+  for (const h of ["Top-up amount", "Cup amount", "Try amount", "Amount"])
+    assert.equal(head(h), null, h);
+  assert.equal(head("Amount (USD)"), "USD");
+  assert.equal(head("Betrag EUR"), "EUR");
+  assert.equal(head("Amount (€)"), "EUR");
+});
+
 test("an amount cell's own currency wins over the one chosen for the file", () => {
   const map = { headerRow: 0, date: 0, merchant: 1, amount: 2, account: "X" };
   const m = [

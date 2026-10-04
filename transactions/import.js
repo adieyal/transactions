@@ -254,6 +254,17 @@ function currencyIn(cell) {
 }
 const symbolOnly = (s) => parseAmount(s + "1")?.currency || null;
 
+// The currency a column heading names. A code counts only in capitals and
+// standing on its own ("Amount (USD)", "EUR"), so the words of a heading
+// ("Top-up amount", "Try") are never read as one.
+function headingCurrency(heading) {
+  const s = String(heading ?? "").replace(BIDI, "");
+  const code = [...s.matchAll(/(?:^|[\s(\[/])([A-Z]{3})(?=$|[\s)\]/:])/g)]
+    .map((m) => m[1])
+    .find(isCurrency);
+  return code || symbolOnly(s.replace(/[A-Za-z\s()[\]/:-]/g, ""));
+}
+
 // The one currency a statement file shows, or null when it shows none or
 // several: a currency column, ISO codes or symbols in the heading or the
 // money columns.
@@ -264,8 +275,7 @@ function detectCurrency(matrix, map) {
   );
   const head = matrix[map.headerRow ?? 0] || [];
   for (const c of cols) {
-    const h = String(head[c] ?? "").replace(BIDI, "");
-    const fromHead = currencyIn(h.replace(/\b(amount|debit|credit)\b/gi, ""));
+    const fromHead = headingCurrency(head[c]);
     if (fromHead) found.add(fromHead);
   }
   for (let r = (map.headerRow ?? 0) + 1; r < matrix.length; r++)
