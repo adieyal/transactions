@@ -1,12 +1,19 @@
 import { debounce, esc, fmt, monthName } from "../helpers.js";
 import { $, html, paneShown, toast } from "./dom.js";
-import { lensIsOn, runLens as runLensCode } from "../lens-api.js";
+import { lensInput } from "../lens-api.js";
+import { newLensSandbox } from "./lens-sandbox.js";
 
 export function createLenses(runtime, actions) {
   const { state, caps } = runtime;
-  // A lens runs on the derived transactions as they are now.
+  // A lens runs in the sandbox (ui/lens-sandbox.js), on the derived
+  // transactions as they are now. The frame is made on first use.
+  let sandbox = null,
+    generation = 0;
   const runLens = (code) =>
-    runLensCode(code, runtime.derived, state, runtime.today);
+    (sandbox ||= newLensSandbox()).run(
+      code,
+      lensInput(runtime.derived, state, runtime.today),
+    );
 
   function renderView(v) {
     if (v.kind === "bars") {
@@ -47,24 +54,11 @@ export function createLenses(runtime, actions) {
       el.innerHTML = "";
       return;
     }
+    const run = ++generation;
     let h = `<p class="lead">Small programs over your transactions. Click a bar or row to light up its beads on the timeline.${runtime.derived.filtered ? ` <b>Showing only what matches the filter.</b>` : ""}</p><div class="lens-grid">`;
     state.lenses.forEach((l) => {
-      if (!lensIsOn(l)) {
-        h += offCard(l);
-        return;
-      }
-      let body,
-        err = null,
-        view = null;
-      try {
-        view = runLens(l.code);
-        body = renderView(view);
-      } catch (e) {
-        err = e.message || String(e);
-        body = "";
-      }
-      h += `<article class="lens" data-lens="${l.id}"><h3><span contenteditable="true" spellcheck="false" data-title="${l.id}">${esc(l.title)}</span></h3>${body}${err ? `<div class="err">${esc(err)}</div>` : ""}
-      <div class="foot"><button data-edit="${l.id}">Edit code</button>${caps.sample ? html`<button data-fix="${l.id}">${err ? "Fix with " : "Change with "}${actions.AI()}</button>` : ""}<button data-del="${l.id}">Remove</button></div></article>`;
+      h += `<article class="lens" data-lens="${l.id}"><h3><span contenteditable="true" spellcheck="false" data-title="${l.id}">${esc(l.title)}</span></h3>${l.fromBackup ? `<p class="lensfrom">From your backup</p>` : ""}<div class="lensbody"><p class="sub">Running…</p></div>
+      <div class="foot"><button data-edit="${l.id}">Edit code</button>${caps.sample ? html`<button data-fix="${l.id}">Change with ${actions.AI()}</button>` : ""}<button data-del="${l.id}">Remove</button></div></article>`;
     });
     h += `<div class="newlens">${
       caps.sample
@@ -72,20 +66,26 @@ export function createLenses(runtime, actions) {
         : `<p class="sub" style="margin:0">No AI assistant is set up here (see More → AI assistant settings), but you can still write lenses by hand.</p>`
     }<button class="btn small quiet" id="lensBlank">Start a blank lens</button></div></div>`;
     el.innerHTML = h;
+    for (const l of state.lenses) fillLens(l, run);
   }
 
-  // A lens from an imported backup: its title and what it is, and nothing of
-  // its code runs until it is turned on.
-  const offCard = (l) =>
-    html`<article class="lens lensoff" data-lens="${l.id}"><h3><span contenteditable="true" spellcheck="false" data-title="${l.id}">${l.title}</span></h3><p class="sub">This lens came from a backup and contains code. It won't run until you turn it on. You can read the code first.</p>
-      <div class="foot"><button class="lens-on" data-on="${l.id}">Turn on</button><button data-edit="${l.id}">Read the code</button><button data-del="${l.id}">Remove</button></div></article>`;
-
-  function turnOn(id) {
-    const l = state.lenses.find((x) => x.id === id);
-    if (!l) return;
-    delete l.off;
-    actions.save("lenses");
-    renderLenses();
+  // Runs one lens in the sandbox and draws its view (escaped) into its card,
+  // unless the cards were redrawn in the meantime.
+  async function fillLens(l, run = generation) {
+    let body = "",
+      err = null;
+    try {
+      body = renderView(await runLens(l.code));
+    } catch (e) {
+      err = e.message || String(e);
+    }
+    const art = $(`#lenses [data-lens="${CSS.escape(l.id)}"]`);
+    if (run !== generation || !art) return;
+    art.querySelector(".lensbody").innerHTML =
+      body + (err ? html`<div class="err">${err}</div>` : "");
+    const fx = art.querySelector("[data-fix]");
+    if (fx)
+      fx.textContent = (err ? "Fix with " : "Change with ") + actions.AI();
   }
 
   function wireLenses() {
@@ -105,11 +105,6 @@ export function createLenses(runtime, actions) {
         if (!same) b.classList.add("on");
         return;
       }
-      const on = ev.target.closest("[data-on]");
-      if (on) {
-        turnOn(on.dataset.on);
-        return;
-      }
       const t = ev.target.closest("[data-edit]");
       if (t) {
         actions.openLensEditor(t.dataset.edit);
@@ -127,10 +122,9 @@ export function createLenses(runtime, actions) {
       const f = ev.target.closest("[data-fix]");
       if (f) {
         const l = state.lenses.find((x) => x.id === f.dataset.fix);
-        if (!lensIsOn(l)) return;
         let err = null;
         try {
-          runLens(l.code);
+          await runLens(l.code);
         } catch (e) {
           err = e.message;
         }
@@ -203,38 +197,15 @@ export function createLenses(runtime, actions) {
 
   // Re-runs one lens card in place, e.g. while its code is being edited.
   const rerunLens = debounce((id) => {
-    const art = $(`#lenses [data-lens="${id}"]`);
+    const art = $(`#lenses [data-lens="${CSS.escape(id)}"]`);
     const l = state.lenses.find((x) => x.id === id);
-    if (!art || !l || !lensIsOn(l)) return;
-    let body = "",
-      err = null;
-    try {
-      body = renderView(runLens(l.code));
-    } catch (e) {
-      err = e.message || String(e);
-    }
-    art
-      .querySelectorAll(
-        ".bars,.ltable,.lnum,.lnum+.sub,.err,article>p,article>div[style]",
-      )
-      .forEach((n) => n.remove());
-    art
-      .querySelector("h3")
-      .insertAdjacentHTML(
-        "afterend",
-        body + (err ? `<div class="err">${esc(err)}</div>` : ""),
-      );
+    if (!art || !l) return;
     art.querySelector("[data-title]").textContent = l.title;
-    const fx = art.querySelector("[data-fix]");
-    if (fx)
-      fx.textContent = err
-        ? "Fix with " + actions.AI()
-        : "Change with " + actions.AI();
+    fillLens(l);
   }, 250);
 
   return {
     renderLenses,
-    turnOnLens: turnOn,
     renderView,
     rerunLens,
     runLens,
@@ -250,7 +221,6 @@ export const contract = {
     "renderView",
     "rerunLens",
     "runLens",
-    "turnOnLens",
     "wireLenses",
   ],
   requires: [
