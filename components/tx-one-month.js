@@ -149,10 +149,17 @@ export function createOneMonthComponent(runtime, actions) {
         <div class="om-body">${s.paragraphs.map((p) => `<p dir="auto">${parts(p)}</p>`).join("")}</div>
         ${questionHTML(s.question)}
         ${s.loose ? `<div class="om-card om-loose"><p class="om-qtext" dir="auto">${parts(s.loose.parts)}</p><button class="om-chip" data-thread-loose>Put them in threads</button></div>` : ""}
+        <section class="om-ask" aria-labelledby="om-ask-h"><h2 id="om-ask-h">Ask</h2><div data-chat-slot></div></section>
       </article>
       ${asideHTML(s)}
     </main>`;
   }
+
+  // The chat element, once <tx-chat> is defined (components/tx-chat.js).
+  const newChat = () => {
+    const Chat = customElements.get("tx-chat");
+    return Chat ? new Chat() : null;
+  };
 
   function defineOneMonth() {
     if (customElements.get("tx-one-month")) return;
@@ -176,7 +183,19 @@ export function createOneMonthComponent(runtime, actions) {
               }
             : null;
           const left = this.querySelector(".om-scroll")?.scrollLeft;
+          // The app's one chat (components/tx-chat.js) moves into the new
+          // page as it is, keeping its focus.
+          const f = this.querySelector(":focus");
+          const typing = this.chat?.contains(f) && f;
+          const at = typing && [f.selectionStart, f.selectionEnd];
           this.innerHTML = this.story ? pageHTML(this.story) : "";
+          const slot = this.querySelector("[data-chat-slot]");
+          this.chat ||= newChat();
+          if (slot && this.chat) slot.append(this.chat);
+          if (typing) {
+            typing.focus();
+            typing.setSelectionRange(at[0], at[1]);
+          }
           beadStops(this, ".om-bead[data-id]");
           const sc = this.querySelector(".om-scroll");
           if (sc && left) sc.scrollLeft = left;

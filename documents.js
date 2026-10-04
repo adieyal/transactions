@@ -97,14 +97,17 @@ const turnFields = (t) => ({
   shown: t.shown || "",
   q: t.q || "",
   error: t.error || "",
-  undo: t.undo || null,
-  changedCount: t.changedCount || 0,
-  undone: !!t.undone,
-  proposed: !!t.proposed,
-  undoNames: t.undoNames || null,
-  renamedCount: t.renamedCount || 0,
-  namesUndone: !!t.namesUndone,
-  periods: t.periods || null,
+  // The plain lines for the changes it made: [{ key, text, undone, ids,
+  // period }]. Their records stay in this session's undo log.
+  changes: Array.isArray(t.changes)
+    ? t.changes.map(({ key, text, undone, ids, period }) => ({
+        key: String(key),
+        text: String(text),
+        undone: !!undone,
+        ids: Array.isArray(ids) ? ids.slice(0, 600) : [],
+        period: period || null,
+      }))
+    : [],
 });
 
 export const DOCUMENTS = [

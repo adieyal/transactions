@@ -88,7 +88,8 @@ export function createReports(runtime, actions) {
     for (const r of staleReports()) await runReport(r);
   }
 
-  // open: false when saved from the year's Ask, which stays where it is.
+  // open: false when saved from the chat, which stays where it is. Returns
+  // the change record, for the chat's Undo.
   function addReport(q, answer, { open = true } = {}) {
     const report = {
       id: "r" + Date.now().toString(36),
@@ -100,8 +101,9 @@ export function createReports(runtime, actions) {
       by: answer ? actions.AI() : "",
       through: answer ? latestPayment(runtime.derived) : "",
     };
-    actions.commit(add(state, { report }), { refresh: "none" });
+    const change = actions.commit(add(state, { report }), { refresh: "none" });
     if (open) actions.openTab("reports");
+    return change;
   }
 
   function wireReports() {

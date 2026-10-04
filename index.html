@@ -95,14 +95,7 @@
           <div class="row-actions"><span class="sub"></span><button class="btn small" id="repSave">Save and run</button></div></div>
       </div>
       <div class="pane" id="pane-ask" role="tabpanel" aria-labelledby="tab-ask">
-        <div id="askoff"></div>
-        <div id="askmem"></div>
-        <div id="log" aria-live="polite"></div>
-        <div class="askbox" id="askbox">
-          <div class="ctx" id="askctx"></div>
-          <textarea id="askInput" placeholder="Ask, or ask for changes: “translate the descriptions into English”" aria-label="Question"></textarea>
-          <div class="row-actions"><span class="sub" id="askNote"></span><span><button class="btn small quiet" id="stopBtn" hidden>Stop</button> <button class="btn small" id="sendBtn">Ask</button></span></div>
-        </div>
+        <tx-chat id="chat"></tx-chat>
       </div>
     </aside>
   </main>

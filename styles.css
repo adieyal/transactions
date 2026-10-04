@@ -109,7 +109,6 @@ main{display:grid; grid-template-columns:minmax(0,1fr) 470px; min-height:0}
 #parkbar:empty{display:none}
 #parkbar button{border:1px solid var(--wire); background:transparent; border-radius:999px; padding:1px 10px; font-size:12.5px}
 #parkbar button:hover{border-color:var(--ink-2); color:var(--ink)}
-#askmem{font-size:12.5px; color:var(--ink-2); margin:0 0 8px}
 .left{overflow:auto; min-height:0; padding:0 0 40px}
 .right{border-left:1px solid var(--grid); background:var(--panel); overflow:auto; min-height:0; display:flex; flex-direction:column}
 /* Mid widths: the header stays on one line and the panel narrows a little,
@@ -284,24 +283,41 @@ body.lab .right > .tabs, body.lab .right > .pane{display:none}
 .under{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px}
 .status{font-size:12.5px; color:var(--ink-2)}
 /* ask */
-#log{flex:1; overflow:auto; display:flex; flex-direction:column; gap:14px; padding-bottom:10px; min-height:240px}
-.q{align-self:flex-end; background:var(--ink); color:var(--paper); border-radius:12px 12px 2px 12px; padding:7px 11px; max-width:88%; white-space:pre-wrap; font-size:14px}
-.a{font-size:14.5px}
+/* <tx-chat> (components/tx-chat.js): the one chat, in every view */
+tx-chat{display:flex; flex-direction:column; gap:10px; font:400 16px/1.5 var(--ui); color:var(--ink-body)}
+.ch-log{overflow:auto; display:flex; flex-direction:column; gap:16px; max-height:min(70vh, 640px)}
+#pane-ask tx-chat{height:100%} #pane-ask .ch-log{flex:1; max-height:none; min-height:240px}
+.ch-mem, .ch-ctx, .ch-note, .ch-sub{font-size:13px; color:var(--ink-label); margin:0}
+.ch-box{background:var(--raised); border:1px solid var(--grid); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:8px}
+.ch-box[hidden]{display:none}
+.ch-input{width:100%; box-sizing:border-box; min-height:64px; padding:10px; border:1px solid var(--wire); border-radius:8px; background:var(--panel); font:400 16px/1.5 var(--ui); color:var(--ink); resize:vertical}
+.ch-row{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px}
+.ch-btns{display:flex; gap:8px; margin-inline-start:auto}
+.ch-working{margin:0 0 6px; color:var(--ink-label); font-size:14px; display:flex; align-items:center; gap:8px}
+.ch-dots{width:22px; height:6px; background:radial-gradient(circle 3px, var(--ink-label) 98%, transparent) 0 50%/8px 6px repeat-x; animation:ch-dots 1s steps(3) infinite}
+@keyframes ch-dots{from{width:6px} to{width:30px}}
+@media (prefers-reduced-motion:reduce){.ch-dots{animation:none}}
+.ch-steps, .ch-changes{list-style:none; margin:0 0 8px; padding:0; font-size:14px; display:flex; flex-direction:column; gap:4px}
+.ch-steps li{color:var(--ink-label); padding-inline-start:20px; position:relative}
+.ch-steps li::before{content:"·"; position:absolute; inset-inline-start:6px}
+.ch-steps li.done::before{content:"✓"; inset-inline-start:2px}
+.ch-steps li.failed::before{content:"×"; inset-inline-start:3px}
+.ch-steps li.now{color:var(--ink)}
+.ch-change{border-inline-start:3px solid var(--focus); background:var(--panel); padding:6px 10px; border-radius:0 6px 6px 0; color:var(--ink)}
+.ch-change.undone{border-color:var(--wire); color:var(--ink-label)}
+.ch-change .yr-link{min-height:24px}
+.q{align-self:flex-end; background:var(--ink); color:var(--paper); border-radius:12px 12px 2px 12px; padding:8px 12px; max-width:88%; white-space:pre-wrap; font-size:15px}
+.a{font-size:16px; line-height:1.55}
 .a p{margin:0 0 8px} .a ul{margin:0 0 8px; padding-inline-start:18px}
-.a .thinking{color:var(--ink-2); font-style:italic}
+.om-ask{margin-top:32px} .om-ask h2{margin:0 0 12px; font:500 22px/1.25 var(--display)}
 .cite{display:inline-flex; gap:4px; align-items:baseline; border:1px solid var(--wire); background:var(--raised); border-radius:5px; padding:0 6px; font-size:12.5px; margin:0 1px; max-width:220px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; vertical-align:baseline}
 .cite:hover{border-color:var(--focus)}
-.a-actions{display:flex; gap:12px; font-size:12.5px; margin-top:2px}
-.askbox{border:1px solid var(--wire); border-radius:10px; background:var(--raised); padding:8px; display:flex; flex-direction:column; gap:6px}
-.askbox textarea{border:0; outline:0; resize:none; background:transparent; min-height:52px; padding:2px 4px}
-.askbox .row-actions{margin:0; justify-content:space-between}
-.askbox[hidden]{display:none}
+.a-actions{display:flex; flex-wrap:wrap; gap:12px; margin-top:2px}
 .nudge{border:1px solid var(--wire); border-radius:10px; background:var(--raised); padding:10px 12px; margin-bottom:12px; font-size:13.5px}
 .nudge p{margin:0 0 8px}
 .nudge .row-actions{margin:0; justify-content:space-between; gap:8px; flex-wrap:wrap}
-.ctx{font-size:12.5px; color:var(--ink-2)}
 .suggestions{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
-.suggestions button{text-align:start; border:1px solid var(--grid); background:var(--raised); border-radius:8px; padding:6px 10px; font-size:13.5px}
+.suggestions button{text-align:start; height:auto; padding:8px 12px}
 .suggestions button:hover{border-color:var(--wire)}
 /* dialog */
 dialog{border:1px solid var(--wire); border-radius:12px; background:var(--panel); color:var(--ink); padding:0; width:min(880px,94vw); max-height:90vh}
@@ -735,12 +751,6 @@ tx-year[hidden]{display:none}
 .bn-lv-side dd{margin:0 0 8px; color:var(--ink-body)}
 .bn-lv-side dd:last-child{margin:0}
 .yr-bead.sel{box-shadow:0 0 0 2px var(--band), 0 0 0 4px var(--ink); z-index:3}
-.yr-since{margin:0 0 16px; padding:10px 12px; border-radius:8px; background:#E4E8E3; font-size:14px; color:var(--ink)}
-.yr-suggest{background:var(--raised); border:1px solid var(--grid); border-radius:12px; padding:16px 18px; margin-bottom:14px}
-.yr-suggestlabel{font-size:13px; color:var(--ink-label); margin-bottom:6px}
-.yr-suggest p{margin:0 0 12px; font-size:16px; line-height:1.5}
-.yr-suggest .yr-chips{margin:0}
-.yr-suggestmsg{margin:0 0 14px; font-size:14px; color:var(--ink-body)}
 .yr-gather{position:absolute; z-index:4; pointer-events:none; border:1px dashed var(--link); background:rgba(36,70,200,.07)}
 .yr-rows .yr-bead{cursor:pointer}
 /* Beads take focus from the keyboard (components/bead-keys.js). */
@@ -809,15 +819,6 @@ tx-year .sp.on{background:var(--lit); border-bottom-color:var(--ink)}
 .yr-footbox{border-top:1px solid var(--grid); padding-top:20px}
 .yr-footbox .yr-chips{margin-bottom:14px}
 .yr-footbox .yr-fine{margin:0; font-size:14px}
-.yr-asktext{margin:0 0 8px; font-size:16px; line-height:1.5}
-.yr-askhead{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px}
-.yr-askhead .yr-fine{margin:0}
-.yr-asklabel{font-size:16px; font-weight:500}
-#ask{width:100%; box-sizing:border-box; min-height:64px; padding:10px; border:1px solid var(--wire); border-radius:8px; background:var(--panel); font:400 16px/1.5 var(--ui); color:var(--ink); resize:vertical}
-.yr-askfoot{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px}
-.yr-askfoot .yr-fine{margin:0}
-.yr-h3{margin:0 0 10px; font-size:16px; font-weight:600}
-.yr-sendlist{margin:0 0 12px; padding-left:20px; font-size:15px; line-height:1.6}
 /* Expected beads: still dashed for "not yet", but tinted and outlined
    strongly enough to see (the person's feedback). Over 3:1 against the band
    in both themes: the dark theme lightens the outline. */
@@ -828,16 +829,6 @@ tx-year .sp.on{background:var(--lit); border-bottom-color:var(--ink)}
 /* A phone shows the band above the story rather than over it: at 390px the
    band is taller than the screen, and sticky it would hide the story. */
 @media (max-width:700px){.yr-band{position:static}}
-.yr-saved .yr-col-story h1.yr-qh1{font:500 40px/1.15 var(--display); margin:0 0 8px}
-.yr-runrow{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-bottom:18px; font-size:14px; color:#4A5458}
-.yr-saved .yr-answer p:last-child, .yr-answer p:last-child{margin-bottom:16px}
-.yr-struck{color:#5B6569; text-decoration:line-through dotted #8D9699}
-.yr-struck-note{margin:-6px 0 16px; font-size:13px; color:#4A5458}
-.yr-receipts{display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 18px}
-tx-year .sp.yr-receipt{display:inline-flex; padding:3px 10px; border:1px solid #B7BEBD; border-radius:6px; background:#FFFFFF; font-size:13px}
-tx-year .sp.yr-receipt.on{background:var(--lit); border-color:var(--ink)}
-.yr-answered{margin:0 0 16px; font-size:13px; color:#4A5458}
-.yr-answered.by{margin:0 0 8px}
 .yr-budgetbox{position:absolute; bottom:4px; box-sizing:border-box; border:1px solid; border-bottom:0; border-radius:3px 3px 0 0; opacity:.7}
 .yr-budgetline{position:absolute; left:0; border-top:1px dashed; opacity:.7}
 .yr-budgetlabel{position:absolute; margin-right:4px; font-size:11px; color:#4A5458; white-space:nowrap}
@@ -845,7 +836,6 @@ tx-year .sp.yr-receipt.on{background:var(--lit); border-color:var(--ink)}
    keyboard reaches it, and it shows while focused. */
 .yr-addbudget{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; align-self:flex-start; margin-top:2px; font:500 12px var(--ui); min-height:0; padding:0; border:0; border-radius:12px; background:#FFFFFF; color:#1E2528; cursor:pointer}
 .yr-row:hover .yr-addbudget, .yr-row:focus-within .yr-addbudget{position:static; width:auto; height:auto; overflow:visible; clip-path:none; display:inline-flex; align-items:center; min-height:24px; padding:0 8px; border:1px solid #B7BEBD}
-.yr-notsent{margin:0 0 14px; font-size:14px; color:#3E474B}
 /* Keep a focused element clear of the sticky timeline (WCAG 2.4.11). */
 tx-year .yr-main *{scroll-margin-top:calc(var(--yr-band-h, 368px) + 16px)}
 /* The canvas views' tooltip: the old timeline's #tip, shown at once (components/tip.js). */

@@ -8,10 +8,14 @@ import {
   filterTxns,
   findTransactions,
   listMerchants,
-  nameChanges,
-  noteChanges,
   totals,
 } from "../assistant/tools.js";
+import {
+  applyChange,
+  invert,
+  renameMerchants,
+  writeNotes,
+} from "../model/index.js";
 
 const TODAY = "2026-09-30";
 function demo() {
@@ -78,60 +82,68 @@ test("find_transactions and totals answer from the same filters", () => {
   assert.ok(merchants[0].total >= merchants[1].total);
 });
 
-test("update_notes appends or replaces, and records how to undo", () => {
+test("update_notes is the model's writeNotes: appends or replaces, with a record undo reverses", () => {
   const { state, derived } = demo();
   const id = derived.allTxns.find((t) => t.merchant === "Meadow Paws").id;
-  const first = noteChanges(derived, state.notes, [
-    { id, text: "#checked" },
-    { merchant: "Lantern Stream", text: "Streaming" },
-    { merchant: "Nobody", text: "x" },
-  ]);
-  assert.match(first.notes[id], /#pets\n#checked$/);
-  assert.equal(first.undo[id], state.notes[id]);
+  const before = JSON.stringify(state.notes);
+  const first = writeNotes(state, derived, {
+    changes: [
+      { id, text: "#checked" },
+      { merchant: "Lantern Stream", text: "Streaming" },
+      { merchant: "Nobody", text: "x" },
+    ],
+  });
+  assert.equal(JSON.stringify(state.notes), before, "state left alone");
+  applyChange(state, first);
+  assert.match(state.notes[id], /#pets\n#checked$/);
   const streams = derived.allTxns.filter(
     (t) => t.merchant === "Lantern Stream",
   );
-  assert.ok(streams.every((t) => first.notes[t.id] === "Streaming"));
-  assert.ok(streams.every((t) => first.undo[t.id] === ""));
+  assert.ok(streams.every((t) => state.notes[t.id] === "Streaming"));
   assert.deepEqual(first.result, {
     changed: 1 + streams.length,
     not_found: ["Nobody"],
   });
-  assert.equal(state.notes[streams[0].id], undefined, "input left alone");
-
-  // A second call in the same reply keeps the first "before".
-  const second = noteChanges(
-    derived,
-    first.notes,
-    [{ id, text: "Replaced", mode: "replace" }],
-    first.undo,
+  const second = writeNotes(state, derived, {
+    changes: [{ id, text: "Replaced", mode: "replace" }],
+  });
+  applyChange(state, second);
+  assert.equal(state.notes[id], "Replaced");
+  applyChange(state, invert(second));
+  applyChange(state, invert(first));
+  assert.equal(JSON.stringify(state.notes), before, "undo restores");
+  assert.throws(() => writeNotes(state, derived, { changes: [] }), /non-empty/);
+  assert.throws(
+    () =>
+      writeNotes(state, derived, {
+        changes: [{ merchant: "Nobody", text: "x" }],
+      }),
+    /Not found: Nobody/,
   );
-  assert.equal(second.notes[id], "Replaced");
-  assert.equal(second.undo[id], state.notes[id]);
-  assert.throws(() => noteChanges(derived, state.notes, []), /non-empty/);
 });
 
-test("rename_merchants sets display names and restores originals", () => {
+test("rename_merchants is the model's renameMerchants, and restores originals", () => {
   const { state, derived } = demo();
-  const renamed = nameChanges(derived, state.names, [
-    { merchant: "Paper Kite Cafe", name: "The cafe" },
-    { merchant: "Unknown place", name: "x" },
-  ]);
+  const renamed = renameMerchants(state, derived, {
+    changes: [
+      { merchant: "Paper Kite Cafe", name: "The cafe" },
+      { merchant: "Unknown place", name: "x" },
+    ],
+  });
   const key = derived.allTxns.find(
     (t) => t.merchant === "Paper Kite Cafe",
   ).nameKey;
-  assert.deepEqual(renamed.names[key], { name: "The cafe", by: "ai" });
-  assert.equal(renamed.undo[key], null);
+  applyChange(state, renamed);
+  assert.deepEqual(state.names[key], { name: "The cafe", by: "ai" });
   assert.deepEqual(renamed.result, {
     changed: 1,
     not_found: ["Unknown place"],
   });
-  const back = nameChanges(
-    derived,
-    renamed.names,
-    [{ merchant: "Paper Kite Cafe", name: "" }],
-    renamed.undo,
-  );
-  assert.equal(back.names[key], undefined);
-  assert.equal(back.undo[key], null);
+  const back = renameMerchants(state, derived, {
+    changes: [{ merchant: "Paper Kite Cafe", name: "" }],
+  });
+  applyChange(state, back);
+  assert.equal(state.names[key], undefined);
+  applyChange(state, invert(back));
+  assert.deepEqual(state.names[key], { name: "The cafe", by: "ai" });
 });

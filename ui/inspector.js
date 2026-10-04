@@ -253,7 +253,8 @@ export function createInspector(runtime, actions) {
     }
     $("#askThese")?.addEventListener("click", () => {
       actions.openTab("ask");
-      $("#askInput").focus();
+      const n = state.selection.size;
+      $("#chat").prefill(`About these ${n} payment${n > 1 ? "s" : ""}: `);
     });
   }
 

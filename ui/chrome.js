@@ -59,11 +59,6 @@ export function createChrome(runtime, actions) {
     $("#suggestBtn").hidden = !caps.sample || !runtime.derived?.allTxns.length;
     $("#suggestBtn").textContent = "Suggest threads with " + actions.AI();
     $("#mapAsk").textContent = `Ask ${actions.AI()} to fill this in`;
-    $("#askNote").textContent = caps.sample
-      ? `Answers by ${actions.AI()}`
-      : "No AI assistant here yet. Set one up under More.";
-    $("#sendBtn").disabled = !caps.sample || !runtime.derived?.allTxns.length;
-    $("#askInput").disabled = !caps.sample;
     showSaveStatus(actions.Store.backend.kind);
     actions.renderPrivacy();
   }

@@ -269,9 +269,7 @@ export function benchClick(b, ui, runtime, actions, host) {
     );
     ui.toldSaved = true;
   } else if ("benchAsk" in d) {
-    ui.text = `About these ${ts.length} payments: `;
-    ui.ask = "idle";
-    ui.story = null;
+    ui.askAbout = `About these ${ts.length} payments: `;
     state.scale = "year";
     ui.focusAsk = true;
   } else if (lensViewClick(d, ui, actions)) return true;

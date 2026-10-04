@@ -4,7 +4,7 @@ import { createDemoData } from "../demo.js";
 import { createRuntime } from "../state.js";
 import { deriveTransactions } from "../transactions/derive.js";
 import { markdown } from "../ui/markdown.js";
-import { coverageText, systemPrompt, whatGoes } from "../assistant/prompts.js";
+import { coverageText, systemPrompt } from "../assistant/prompts.js";
 
 const TODAY = "2026-09-30";
 function demo() {
@@ -51,7 +51,7 @@ test("the system prompt states the facts the assistant needs", () => {
   assert.match(ask, /Today is 2026-09-30\./);
   assert.match(ask, /Monthly budgets they've set: Bills ₪300\/month/);
   assert.match(ask, /- "The car broke down" 2025-12-10 to 2025-12-13: /);
-  assert.match(ask, /use list_merchants then rename_merchants/);
+  assert.match(ask, /list_merchants then rename_merchants/);
   const report = systemPrompt({
     derived,
     state,
@@ -75,7 +75,7 @@ test("the system prompt states the facts the assistant needs", () => {
   );
 });
 
-test("the Ask preview's list matches what the opening message holds", () => {
+test("the opening message holds what the chat says it sends, and not lenses", () => {
   const { state, derived } = demo();
   state.lenses = [
     { id: "l-x", title: "Lens SECRET-TITLE", code: "// SECRET-CODE" },
@@ -101,21 +101,4 @@ test("the Ask preview's list matches what the opening message holds", () => {
     if (!tools) assert.ok(intro.includes(derived.allTxns[0].id));
     else assert.ok(!intro.includes(`"${derived.allTxns[0].id}"`));
   }
-  const w = whatGoes({
-    question: "Why December?",
-    ai: "LM Studio",
-    tools: true,
-    earlier: 20,
-    selected: 2,
-  });
-  assert.equal(w.goes[0], "Your question: “Why December?”");
-  assert.match(w.goes.at(-2), /up to 16 messages/);
-  assert.equal(
-    w.notSent,
-    "Not sent: your lenses, and transactions LM Studio doesn’t look up.",
-  );
-  assert.equal(
-    whatGoes({ question: "q", ai: "X", tools: false }).notSent,
-    "Not sent: your lenses.",
-  );
 });

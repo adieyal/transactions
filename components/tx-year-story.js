@@ -148,7 +148,7 @@ export function pickerHTML(ms, year, month, { state, ui, picked }) {
           .map((m) => opt(`m:${m}`, monthLong(m), !year && m === month))
           .join("")}</optgroup>
         ${periods.length ? `<optgroup label="Your periods">${periods.map((p) => opt(`p:${p.id}`, p.name, false)).join("")}</optgroup>` : ""}
-        ${state.reports.length ? `<optgroup label="Your saved questions">${state.reports.map((r) => opt(`r:${r.id}`, r.q, ui.story === `r:${r.id}`)).join("")}</optgroup>` : ""}
+        ${state.reports.length ? `<optgroup label="Your saved questions">${state.reports.map((r) => opt(`r:${r.id}`, r.q, false)).join("")}</optgroup>` : ""}
       </select>
       <button class="yr-smallbtn" data-open="reports">Make your own story</button>
     </div>

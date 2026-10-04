@@ -100,7 +100,6 @@ const DOCUMENT_ALLOW = [];
 // markup uses the escaping html tag from ui/dom.js (ADR 0005).
 const HTML_ALLOW = [
   // R10: converted module by module as each is next touched.
-  { v: "ui/chat.js sets innerHTML from a plain template", fix: "R10" },
   { v: "ui/import.js sets innerHTML from a plain template", fix: "R10" },
   { v: "ui/inspector.js sets innerHTML from a plain template", fix: "R10" },
   { v: "ui/lens-editor.js sets innerHTML from a plain template", fix: "R10" },
@@ -131,7 +130,6 @@ const REACH_ALLOW = [
   { v: "ui/lenses.js reaches outside itself", fix: "R14" },
   { v: "ui/lens-editor.js reaches outside itself", fix: "R14" },
   { v: "ui/reports.js reaches outside itself", fix: "R14" },
-  { v: "ui/chat.js reaches outside itself", fix: "R14" },
   { v: "suggestions.js reaches outside itself", fix: "R14" },
   { v: "ui/filter.js reaches outside itself", fix: "R14" },
   // R15: the app shell and dialogs; ui/dom.js keeps `$` until the last caller goes.
@@ -157,14 +155,9 @@ const SAVED_WRITE = new RegExp(
 // restoring documents, which set whole fields by key.
 const SAVED_WRITERS = ["model/", "documents.js", "backup.js", "main.js"];
 const SAVED_WRITE_ALLOW = [
-  // C2 (one chat with full access): the chat's tools call the commands, and
-  // the year's Ask with its question removal goes.
-  { v: "ui/chat.js writes saved state 8 times", fix: "C2" },
-  { v: "components/tx-year-ask.js writes saved state 1 time", fix: "C2" },
   // C4 (converge the rest, audit plan 4-7): the bench rewrites and saved
   // suggestions are deleted; question answers get commands.
   { v: "components/tx-year-bench.js writes saved state 9 times", fix: "C4" },
-  { v: "components/tx-year-saved.js writes saved state 2 times", fix: "C4" },
   { v: "ui/questions.js writes saved state 4 times", fix: "C4" },
   { v: "components/tx-one-month.js writes saved state 1 time", fix: "C4" },
   { v: "components/tx-year.js writes saved state 1 time", fix: "C4" },
@@ -877,4 +870,38 @@ test("the model's saved fields are the saved documents' fields", async () => {
   );
   for (const [field, key] of Object.entries(KEY_OF))
     assert.equal(documentFor(key).field, field, `${field} is saved as ${key}`);
+});
+
+// One chat (ASSISTANT-BRIEF, audit plan step 2): components/tx-chat.js is
+// the only conversation with the assistant. Every view embeds that element;
+// none builds its own Ask, sends its own question or keeps its own turns.
+test("there is one chat: <tx-chat>", () => {
+  const CHAT = "components/tx-chat.js";
+  // Saved questions run again read-only through the chat's callAssistant.
+  const CALLERS = new Set([CHAT, "ui/reports.js"]);
+  const found = [];
+  for (const file of FILES) {
+    if (/\bactions\.ask\b/.test(CODE[file]))
+      found.push(`${file} uses actions.ask`);
+    if (/["'`]tx-(?:ask|save-question|run-question)["'`]/.test(SOURCE[file]))
+      found.push(`${file} names a second way to ask`);
+    if (file !== CHAT && /\bfunction ask\s*\(|\bconst ask\s*=/.test(CODE[file]))
+      found.push(`${file} defines its own ask`);
+    if (!CALLERS.has(file) && /\bcallAssistant\s*\(/.test(CODE[file]))
+      found.push(`${file} calls the assistant as a chat`);
+    if (
+      file !== CHAT &&
+      /\.turns\s*(?:=[^=]|\.\s*(?:push|splice|unshift|pop|shift)\b)/.test(
+        CODE[file],
+      ) &&
+      !SAVED_WRITERS.some((w) => file.startsWith(w))
+    )
+      found.push(`${file} writes the chat's turns`);
+  }
+  const page = read("index.html");
+  if (/id="(?:askInput|sendBtn|log)"/.test(page))
+    found.push("index.html has a second chat's markup");
+  if ((page.match(/<tx-chat\b/g) || []).length !== 1)
+    found.push("index.html should hold one <tx-chat> (the panel's Ask tab)");
+  assert.deepEqual(found, []);
 });

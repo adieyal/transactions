@@ -8,10 +8,6 @@ import { wireLinkedRefs } from "./linked-ref.js";
 import { beadStops, wireBeadKeys } from "./bead-keys.js";
 import { subscribeWhileConnected } from "./base.js";
 import { bandHTML } from "./tx-year-band.js";
-import { answeredHTML, askClick, askHTML } from "./tx-year-ask.js";
-import { savedHTML } from "./tx-year-saved.js";
-import { rerunGoes, whatGoes } from "../assistant/prompts.js";
-import { answerStory, sinceLastRun } from "../story/saved-question.js";
 import {
   benchClick,
   benchHTML,
@@ -28,24 +24,20 @@ import {
   storyLensesHTML,
 } from "./tx-year-story.js";
 import { showLensView, wireLensView } from "./tx-year-lens.js";
-import { applySuggestion, suggestKey } from "./tx-year-saved.js";
 
 // <tx-year>: artboard 3, the timeline band, the story column and the bench
 // beside it (tx-year-bench.js). The Year scale tells the covered months as sections,
 // each lighting its stretch of the timeline while pointed at; the Month
-// scale is one month inside the year. Asking goes through the app's chat
-// (actions.ask), only when Send is pressed.
+// scale is one month inside the year. Its Ask section holds the app's one
+// chat, <tx-chat> (components/tx-chat.js), kept across re-renders.
 export function createYearComponent(runtime, actions) {
   const { state, caps } = runtime;
   const ui = {
     sec: null,
     naming: null,
     name: "",
-    ask: "idle",
-    text: "",
-    asked: null,
-    rerun: null,
-    story: null,
+    // "Ask about these": the question the chat starts with.
+    askAbout: "",
     bench: "details",
     manyName: "",
     manyMsg: "",
@@ -54,28 +46,20 @@ export function createYearComponent(runtime, actions) {
     tagging: false,
     tag: "",
     activeLine: null,
-    // Suggested changes chosen, by suggestKey: { status, previous }.
-    suggest: {},
   };
-  // What the bench and the Ask area (tx-year-bench.js, tx-year-ask.js) may
-  // do, through this contract.
+  // What the bench (tx-year-bench.js) may do, through this contract.
   const benchActions = {
     addBlankLens: () => actions.addBlankLens(),
     addPeriod: (...a) => actions.addPeriod(...a),
     addReport: (...a) => actions.addReport(...a),
     bulkTag: (...a) => actions.bulkTag(...a),
     highlight: (ids) => actions.highlight(ids),
-    openAISettings: () => actions.openAISettings(),
     openLensEditor: (id) => actions.openLensEditor(id),
     refresh: () => actions.refresh(),
     refreshSoon: () => actions.refreshSoon(),
     restoreStarterLenses: () => actions.restoreStarterLenses(),
     save: (k) => actions.save(k),
   };
-  // The saved question picked from the story list, if it still exists.
-  const picked = () =>
-    ui.story && state.reports.find((r) => `r:${r.id}` === ui.story);
-
   function months() {
     return runtime.derived ? coveredMonths(runtime.derived) : [];
   }
@@ -99,45 +83,19 @@ export function createYearComponent(runtime, actions) {
         <p class="yr-fine">This story is written from your statements and your notes, and it changes when you add either.</p>
       </div></div>
       ${storyLensesHTML(state)}
-      ${answeredHTML(ui, state, actions.AI(), runtime.derived.byId)}
-      <section class="yr-sec" aria-label="Ask"><div class="yr-side"><div class="yr-seclabel">Ask</div></div><div class="yr-col-story">${askHTML(
-        ui,
-        caps,
-        actions.AI(),
-        whatGoes({
-          question: ui.text.trim(),
-          ai: actions.AI(),
-          tools: !!caps.tools,
-          earlier: state.turns.filter((t) => !t.pending).length,
-          selected: [...state.selection].length,
-        }),
-      )}</div></section>`;
-  }
-
-  function savedQuestionHTML(r) {
-    const story = answerStory(r.answer, runtime.derived.byId);
-    return savedHTML(r, story, {
-      canRun: caps.sample,
-      since: sinceLastRun(r, story, runtime.derived),
-      byId: runtime.derived.byId,
-      suggested: (sg) => ui.suggest[suggestKey(sg)]?.status,
-      ai: actions.AI(),
-      rerun: ui.rerun === r.id && {
-        id: r.id,
-        ...rerunGoes({
-          question: r.q,
-          ai: actions.AI(),
-          tools: !!caps.tools,
-          ranAt: r.answer && r.ranAt,
-        }),
-      },
-    });
+      <section class="yr-sec" aria-label="Ask"><div class="yr-side"><div class="yr-seclabel">Ask</div></div><div class="yr-col-story" data-chat-slot></div></section>`;
   }
 
   // The story column, and the bench beside it.
   function pageHTML(band, ms, year, month, story) {
-    return `${band}<main class="yr-main"><div class="yr-story">${pickerHTML(ms, year, month, { state, ui, picked: picked() })}${!year ? monthHTML(story) : picked() ? savedQuestionHTML(picked()) : yearHTML(story)}</div><aside class="yr-bench${state.compactTimeline ? " sticky" : ""}" aria-label="Details and tools">${benchHTML(ui, runtime)}</aside></main>`;
+    return `${band}<main class="yr-main"><div class="yr-story">${pickerHTML(ms, year, month, { state, ui, picked: null })}${!year ? monthHTML(story) : yearHTML(story)}</div><aside class="yr-bench${state.compactTimeline ? " sticky" : ""}" aria-label="Details and tools">${benchHTML(ui, runtime)}</aside></main>`;
   }
+
+  // The chat element, once <tx-chat> is defined (components/tx-chat.js).
+  const newChat = () => {
+    const Chat = customElements.get("tx-chat");
+    return Chat ? new Chat() : null;
+  };
 
   function defineYear() {
     if (customElements.get("tx-year")) return;
@@ -181,7 +139,17 @@ export function createYearComponent(runtime, actions) {
           const at = f && [f.selectionStart, f.selectionEnd];
           // The timeline's own scroller keeps its place.
           const left = this.querySelector(".yr-scroll")?.scrollLeft;
+          // The chat moves into the new page as it is, mid-question or
+          // mid-sentence, keeping its focus.
+          const typing = this.chat?.contains(f) && f;
           this.innerHTML = pageHTML(band, ms, year, month, this.story);
+          const slot = this.querySelector("[data-chat-slot]");
+          this.chat ||= newChat();
+          if (slot && this.chat) slot.append(this.chat);
+          if (typing) {
+            typing.focus();
+            typing.setSelectionRange(at[0], at[1]);
+          }
           if (left) this.querySelector(".yr-scroll").scrollLeft = left;
           beadStops(this, ".yr-bead[data-id]");
           const back = f?.id && this.querySelector(`#${CSS.escape(f.id)}`);
@@ -194,12 +162,10 @@ export function createYearComponent(runtime, actions) {
             ui.focusTag = false;
             this.querySelector("#bench-tag")?.focus();
           }
-          if (ui.focusAsk) {
+          if (ui.focusAsk && this.chat?.isConnected) {
             ui.focusAsk = false;
-            const ask = this.querySelector("#ask");
-            ask?.focus();
-            ask?.setSelectionRange(ask.value.length, ask.value.length);
-            ask?.scrollIntoView({ block: "center" });
+            this.chat.prefill(ui.askAbout);
+            this.chat.scrollIntoView({ block: "center" });
           }
           const bandEl = this.querySelector(".yr-band");
           if (bandEl)
@@ -277,8 +243,15 @@ export function createYearComponent(runtime, actions) {
           this.addEventListener("change", (e) => {
             if (e.target.id !== "story-pick") return;
             const v = e.target.value;
-            ui.story = v.startsWith("r:") ? v : null;
-            if (v.startsWith("r:")) this.go("year");
+            // A saved question opens in Reports (ui/reports.js), where it
+            // runs again and is removed with Undo.
+            if (v.startsWith("r:"))
+              this.dispatchEvent(
+                new CustomEvent("tx-open-bench", {
+                  bubbles: true,
+                  detail: { tab: "reports", ids: [] },
+                }),
+              );
             else if (v === "year") this.go("year");
             else if (v.startsWith("m:")) this.go("month", v.slice(2));
             else if (v.startsWith("p:")) {
@@ -291,7 +264,6 @@ export function createYearComponent(runtime, actions) {
           });
           this.addEventListener("input", (e) => {
             if (benchInput(e, ui, runtime, benchActions)) return;
-            if (e.target.id === "ask") ui.text = e.target.value;
             if (e.target.id === "stretch-name") ui.name = e.target.value;
           });
           this.addEventListener("keydown", (e) => {
@@ -316,8 +288,6 @@ export function createYearComponent(runtime, actions) {
               return;
             }
             const d = t.dataset;
-            if (d.suggestApply || d.suggestDiscard || d.suggestUndo)
-              return applySuggestion(d, ui, state, actions);
             if ("toYear" in d) this.go("year");
             else if (d.month) this.go("month", d.month);
             else if (t.classList.contains("yr-compact")) {
@@ -369,8 +339,7 @@ export function createYearComponent(runtime, actions) {
                   detail: { start: d.from, end: d.to, name },
                 }),
               );
-            } else
-              askClick(this, d, { ui, state, actions: benchActions, picked });
+            }
           });
         }
       },
@@ -385,14 +354,12 @@ export const contract = {
   create: createYearComponent,
   provides: ["defineYear"],
   requires: [
-    "AI",
     "Store",
     "addBlankLens",
     "addPeriod",
     "addReport",
     "bulkTag",
     "highlight",
-    "openAISettings",
     "openLensEditor",
     "refresh",
     "refreshSoon",

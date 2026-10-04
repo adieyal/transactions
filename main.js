@@ -23,7 +23,7 @@ import { contract as lenses } from "./ui/lenses.js";
 import { contract as chrome } from "./ui/chrome.js";
 import { contract as assistantSettings } from "./ui/assistant-settings.js";
 import { contract as suggestions } from "./suggestions.js";
-import { contract as chat } from "./ui/chat.js";
+import { contract as chat } from "./components/tx-chat.js";
 import { contract as importer } from "./ui/import.js";
 import { contract as tour } from "./ui/tour.js";
 import { contract as lensEditor } from "./ui/lens-editor.js";
@@ -138,34 +138,10 @@ document.addEventListener("tx-mark-period", (e) =>
     name: e.detail.name ?? "",
   }),
 );
-// The year's Ask section: sent through the chat, and so through
-// assistant.js, only once the person has pressed Send. Read-only: that
-// section has no Apply or Undo for a change the assistant makes.
-document.addEventListener("tx-ask", (e) => {
-  const asking = actions.ask(e.detail.question, { write: false });
-  redraw();
-  asking.finally(redraw);
-});
 // "+ Budget" on a row of the year's band, when Numbers is on.
 document.addEventListener("tx-add-budget", (e) =>
   actions.addBudget(e.detail.thread, "You can change it in Threads."),
 );
-// A question asked there, saved as a story; and a saved one run again.
-document.addEventListener("tx-save-question", (e) => {
-  const reply = [...runtime.state.turns]
-    .reverse()
-    .find((t) => t.role === "assistant" && t.q === e.detail.question);
-  if (!reply?.content) return;
-  actions.addReport(e.detail.question, reply.content, { open: false });
-  redraw();
-});
-document.addEventListener("tx-run-question", (e) => {
-  const r = runtime.state.reports.find((x) => x.id === e.detail.id);
-  if (!r) return;
-  const running = actions.runReport(r);
-  redraw();
-  running.finally(redraw);
-});
 document.addEventListener("tx-open-period", (e) => {
   runtime.state.bench = true;
   refresh();

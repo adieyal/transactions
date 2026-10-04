@@ -18,7 +18,6 @@ const MODULES = [
   "threads",
   "inspector",
   "lenses",
-  "chat",
 ];
 
 function fakeDocument(classes, touched) {
@@ -66,7 +65,8 @@ for (const bench of [false, true]) {
         for (const r of contract.renders)
           if (!OUTSIDE.has(r)) renders.push([r, made[r]]);
       }
-      assert.ok(renders.length >= 10);
+      // Ten before the chat became <tx-chat>, which draws only inside itself.
+      assert.ok(renders.length >= 8);
       for (const [name, render] of renders) {
         touched.length = 0;
         try {

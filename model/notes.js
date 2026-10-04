@@ -79,3 +79,112 @@ export function setTransfer(state, { id, on, auto = false }) {
     { field: "transferOv", entries: { [id]: [state.transferOv[id], after] } },
   ]);
 }
+
+// The assistant's batch edits, moved from assistant/tools.js: changes name
+// transactions by id or by exact merchant name.
+const changeList = (changes) => {
+  const list = Array.isArray(changes) ? changes.slice(0, 600) : [];
+  need(list.length, "changes must be a non-empty list");
+  return list;
+};
+
+// Merchant names match the statement text or the shown name, then loosely.
+function byMerchant(derived, m) {
+  const ids = derived.allTxns
+    .filter((t) => t.merchant === m || t.original === m)
+    .map((t) => t.id);
+  if (ids.length) return ids;
+  const n = normText(m);
+  return derived.allTxns
+    .filter((t) => normText(t.merchant) === n)
+    .map((t) => t.id);
+}
+
+// Appends to (the default) or replaces notes. changes: [{id | merchant,
+// text, mode}]. The record's result says what changed and what wasn't found.
+export function writeNotes(state, derived, { changes }) {
+  const entries = {};
+  const missing = [];
+  const now = (id) => (id in entries ? entries[id][1] : state.notes[id]);
+  for (const c of changeList(changes)) {
+    const text = String(c?.text ?? "").trim();
+    const ids = c?.id
+      ? derived.byId.has(String(c.id))
+        ? [String(c.id)]
+        : []
+      : c?.merchant
+        ? byMerchant(derived, String(c.merchant).trim())
+        : [];
+    if (!ids.length) {
+      missing.push(c?.id || c?.merchant || "?");
+      continue;
+    }
+    for (const id of ids) {
+      const before = now(id) || "";
+      const after =
+        c?.mode === "replace"
+          ? text
+          : !text || before.includes(text)
+            ? before
+            : before
+              ? before + "\n" + text
+              : text;
+      if (after === before) continue;
+      entries[id] = [state.notes[id], after || undefined];
+    }
+  }
+  for (const [id, [a, b]] of Object.entries(entries))
+    if (a === b) delete entries[id];
+  const n = Object.keys(entries).length;
+  const result = { changed: n, not_found: missing.slice(0, 20) };
+  need(n || !missing.length, `Not found: ${result.not_found.join(", ")}.`);
+  return record("writeNotes", [{ field: "notes", entries }], {
+    summary: `Changed the notes on ${n} transaction${n > 1 ? "s" : ""}.`,
+    count: n,
+    result,
+  });
+}
+
+// Display names by original or current name; an empty name or the original
+// restores it. changes: [{merchant, name}].
+export function renameMerchants(state, derived, { changes, by = "ai" }) {
+  const entries = {};
+  const missing = [];
+  for (const c of changeList(changes)) {
+    const m = String(c?.merchant ?? "").trim();
+    const name = String(c?.name ?? "").trim();
+    if (!m) continue;
+    const n = normText(m);
+    const keys = [
+      ...new Set(
+        derived.allTxns
+          .filter(
+            (t) =>
+              t.original === m ||
+              t.merchant === m ||
+              t.nameKey === n ||
+              normText(t.merchant) === n,
+          )
+          .map((t) => t.nameKey),
+      ),
+    ];
+    if (!keys.length) {
+      missing.push(m);
+      continue;
+    }
+    for (const k of keys) {
+      const orig = derived.allTxns.find((t) => t.nameKey === k)?.original;
+      const after = name && name !== orig ? { name, by } : undefined;
+      if (JSON.stringify(state.names[k]) === JSON.stringify(after)) continue;
+      entries[k] = [state.names[k], after];
+    }
+  }
+  const n = Object.keys(entries).length;
+  const result = { changed: n, not_found: missing.slice(0, 20) };
+  need(n || !missing.length, `Not found: ${result.not_found.join(", ")}.`);
+  return record("renameMerchants", [{ field: "names", entries }], {
+    summary: `Renamed ${n} merchant${n > 1 ? "s" : ""}. The originals are kept.`,
+    count: n,
+    result,
+  });
+}
