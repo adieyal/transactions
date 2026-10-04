@@ -24,7 +24,7 @@ export function createInspector(runtime, actions) {
   }
 
   function wireInspector() {
-    wireHoverHighlight($("#insp"), runtime, actions);
+    wireHoverHighlight($("#insp"), runtime, (ids) => actions.highlight(ids));
     $("#insp").addEventListener("click", (e) => {
       const c = e.target.closest("[data-cite]");
       if (c) {

@@ -15,7 +15,6 @@ import { contract as tags } from "./ui/tags.js";
 import { contract as inspector } from "./ui/inspector.js";
 import { contract as periods } from "./ui/periods.js";
 import { contract as questions } from "./ui/questions.js";
-import { contract as month } from "./ui/month.js";
 import { contract as threadSummary } from "./ui/thread-summary.js";
 import { contract as reports } from "./ui/reports.js";
 import { contract as threads } from "./ui/threads.js";
@@ -27,6 +26,10 @@ import { contract as chat } from "./ui/chat.js";
 import { contract as importer } from "./ui/import.js";
 import { contract as tour } from "./ui/tour.js";
 import { contract as lensEditor } from "./ui/lens-editor.js";
+import { contract as txMonth } from "./components/tx-month.js";
+import { contract as txQuestions } from "./components/tx-questions.js";
+import { contract as txLens } from "./components/tx-lens.js";
+import { coveredMonths } from "./story/moments.js";
 
 const runtime = createRuntime({ today: isoOf(new Date()) });
 // Modules in registration order: the order of renders on every refresh and
@@ -38,7 +41,6 @@ const MODULES = [
   timeline,
   tags,
   questions,
-  month,
   reports,
   threads,
   inspector,
@@ -52,6 +54,9 @@ const MODULES = [
   backupImport,
   tour,
   lensEditor,
+  txMonth,
+  txQuestions,
+  txLens,
 ];
 const registry = createRegistry(runtime, MODULES, {
   derive() {
@@ -68,13 +73,39 @@ const registry = createRegistry(runtime, MODULES, {
 const actions = registry.actions;
 
 // The one way the screen catches up with state: re-derive, then every
-// registered render. redraw() skips deriving, for a change of tab or layout.
+// registered render, then every component through the store (ADR 0009).
+// redraw() skips deriving, for a change of tab or layout.
 function redraw() {
   if (!runtime.state.loaded) {
     actions.renderTimeline();
     return;
   }
   for (const render of registry.renders) render();
+  runtime.store.notify("refresh");
+}
+
+// Components ask for highlights with events rather than calling the
+// timeline; the timeline then tells the store.
+document.addEventListener("tx-highlight", (e) =>
+  actions.highlight(e.detail.ids, {
+    clearSelection: e.detail.clearSelection,
+  }),
+);
+
+// #lab: the prototype layout from index.html in place of the side panel,
+// with the two latest months side by side and the first lens.
+function openLayoutLab() {
+  const template = document.getElementById("layoutLab");
+  const lab = template.content.cloneNode(true);
+  const ms = runtime.derived ? coveredMonths(runtime.derived) : [];
+  const [older, newer] = lab.querySelectorAll("tx-month");
+  older.setAttribute("month", ms.at(-2) ?? ms.at(-1) ?? "");
+  newer.setAttribute("month", ms.at(-1) ?? "");
+  lab
+    .querySelector("tx-lens")
+    .setAttribute("lens", runtime.state.lenses[0]?.id ?? "");
+  document.body.classList.add("lab");
+  document.querySelector(".right").prepend(lab);
 }
 function refresh() {
   if (runtime.state.loaded) actions.derive();
@@ -150,6 +181,7 @@ async function boot() {
   actions.applyPanel();
   runtime.state.loaded = true;
   refresh();
+  if (location.hash === "#lab") openLayoutLab();
   actions.askCurrencies();
   actions.maybeStartTour();
 }

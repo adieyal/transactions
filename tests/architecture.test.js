@@ -33,9 +33,12 @@ const LAYERS = {
   "files.js": "platform",
   "state.js": "app",
   "registry.js": "app",
+  "store.js": "app",
   // A UI factory at the root until R4 splits its prompts from its handlers.
   "suggestions.js": "ui",
   "ui/": "ui",
+  // Web components (ADR 0009): UI that draws only inside itself.
+  "components/": "ui",
   "main.js": "entry",
   "scripts/": "build",
 };
@@ -117,7 +120,14 @@ const SIZE_ALLOW = [
 
 function sourceFiles() {
   const files = readdirSync(root).filter((f) => f.endsWith(".js"));
-  for (const dir of ["transactions", "story", "assistant", "ui", "scripts"])
+  for (const dir of [
+    "transactions",
+    "story",
+    "assistant",
+    "ui",
+    "components",
+    "scripts",
+  ])
     if (existsSync(path.join(root, dir)))
       for (const f of readdirSync(path.join(root, dir)))
         if (/\.m?js$/.test(f)) files.push(`${dir}/${f}`);

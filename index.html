@@ -57,13 +57,13 @@
         <button class="hidepanel" id="hidePanel" title="Hide the panel" aria-label="Hide the panel"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
       <div class="pane on" id="pane-month" role="tabpanel" aria-labelledby="tab-month">
-        <div id="month"></div>
+        <tx-month id="month"></tx-month>
       </div>
       <div class="pane" id="pane-lenses" role="tabpanel" aria-labelledby="tab-lenses">
         <div id="lenses"></div>
       </div>
       <div class="pane" id="pane-questions" role="tabpanel" aria-labelledby="tab-questions">
-        <div id="questions"></div>
+        <tx-questions id="questions"></tx-questions>
       </div>
       <div class="pane" id="pane-threads" role="tabpanel" aria-labelledby="tab-threads">
         <p class="lead">Each thread is a wire on the timeline. Type a name, then indented bits of merchant names, #tags from your notes, or /patterns/. Put the cursor on a line to see what it catches.</p>
@@ -177,6 +177,21 @@
   <div class="row-actions"><button class="btn quiet" id="backupCancel">Cancel</button><button class="btn" id="backupRestore">Replace and import</button></div>
   </div>
 </dialog>
+<!-- A prototype layout, shown only at #lab (main.js): the same components
+     arranged differently, all drawing from one store. -->
+<template id="layoutLab">
+  <section class="lab" aria-label="Layout lab">
+    <p class="lablabel">Prototype: layout lab. Two months side by side, the top questions and a lens, all from the same data as the app.</p>
+    <div class="labmonths">
+      <tx-month></tx-month>
+      <tx-month></tx-month>
+    </div>
+    <div class="labrow">
+      <tx-questions limit="2"></tx-questions>
+      <tx-lens titled></tx-lens>
+    </div>
+  </section>
+</template>
 <!-- TRANSACTIONS_SCRIPT -->
 </body>
 </html>

@@ -435,6 +435,7 @@ export function createTimeline(runtime, actions) {
     state.highlight = ids instanceof Set ? ids : new Set(ids);
     if (clearSelection) state.selection.clear();
     renderTimeline();
+    runtime.store.notify("highlight");
   }
   // Selects beads and lights them up, as clicking a citation does.
   function select(ids) {

@@ -1,4 +1,5 @@
 import { STARTER_RULES, STARTER_LENSES } from "./defaults.js";
+import { createStore } from "./store.js";
 
 // today: the date, read once when the app starts (main.js), and passed to
 // everything that needs it.
@@ -42,5 +43,7 @@ export function createRuntime({ today = null } = {}) {
     claudeTools: false,
     downloads: null,
   };
-  return { state, caps, derived: null, today };
+  const runtime = { state, caps, derived: null, today };
+  runtime.store = createStore(runtime);
+  return runtime;
 }

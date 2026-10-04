@@ -1,7 +1,8 @@
 // Hovering or focusing a phrase that carries data-ids (or a [[id]]
 // citation) lights up its beads on the timeline. Leaving it puts back
 // whatever was lit before, such as a thread picked from the timeline.
-export function wireHoverHighlight(el, runtime, actions) {
+// light(ids) lights them up: actions.highlight, or a component's event.
+export function wireHoverHighlight(el, runtime, light) {
   const { state } = runtime;
   let hovered = null,
     before = null;
@@ -15,12 +16,12 @@ export function wireHoverHighlight(el, runtime, actions) {
     sp.classList.add("on");
     if (!(hovered && state.highlight === hovered)) before = state.highlight;
     hovered = new Set(ids);
-    actions.highlight(hovered);
+    light(hovered);
   }
   function hide(sp) {
     sp.classList.remove("on");
     if (hovered && state.highlight === hovered) {
-      actions.highlight(before ?? new Set());
+      light(before ?? new Set());
     }
     hovered = before = null;
   }

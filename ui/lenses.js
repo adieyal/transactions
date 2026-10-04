@@ -7,8 +7,7 @@ export function createLenses(runtime, actions) {
   const { state, caps } = runtime;
   // A lens runs in the sandbox (ui/lens-sandbox.js), on the derived
   // transactions as they are now. The frame is made on first use.
-  let sandbox = null,
-    generation = 0;
+  let sandbox = null;
   const runLens = (code) =>
     (sandbox ||= newLensSandbox()).run(
       code,
@@ -60,10 +59,9 @@ export function createLenses(runtime, actions) {
       el.innerHTML = "";
       return;
     }
-    const run = ++generation;
     let h = `<p class="lead">Small programs over your transactions. Click a bar or row to light up its beads on the timeline.${runtime.derived.filtered ? ` <b>Showing only what matches the filter.</b>` : ""}</p><div class="lens-grid">`;
     state.lenses.forEach((l) => {
-      h += `<article class="lens" data-lens="${l.id}"><h3><span contenteditable="true" spellcheck="false" data-title="${l.id}">${esc(l.title)}</span></h3>${l.fromBackup ? `<p class="lensfrom">From your backup</p>` : ""}<div class="lensbody"><p class="sub">Running…</p></div>
+      h += `<article class="lens" data-lens="${l.id}"><h3><span contenteditable="true" spellcheck="false" data-title="${l.id}">${esc(l.title)}</span></h3>${l.fromBackup ? `<p class="lensfrom">From your backup</p>` : ""}<tx-lens class="lensbody" lens="${esc(l.id)}"></tx-lens>
       <div class="foot"><button data-edit="${l.id}">Edit code</button>${caps.sample ? html`<button data-fix="${l.id}">Change with ${actions.AI()}</button>` : ""}<button data-del="${l.id}">Remove</button></div></article>`;
     });
     h += `<div class="newlens">${
@@ -72,45 +70,13 @@ export function createLenses(runtime, actions) {
         : `<p class="sub" style="margin:0">No AI assistant is set up here (see More → AI assistant settings), but you can still write lenses by hand.</p>`
     }<button class="btn small quiet" id="lensBlank">Start a blank lens</button></div></div>`;
     el.innerHTML = h;
-    for (const l of state.lenses) fillLens(l, run);
-  }
-
-  // Runs one lens in the sandbox and draws its view (escaped) into its card,
-  // unless the cards were redrawn in the meantime.
-  async function fillLens(l, run = generation) {
-    let body = "",
-      err = null;
-    try {
-      body = renderView(await runLens(l.code));
-    } catch (e) {
-      err = e.message || String(e);
-    }
-    const art = $(`#lenses [data-lens="${CSS.escape(l.id)}"]`);
-    if (run !== generation || !art) return;
-    art.querySelector(".lensbody").innerHTML =
-      body + (err ? html`<div class="err">${err}</div>` : "");
-    const fx = art.querySelector("[data-fix]");
-    if (fx)
-      fx.textContent = (err ? "Fix with " : "Change with ") + actions.AI();
   }
 
   function wireLenses() {
     const el = $("#lenses");
     el.addEventListener("click", async (ev) => {
-      const b = ev.target.closest("[data-ids]");
-      if (b) {
-        const ids = b.dataset.ids ? b.dataset.ids.split(",") : [];
-        const same =
-          ids.length &&
-          ids.length === state.highlight.size &&
-          ids.every((i) => state.highlight.has(i));
-        actions.highlight(same ? [] : ids, { clearSelection: true });
-        el.querySelectorAll(".bar.on,tr.on").forEach((x) =>
-          x.classList.remove("on"),
-        );
-        if (!same) b.classList.add("on");
-        return;
-      }
+      // A bar or row: its <tx-lens> asks for the highlight itself.
+      if (ev.target.closest("[data-ids]")) return;
       const t = ev.target.closest("[data-edit]");
       if (t) {
         actions.openLensEditor(t.dataset.edit);
@@ -191,6 +157,13 @@ export function createLenses(runtime, actions) {
         }
       }
     });
+    // Each card's lens says whether it ran, for its Fix button.
+    el.addEventListener("tx-lens-ran", (ev) => {
+      const fx = ev.target.closest(".lens")?.querySelector("[data-fix]");
+      if (fx)
+        fx.textContent =
+          (ev.detail.error ? "Fix with " : "Change with ") + actions.AI();
+    });
     el.addEventListener("input", (ev) => {
       const t = ev.target.closest("[data-title]");
       if (t) {
@@ -207,7 +180,7 @@ export function createLenses(runtime, actions) {
     const l = state.lenses.find((x) => x.id === id);
     if (!art || !l) return;
     art.querySelector("[data-title]").textContent = l.title;
-    fillLens(l);
+    art.querySelector("tx-lens")?.update();
   }, 250);
 
   return {
@@ -229,14 +202,7 @@ export const contract = {
     "runLens",
     "wireLenses",
   ],
-  requires: [
-    "AI",
-    "highlight",
-    "openLensEditor",
-    "sampleErr",
-    "save",
-    "writeLens",
-  ],
+  requires: ["AI", "openLensEditor", "sampleErr", "save", "writeLens"],
   renders: ["renderLenses"],
   wires: ["wireLenses"],
 };

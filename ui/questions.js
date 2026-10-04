@@ -1,6 +1,6 @@
 import { esc } from "../helpers.js";
-import { $, paneShown, toast } from "./dom.js";
-import { MAX_SHOWN, detectMoments, findMoments } from "../story/moments.js";
+import { $, toast } from "./dom.js";
+import { detectMoments, findMoments } from "../story/moments.js";
 import { answerMoment } from "../story/answers.js";
 import { suggestAnswers } from "../story/assist.js";
 import {
@@ -8,7 +8,6 @@ import {
   answerOptions,
   kindLabel,
   momentWhen,
-  plural,
   privacyText,
   questionText,
 } from "../story/copy.js";
@@ -26,10 +25,8 @@ export function createQuestions(runtime, actions) {
     );
   let open = [];
   // The card with a text field open: { id, action, where }, where is the
-  // list it was opened in (the Questions tab or Your month).
+  // list it was opened in (a <tx-questions> or a <tx-month>).
   let writing = null;
-  // Whether "More questions" was left open, kept across re-renders.
-  let moreOpen = false;
 
   function openMoments() {
     if (!state.loaded || !runtime.derived) return [];
@@ -68,52 +65,15 @@ export function createQuestions(runtime, actions) {
     </li>`;
   }
 
+  // The open questions and the tab's count. <tx-questions> draws the list
+  // (components/tx-questions.js).
   function renderQuestions() {
-    const pane = $("#questions");
     open = openMoments();
     $("#qCount").textContent = open.length || "";
-    if (!pane || !paneShown("questions")) return;
-    const answers = Object.values(state.answers || {});
-    const answered = answers.filter((a) => a.status === "answered").length;
-    const skipped = answers.length - answered;
-    const tally = answers.length
-      ? `<p class="sub">You've answered ${plural(answered, "question")} and skipped ${skipped}. Skipped questions don't come back.</p>`
-      : "";
-    const privacy = privacyText(actions.Store.backend.kind);
-    let body;
-    if (!runtime.derived?.allTxns.length)
-      body = `<p class="sub">No statements yet. Questions appear here once you add some.</p>`;
-    else if (!open.length)
-      body = `<p class="sub">No more questions for now. New ones may appear when you add statements.</p>`;
-    else {
-      // The highest-ranked few, with the rest folded away.
-      const cards = (ms) => ms.map((m) => cardHTML(m, "questions")).join("");
-      const rest = open.slice(MAX_SHOWN);
-      body = `<ul class="qlist">${cards(open.slice(0, MAX_SHOWN))}</ul>${
-        rest.length
-          ? `<details class="qmore"${moreOpen || rest.some((m) => m.id === writing?.id) ? " open" : ""}><summary>More questions (${rest.length})</summary><ul class="qlist">${cards(rest)}</ul></details>`
-          : ""
-      }`;
-    }
-    pane.innerHTML = `<p class="lead">Your statements show where money went. Here are a few things a short note would explain. Answer any you like, or none at all.</p>
-      <div class="qprivacy" id="qPrivacy">${esc(privacy.banner)}</div>
-      ${body}${tally}`;
-    markCards();
-    if (writing?.where === "questions")
-      pane.querySelector("[data-qtext]")?.focus();
   }
 
   function rerender() {
     actions.redraw();
-  }
-
-  // Cards whose transactions are lit up on the timeline.
-  function markCards() {
-    document
-      .querySelectorAll(".qcard")
-      .forEach((c) =>
-        c.classList.toggle("on", sameIds(c.dataset.ids.split(","))),
-      );
   }
 
   const sameIds = (ids) =>
@@ -180,11 +140,7 @@ export function createQuestions(runtime, actions) {
     rerender();
   }
 
-  function wireQuestions() {
-    wireCards($("#questions"), "questions");
-  }
-
-  // Cards work the same in any list: the Questions tab or inline in Your month.
+  // Cards work the same in any list: a <tx-questions> or inline in a <tx-month>.
   function wireCards(pane, where) {
     pane.addEventListener("click", (e) => {
       const card = e.target.closest(".qcard");
@@ -224,7 +180,6 @@ export function createQuestions(runtime, actions) {
       // Clicking the card lights up its transactions, like a lens bar.
       const ids = m.txnIds;
       actions.highlight(sameIds(ids) ? [] : ids, { clearSelection: true });
-      markCards();
     });
     pane.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -234,13 +189,6 @@ export function createQuestions(runtime, actions) {
       if (!m || !writing || !text) return;
       answer(m, { action: writing.action, text });
     });
-    pane.addEventListener(
-      "toggle",
-      (e) => {
-        if (e.target.matches?.(".qmore")) moreOpen = e.target.open;
-      },
-      true,
-    );
     pane.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && writing) {
         e.stopPropagation();
@@ -275,7 +223,6 @@ export function createQuestions(runtime, actions) {
     renderQuestions,
     wireCards,
     wirePrivacy,
-    wireQuestions,
   };
 }
 
@@ -290,7 +237,6 @@ export const contract = {
     "renderQuestions",
     "wireCards",
     "wirePrivacy",
-    "wireQuestions",
   ],
   requires: [
     "AI",
@@ -304,5 +250,5 @@ export const contract = {
     "save",
   ],
   renders: ["renderQuestions"],
-  wires: ["wireQuestions", "wirePrivacy"],
+  wires: ["wirePrivacy"],
 };
