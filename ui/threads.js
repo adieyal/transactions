@@ -1,5 +1,5 @@
-import { $, esc, fmtShort } from "../helpers.js";
-import { paneShown } from "./dom.js";
+import { esc, fmtShort } from "../helpers.js";
+import { $, paneShown } from "./dom.js";
 
 export function createThreads(runtime, actions) {
   const { state } = runtime;

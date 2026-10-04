@@ -1,5 +1,5 @@
-import { $, TODAY, esc, fmtDate, fnv } from "../helpers.js";
-import { paneShown, toast } from "./dom.js";
+import { esc, fmtDate, fnv } from "../helpers.js";
+import { $, paneShown, toast } from "./dom.js";
 
 export function createReports(runtime, actions) {
   const { state, caps } = runtime;
@@ -62,7 +62,7 @@ export function createReports(runtime, actions) {
         },
       });
       r.answer = text;
-      r.ranAt = TODAY;
+      r.ranAt = runtime.today;
       r.dataKey = dataKey();
       r.coverage = actions.coverageText();
     } catch (e) {
@@ -83,7 +83,7 @@ export function createReports(runtime, actions) {
       id: "r" + Date.now().toString(36),
       q,
       answer: answer || "",
-      ranAt: answer ? TODAY : "",
+      ranAt: answer ? runtime.today : "",
       dataKey: answer ? dataKey() : "",
       coverage: answer ? actions.coverageText() : "",
     });

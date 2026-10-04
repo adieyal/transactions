@@ -1,10 +1,10 @@
-import { $, esc } from "../helpers.js";
+import { esc } from "../helpers.js";
 import { coveredMonths } from "../story/moments.js";
 import { summarizeMonth } from "../story/summary.js";
 import { polishFacts, polishSummary } from "../story/assist.js";
 import { monthLong } from "../story/copy.js";
 import { phraseHTML, wireHoverHighlight } from "./highlight.js";
-import { paneShown } from "./dom.js";
+import { $, paneShown } from "./dom.js";
 
 export function createMonth(runtime, actions) {
   const { state, caps } = runtime;

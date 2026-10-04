@@ -1,5 +1,5 @@
-import { $, TODAY, monthName } from "./helpers.js";
-import { toast } from "./ui/dom.js";
+import { monthName } from "./helpers.js";
+import { $, toast } from "./ui/dom.js";
 import { LOOSE } from "./transactions/constants.js";
 import { publicTxn } from "./lens-api.js";
 
@@ -83,7 +83,7 @@ Write plain, readable code a person will want to edit: under 35 lines, a one-lin
     const sampleRows = runtime.derived.txns.slice(0, 4).map(publicTxn);
     let input = `${LENS_CONTRACT}
 
-Threads: ${runtime.derived.names.join(", ")}. Accounts and statement months: ${coverageText()}. Today is ${TODAY}.
+Threads: ${runtime.derived.names.join(", ")}. Accounts and statement months: ${coverageText()}. Today is ${runtime.today}.
 Example transactions: ${JSON.stringify(sampleRows)}
 
 `;

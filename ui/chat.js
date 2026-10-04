@@ -1,5 +1,5 @@
-import { $, TODAY, esc, fmt } from "../helpers.js";
-import { paneShown } from "./dom.js";
+import { esc, fmt } from "../helpers.js";
+import { $, paneShown } from "./dom.js";
 import { PALETTE } from "../transactions/constants.js";
 import {
   compactTxn,
@@ -363,7 +363,7 @@ export function createChat(runtime, actions) {
     const budgets = runtime.derived.R.threads
       .filter((t) => t.budget != null)
       .map((t) => `${t.name} ₪${t.budget}/month`);
-    let intro = `You're the question-answering part of Transactions, a personal tool one person uses to explore their own card and bank statements. Today is ${TODAY}.
+    let intro = `You're the question-answering part of Transactions, a personal tool one person uses to explore their own card and bank statements. Today is ${runtime.today}.
 Money is in ILS (₪). A positive amount is money out; negative is a refund or money in. "Threads" are the person's own groupings, from rules they edit: ${runtime.derived.names.join(", ")}. Accounts and the statement months present: ${actions.coverageText()}. Any other months are missing, so say so when an answer depends on them.
 Transfers between their own accounts (such as the bank paying the card bill) are not spending: the tools leave them out unless you pass include_transfers.
 Transaction fields: date is when it was bought and charge_date when it was billed, if different; amount is in ILS and orig is the amount in the currency it was charged in; type and details are copied from the statement; rule is the line of their thread rules that put it in its thread; source is the account, statement month and file it came from; kind is set for things worked out rather than read from a statement, with why explaining it.

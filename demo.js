@@ -1,4 +1,4 @@
-import { addMonths, TODAY } from "./helpers.js";
+import { addMonths } from "./helpers.js";
 
 // Every account, merchant, transaction and story below is fictional.
 // The year has three parts: the car breaks down and the holiday savings
@@ -9,7 +9,7 @@ import { addMonths, TODAY } from "./helpers.js";
 const CAR = 3,
   MOVE = 7;
 
-export function createDemoData(today = TODAY) {
+export function createDemoData(today) {
   const batches = {},
     notes = {};
   const months = Array.from({ length: 12 }, (_, i) =>

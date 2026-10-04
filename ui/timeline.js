@@ -1,7 +1,5 @@
 import {
-  $,
   MONTHS,
-  TODAY,
   addMonths,
   esc,
   fmt,
@@ -12,7 +10,7 @@ import {
   ms,
 } from "../helpers.js";
 import { LOOSE, TRANSFERS } from "../transactions/constants.js";
-import { toast } from "./dom.js";
+import { $, toast } from "./dom.js";
 import { setBudget as setThreadBudget } from "../transactions/rules-edit.js";
 import { name as bidi } from "../story/copy.js";
 import {
@@ -48,12 +46,12 @@ export function createTimeline(runtime, actions) {
     state.periods.forEach((p) => {
       dates.push(p.start, p.end);
     });
-    let lo = dates.reduce((a, b) => (a < b ? a : b), TODAY),
-      hi = dates.reduce((a, b) => (a > b ? a : b), TODAY);
-    if (hi < addMonths(TODAY, 3)) hi = addMonths(TODAY, 3);
+    let lo = dates.reduce((a, b) => (a < b ? a : b), runtime.today),
+      hi = dates.reduce((a, b) => (a > b ? a : b), runtime.today);
+    if (hi < addMonths(runtime.today, 3)) hi = addMonths(runtime.today, 3);
     const r = { 3: 3, 6: 6, 12: 12 }[state.range];
     if (r) {
-      const s = addMonths(TODAY, -r);
+      const s = addMonths(runtime.today, -r);
       if (s > lo) lo = s;
     }
     return [ms(lo) - 8 * 864e5, ms(hi) + 10 * 864e5];
@@ -158,7 +156,7 @@ export function createTimeline(runtime, actions) {
       sel = state.selection,
       dimming = hl.size > 0;
     let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Transactions on a timeline, one row per thread">`;
-    const xToday = X(ms(TODAY));
+    const xToday = X(ms(runtime.today));
     const fx0 = Math.max(labelW, xToday),
       fx1 = W - padR;
     s += `<rect class="futurebg" x="${fx0}" y="0" width="${Math.max(0, fx1 - fx0)}" height="${H}"/>`;
@@ -213,7 +211,7 @@ export function createTimeline(runtime, actions) {
         if (x1 - x0 > 2)
           s += has
             ? `<rect class="cov-on${state.hiddenAccounts.has(a) ? " hidden-acct" : ""}" data-acct="${esc(a)}" data-period="${monthOf(mm)}" x="${x0 + 1}" y="${y}" width="${x1 - x0 - 2}" height="8" rx="2"><title>${esc(a)}: statement for ${monthName(monthOf(mm))}</title></rect>`
-            : mm < TODAY
+            : mm < runtime.today
               ? `<rect class="cov-off" x="${x0 + 1.5}" y="${y + 0.5}" width="${x1 - x0 - 3}" height="7" rx="2"><title>No ${monthName(monthOf(mm))} statement for ${esc(bidi(a))}</title></rect>`
               : "";
       });

@@ -1,6 +1,6 @@
 import { createBackup } from "../backup.js";
-import { $, TODAY, debounce } from "../helpers.js";
-import { toast } from "./dom.js";
+import { debounce } from "../helpers.js";
+import { $, toast } from "./dom.js";
 import { STARTER_LENSES } from "../defaults.js";
 
 export function createChrome(runtime, actions) {
@@ -201,8 +201,8 @@ export function createChrome(runtime, actions) {
         act === "dl-rules"
           ? { filename: "transactions-threads.txt", data: state.rules }
           : {
-              filename: `transactions-${TODAY}.json`,
-              data: JSON.stringify(createBackup(state), null, 1),
+              filename: `transactions-${runtime.today}.json`,
+              data: JSON.stringify(createBackup(state, runtime.today), null, 1),
             };
       try {
         await caps.downloads.save(data);

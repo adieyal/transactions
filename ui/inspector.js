@@ -1,5 +1,5 @@
-import { $, esc, fmt, fmtDate, monthName, normText } from "../helpers.js";
-import { toast } from "./dom.js";
+import { esc, fmt, fmtDate, monthName, normText } from "../helpers.js";
+import { $, toast } from "./dom.js";
 import { wireHoverHighlight } from "./highlight.js";
 import { addToThread as addLines } from "../transactions/rules-edit.js";
 

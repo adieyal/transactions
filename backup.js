@@ -1,13 +1,13 @@
 import { DOCUMENTS, isDate, isId, toDocument } from "./documents.js";
-import { TODAY } from "./helpers.js";
 
 export const BATCH_CHUNK_SIZE = 350;
 
-export function createBackup(state) {
+// today: the date the backup is made.
+export function createBackup(state, today) {
   const backup = {
     format: "transactions-backup",
     version: 1,
-    exported: TODAY,
+    exported: today,
   };
   for (const d of DOCUMENTS) if (d.backup) backup[d.backup] = state[d.field];
   backup.batches = Object.values(state.batches);
@@ -35,7 +35,8 @@ function safeKeys(value) {
 }
 
 // Accept both the original Abacus exports and current Transactions backups.
-export function parseBackup(source) {
+// today: the date a statement without one counts as added.
+export function parseBackup(source, today) {
   let data;
   try {
     data = JSON.parse(source);
@@ -108,7 +109,7 @@ export function parseBackup(source) {
     batches[batch.id] = {
       ...batch,
       file: batch.file ?? "imported-backup.json",
-      added: batch.added ?? TODAY,
+      added: batch.added ?? today,
       parts: Math.max(1, Math.ceil(batch.rows.length / BATCH_CHUNK_SIZE)),
     };
   }

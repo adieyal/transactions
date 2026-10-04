@@ -1,4 +1,5 @@
-import { $, esc } from "../helpers.js";
+import { esc } from "../helpers.js";
+import { $ } from "./dom.js";
 import { detectMoments } from "../story/moments.js";
 import { money, monthLong, privacyText } from "../story/copy.js";
 

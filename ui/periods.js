@@ -1,5 +1,5 @@
-import { $, TODAY, esc, fmt } from "../helpers.js";
-import { toast } from "./dom.js";
+import { esc, fmt } from "../helpers.js";
+import { $, toast } from "./dom.js";
 import { PALETTE } from "../transactions/constants.js";
 import { periodStats as statsFor } from "../transactions/period-stats.js";
 import { periodNotes, summarizePeriod } from "../story/summary.js";
@@ -149,7 +149,7 @@ export function createPeriods(runtime, actions) {
       (q) => q.id !== p.id && q.start <= p.end && q.end >= p.start,
     );
     const input = `You're helping one person keep a record of their own life through their card and bank statements, in a personal tool called Transactions. They marked a stretch of time and want a short story of what was going on.
-Period: "${p.name}", ${p.start} to ${p.end} (${st.days} days). Today is ${TODAY}.
+Period: "${p.name}", ${p.start} to ${p.end} (${st.days} days). Today is ${runtime.today}.
 ${p.story ? `What they already wrote (keep their words and facts; weave the data around them):\n${p.story}\n` : ""}${overl.length ? `Other periods overlapping it: ${overl.map((q) => `"${q.name}" ${q.start}–${q.end}${q.story ? ` (${q.story.slice(0, 200)})` : ""}`).join("; ")}\n` : ""}
 Charges in those dates (id | date | merchant | original description | ₪ amount | thread | their note):
 ${st.inside

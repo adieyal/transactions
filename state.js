@@ -1,6 +1,8 @@
 import { STARTER_RULES, STARTER_LENSES } from "./defaults.js";
 
-export function createRuntime() {
+// today: the date, read once when the app starts (main.js), and passed to
+// everything that needs it.
+export function createRuntime({ today = null } = {}) {
   const state = {
     loaded: false,
     isDemo: true,
@@ -40,5 +42,5 @@ export function createRuntime() {
     claudeTools: false,
     downloads: null,
   };
-  return { state, caps, derived: null };
+  return { state, caps, derived: null, today };
 }

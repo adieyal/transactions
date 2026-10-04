@@ -420,7 +420,7 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | R2   | Boot, saves and backups derived from `documents.js`; the `demo`/`workspace` key reconciled (done)                          | 2                      |
 | R3   | One refresh path: registered renders, `highlight`/`select`/`clearFocus` commands, duplicate `renderReports` removed (done) | 3, 5                   |
 | R4   | Pure logic out of UI: rules-text editing, assistant tools, period statistics, tags, the lens runner                        | 4                      |
-| R5   | Split `helpers.js`: `$` to `ui/dom.js`, `TODAY` injected                                                                   | 7                      |
+| R5   | Split `helpers.js`: `$` to `ui/dom.js`, `TODAY` injected (done)                                                            | 7                      |
 | R6   | Browser file readers out of `transactions/import.js` (done)                                                                | 7                      |
 | R7   | `persistence.js` stops importing `ui/dom.js` (done; `suggestions.js` waits for R4b)                                        | 7                      |
 | R8   | `renderTimeline` layout to a pure `ui/timeline-layout.js`                                                                  | 6                      |

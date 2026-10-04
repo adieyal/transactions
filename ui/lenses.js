@@ -1,11 +1,12 @@
-import { $, TODAY, debounce, esc, fmt, monthName } from "../helpers.js";
-import { paneShown, toast } from "./dom.js";
+import { debounce, esc, fmt, monthName } from "../helpers.js";
+import { $, paneShown, toast } from "./dom.js";
 import { runLens as runLensCode } from "../lens-api.js";
 
 export function createLenses(runtime, actions) {
   const { state, caps } = runtime;
   // A lens runs on the derived transactions as they are now.
-  const runLens = (code) => runLensCode(code, runtime.derived, state, TODAY);
+  const runLens = (code) =>
+    runLensCode(code, runtime.derived, state, runtime.today);
 
   function renderView(v) {
     if (v.kind === "bars") {

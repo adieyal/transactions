@@ -1,4 +1,5 @@
-import { $, MONTHS, esc, fmt, monthName } from "../helpers.js";
+import { MONTHS, esc, fmt, monthName } from "../helpers.js";
+import { $ } from "./dom.js";
 import { summarizeThread } from "../story/summary.js";
 import { dayShort, money } from "../story/copy.js";
 import { phraseHTML } from "./highlight.js";

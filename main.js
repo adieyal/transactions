@@ -1,7 +1,7 @@
 import { contract as backupImport } from "./ui/backup.js";
 import { saveBrowserDownload } from "./downloads.js";
 import { createDemoData } from "./demo.js";
-import { debounce } from "./helpers.js";
+import { debounce, isoOf } from "./helpers.js";
 import { dbBackend, localBackend } from "./storage.js";
 import { toast } from "./ui/dom.js";
 import { createRuntime } from "./state.js";
@@ -28,7 +28,7 @@ import { contract as importer } from "./ui/import.js";
 import { contract as tour } from "./ui/tour.js";
 import { contract as lensEditor } from "./ui/lens-editor.js";
 
-const runtime = createRuntime();
+const runtime = createRuntime({ today: isoOf(new Date()) });
 // Modules in registration order: the order of renders on every refresh and
 // of wiring at boot. registry.js checks each one's contract.
 const MODULES = [
@@ -55,7 +55,9 @@ const MODULES = [
 ];
 const registry = createRegistry(runtime, MODULES, {
   derive() {
-    runtime.derived = deriveTransactions(runtime.state);
+    runtime.derived = deriveTransactions(runtime.state, {
+      today: runtime.today,
+    });
   },
   redraw,
   refresh,
@@ -126,7 +128,7 @@ async function boot() {
   } else docs = await actions.Store.backend.all();
   // Seed only a new demo workspace. Removed demo statements stay removed on reload.
   if (!Object.keys(docs).length) {
-    Object.assign(runtime.state, createDemoData());
+    Object.assign(runtime.state, createDemoData(runtime.today));
     for (const key of ["workspace", "rules", "notes", "periods"])
       await actions.Store.backend.put(
         key,

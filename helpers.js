@@ -1,5 +1,3 @@
-const $ = (s, el = document) => el.querySelector(s);
-
 const esc = (s) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -24,8 +22,6 @@ const pad2 = (n) => String(n).padStart(2, "0");
 
 const isoOf = (d) =>
   `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-
-const TODAY = isoOf(new Date());
 
 const ms = (iso) => {
   const [y, m, d] = iso.split("-").map(Number);
@@ -110,10 +106,8 @@ function normText(s) {
     .trim();
 }
 export {
-  $,
   BIDI,
   MONTHS,
-  TODAY,
   addMonths,
   debounce,
   esc,

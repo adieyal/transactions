@@ -1,5 +1,5 @@
-import { $, TODAY, esc } from "../helpers.js";
-import { paneShown, toast } from "./dom.js";
+import { esc } from "../helpers.js";
+import { $, paneShown, toast } from "./dom.js";
 import { MAX_SHOWN, detectMoments, findMoments } from "../story/moments.js";
 import { answerMoment } from "../story/answers.js";
 import { suggestAnswers } from "../story/assist.js";
@@ -134,7 +134,7 @@ export function createQuestions(runtime, actions) {
       });
     const result = answerMoment(state, runtime.derived, m, {
       ...choice,
-      at: TODAY,
+      at: runtime.today,
       periodId: period?.id ?? null,
     });
     writing = null;

@@ -71,11 +71,7 @@ const IMPURE = [
   ["new Date()", /\bnew Date\(\s*\)/],
   ["Date.now()", /\bDate\.now\(/],
 ];
-const PURE_ALLOW = [
-  // R5: `$` moves to ui/dom.js and TODAY is passed in from main.js.
-  { v: "helpers.js uses document", fix: "R5" },
-  { v: "helpers.js uses new Date()", fix: "R5" },
-];
+const PURE_ALLOW = [];
 
 // Only the named adapters may talk to the network or name storage keys (ADR 0007).
 const NETWORK =

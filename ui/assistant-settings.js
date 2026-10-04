@@ -1,6 +1,5 @@
 import { AI_KEY, makeOpenAI } from "../assistant.js";
-import { toast } from "./dom.js";
-import { $ } from "../helpers.js";
+import { $, toast } from "./dom.js";
 
 export function createAssistantSettings(runtime, actions) {
   const { caps } = runtime;

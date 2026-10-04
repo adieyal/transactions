@@ -1,4 +1,5 @@
-import { $, debounce, esc, fmt } from "../helpers.js";
+import { debounce, esc, fmt } from "../helpers.js";
+import { $ } from "./dom.js";
 
 export function createFilter(runtime, actions) {
   const { state } = runtime;

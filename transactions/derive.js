@@ -1,10 +1,10 @@
-import { TODAY, addMonths, normText } from "../helpers.js";
+import { addMonths, normText } from "../helpers.js";
 import { LOOSE, TRANSFERS } from "./constants.js";
 import { parseRules } from "./rules.js";
 import { detectTransfers } from "./transfers.js";
 import { findChanges } from "./changes.js";
 
-function deriveTransactions(state, { today = TODAY } = {}) {
+function deriveTransactions(state, { today }) {
   const R = parseRules(state.previewRules ?? state.rules);
   const all = new Map();
   for (const b of Object.values(state.batches))

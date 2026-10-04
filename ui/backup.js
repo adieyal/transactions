@@ -1,5 +1,4 @@
-import { $ } from "../helpers.js";
-import { toast } from "./dom.js";
+import { $, toast } from "./dom.js";
 import { parseBackup } from "../backup.js";
 import { createRuntime } from "../state.js";
 import { createDemoData } from "../demo.js";
@@ -23,7 +22,11 @@ export function createBackupImport(runtime, actions) {
   function restartDemo() {
     if (busy) return;
     confirmReplace(
-      { ...createRuntime().state, ...createDemoData(), isDemo: true },
+      {
+        ...createRuntime().state,
+        ...createDemoData(runtime.today),
+        isDemo: true,
+      },
       {
         title: "Restart the demo",
         summary: "This loads a fresh copy of the fictional demo year.",
@@ -41,7 +44,7 @@ export function createBackupImport(runtime, actions) {
       fileInput.value = "";
       if (!file || busy) return;
       try {
-        const backup = parseBackup(await file.text());
+        const backup = parseBackup(await file.text(), runtime.today);
         const batches = Object.values(backup.batches);
         const count = new Set(batches.flatMap((b) => b.rows.map((r) => r.id)))
           .size;

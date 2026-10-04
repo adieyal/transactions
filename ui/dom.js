@@ -1,4 +1,5 @@
-import { $ } from "../helpers.js";
+// The first element matching a selector, in the document or under el.
+const $ = (s, el = document) => el.querySelector(s);
 
 let toastTimer;
 
@@ -27,4 +28,4 @@ function toast(msg, t = 4200, action) {
 const paneShown = (name) =>
   !!document.getElementById("pane-" + name)?.classList.contains("on");
 
-export { paneShown, toast };
+export { $, paneShown, toast };

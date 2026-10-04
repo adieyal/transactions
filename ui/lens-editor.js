@@ -10,7 +10,8 @@ import {
 } from "@codemirror/language";
 import { linter, lintGutter } from "@codemirror/lint";
 import { tags } from "@lezer/highlight";
-import { $, debounce, esc } from "../helpers.js";
+import { debounce, esc } from "../helpers.js";
+import { $ } from "./dom.js";
 import {
   ARRAY_METHODS,
   LIB_MEMBERS,
