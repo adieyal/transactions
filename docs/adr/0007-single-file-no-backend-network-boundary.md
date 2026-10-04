@@ -23,9 +23,13 @@ Today:
 - **Only named modules may talk to the network.** Code that sends data is `assistant.js` (`fetch`) and `caps.sample` calls, and both run only from a handler the person triggered. A guardrail test fails on `fetch(`, `XMLHttpRequest`, `WebSocket`, `EventSource` or `sendBeacon` anywhere else.
 - **Storage access goes through `storage.js`.** It is the only module that names `localStorage` keys or the `db` collection. Today's two UI exceptions are allowlisted under backlog R11.
 - **What leaves the browser is testable.** Prompt and tool payloads are built by pure functions.
-- **The CDN fonts and SheetJS, and the trust given to lens code in imported backups, are recorded as open questions for the user.** This ADR doesn't decide them.
+- **The CDN fonts and SheetJS, and the trust given to lens code in imported backups, were recorded as open questions for the user.** The user's answers are under "Decisions taken" below.
+
+## Decisions taken
+
+- **Fonts (user, 2026-10-04): keep the external Google Fonts.** `index.html` keeps loading Frank Ruhl Libre, Instrument Sans and Noto Sans Hebrew from Google Fonts. They are page styling, not data, and nothing about the person's statements is sent with them. Offline, the browser falls back to its own fonts, and the app still works.
 
 ## Consequences
 
 - The privacy promise can be checked by a test, at least for where requests can come from.
-- Bundling SheetJS would grow the file by several hundred KB, and dropping the fonts changes the look. Both need the user's decision before anyone acts.
+- Bundling SheetJS would grow the file by several hundred KB, and dropping the fonts would change the look. The fonts stay external by the user's decision.

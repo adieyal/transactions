@@ -242,3 +242,4 @@ Items that can start now: R6, R11 for the settings, and R4d.
   - **Ship system fonts.**
 - **Size:** S to M. **Risk:** medium (network behaviour and appearance).
 - **Wait:** this needs the user's decision. It is raised as a fleet attention item.
+- **Fonts, decided (user, 2026-10-04):** keep the external Google Fonts. Nothing changes in `index.html`, and ADR 0007 records it.

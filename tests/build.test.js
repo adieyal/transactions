@@ -32,6 +32,11 @@ test("build produces identical single-file HTML from any working directory", () 
   assert.deepEqual(externalScripts, [
     "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
   ]);
+  // The fonts stay on Google Fonts (ADR 0007, the user's decision).
+  assert.match(
+    html,
+    /<link href="https:\/\/fonts\.googleapis\.com\/css2\?family=Frank\+Ruhl\+Libre[^"]*" rel="stylesheet">/,
+  );
   const template = readFileSync(new URL("index.html", root), "utf8");
   const stripBlocks = (text) =>
     text
