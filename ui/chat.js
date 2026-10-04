@@ -539,6 +539,7 @@ export function createChat(runtime, actions) {
   }
 
   return {
+    ask,
     buildIntro,
     callAssistant,
     renderAskCtx,
@@ -551,6 +552,7 @@ export const contract = {
   name: "chat",
   create: createChat,
   provides: [
+    "ask",
     "buildIntro",
     "callAssistant",
     "renderAskCtx",

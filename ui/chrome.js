@@ -22,10 +22,13 @@ export function createChrome(runtime, actions) {
     $("#firstRun").hidden = !first;
     const months = runtime.derived ? coveredMonths(runtime.derived).length : 0;
     const year = months > 1 && state.scale !== "month";
-    // Artboard 2: one month of statements, or Month chosen.
-    const month = !first && months > 0 && !year && !state.bench;
-    document.body.classList.toggle("onemonth", month);
+    // Artboard 2: one month of statements. Artboard 3: two or more, at
+    // either scale.
+    const month = !first && months === 1 && !state.bench;
+    const several = !first && months > 1 && !state.bench;
+    document.body.classList.toggle("onemonth", month || several);
     $("#oneMonth").hidden = !month;
+    $("#year").hidden = !several;
     $("#scaleYear").disabled = months < 2;
     $("#scaleYear").title =
       months < 2 ? "Appears when you have more than one month" : "";

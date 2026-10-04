@@ -31,6 +31,7 @@ import { contract as txQuestions } from "./components/tx-questions.js";
 import { contract as txLens } from "./components/tx-lens.js";
 import { contract as txFirstRun } from "./components/tx-first-run.js";
 import { contract as txOneMonth } from "./components/tx-one-month.js";
+import { contract as txYear } from "./components/tx-year.js";
 import { coveredMonths } from "./story/moments.js";
 
 const runtime = createRuntime({ today: isoOf(new Date()) });
@@ -61,6 +62,7 @@ const MODULES = [
   txLens,
   txFirstRun,
   txOneMonth,
+  txYear,
 ];
 const registry = createRegistry(runtime, MODULES, {
   derive() {
@@ -115,8 +117,17 @@ document.addEventListener("tx-open-bench", (e) => {
 // The month view's Periods strip: a drag marks a period, and a period's chip
 // opens it with the timeline, where it can be named.
 document.addEventListener("tx-mark-period", (e) =>
-  actions.addPeriod(e.detail.start, e.detail.end),
+  actions.addPeriod(e.detail.start, e.detail.end, {
+    name: e.detail.name ?? "",
+  }),
 );
+// The year's Ask section: sent through the chat, and so through
+// assistant.js, only once the person has pressed Send.
+document.addEventListener("tx-ask", (e) => {
+  const asking = actions.ask(e.detail.question);
+  redraw();
+  asking.finally(redraw);
+});
 document.addEventListener("tx-open-period", (e) => {
   runtime.state.bench = true;
   refresh();
