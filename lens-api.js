@@ -210,17 +210,27 @@ export function runLens(code, derived, state, today) {
   return view;
 }
 
-// A lens runs only while it is on. Lenses without the flag (yours, the
-// starter ones, and everything saved before the flag existed) are on.
-export const lensIsOn = (lens) => lens.off !== true;
+// What a lens gets, as plain data that can be posted to the sandbox: its
+// transactions, and lib's data (lib's functions are rebuilt where it runs).
+export function lensInput(derived, state, today) {
+  const lib = lensLib(derived, state, today);
+  const data = Object.fromEntries(
+    Object.entries(lib).filter(([, v]) => typeof v !== "function"),
+  );
+  return {
+    txns: derived.txns.filter((t) => !t.transfer).map(publicTxn),
+    data,
+  };
+}
 
-// Lenses arriving in an imported backup are code from that file, so they
-// arrive switched off (the user's decision). A lens whose code is exactly a
-// starter lens's code is the app's own and stays on.
-export function switchOffImported(lenses, starters) {
+// Lenses arriving in an imported backup are code from that file. They run
+// in the sandbox like every lens, labelled "From your backup". A lens whose
+// code is exactly a starter lens's code is the app's own and isn't labelled.
+// The earlier switched-off flag (off) is dropped.
+export function markFromBackup(lenses, starters) {
   const own = new Set(starters.map((l) => l.code));
   return lenses.map((l) => {
-    const { off, ...rest } = l;
-    return own.has(l.code) ? rest : { ...rest, off: true };
+    const { off, fromBackup, ...rest } = l;
+    return own.has(l.code) ? rest : { ...rest, fromBackup: true };
   });
 }

@@ -37,3 +37,23 @@ test("starter lenses run on the demo and return a view", () => {
     assert.ok(["bars", "table", "number", "text"].includes(view.kind), l.id);
   }
 });
+
+test("what a lens gets is plain data that can be posted to the sandbox", async () => {
+  const { lensInput } = await import("../lens-api.js");
+  const { state, derived } = demo();
+  const input = lensInput(derived, state, TODAY);
+  // structuredClone fails on functions, so this is what postMessage accepts.
+  assert.deepEqual(structuredClone(input), input);
+  assert.ok(Object.values(input.data).every((v) => typeof v !== "function"));
+  assert.deepEqual(
+    Object.keys(input.data).sort(),
+    LIB_MEMBERS.filter((m) => !m.sig.includes("("))
+      .map((m) => m.name)
+      .sort(),
+  );
+  assert.equal(
+    input.txns.length,
+    derived.txns.filter((t) => !t.transfer).length,
+  );
+  assert.equal(input.data.today, TODAY);
+});

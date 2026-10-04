@@ -1,6 +1,6 @@
 import { DOCUMENTS, isDate, isId, toDocument } from "./documents.js";
 import { STARTER_LENSES } from "./defaults.js";
-import { switchOffImported } from "./lens-api.js";
+import { markFromBackup } from "./lens-api.js";
 
 export const BATCH_CHUNK_SIZE = 350;
 
@@ -125,8 +125,8 @@ export function parseBackup(source, today) {
     requireValue(d.check(value), d.label);
     out[d.field] = d.in ? d.in(value, { [d.field]: d.older?.() }) : value;
   }
-  // Lens code from a file runs only once the person turns it on.
-  out.lenses = switchOffImported(out.lenses, STARTER_LENSES);
+  // Lens code from a file is labelled; it runs in the sandbox like the rest.
+  out.lenses = markFromBackup(out.lenses, STARTER_LENSES);
   return out;
 }
 
