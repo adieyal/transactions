@@ -37,10 +37,22 @@ export const eachCurrency = (derived, txns, fn) =>
 
 // Sections told per currency. With one currency they are the plain sections;
 // with several, a first line says so and each currency's sections follow
-// under its own heading. With none, fn runs without a currency.
+// under its own heading. With none there is no money to tell.
 export function sectionsPerCurrency(derived, txns, fn) {
   const runs = eachCurrency(derived, txns, fn);
-  if (!runs.length) return fn(derived);
+  if (!runs.length)
+    return [
+      {
+        kind: "empty",
+        parts: [
+          {
+            text: derived.unpriced
+              ? "Some statements are waiting for you to say their currency, so their amounts aren't shown yet."
+              : "Nothing went out or came in here.",
+          },
+        ],
+      },
+    ];
   if (runs.length === 1)
     return runs[0].value.map((s) => ({ ...s, currency: runs[0].currency }));
   const codes = runs.map((r) => r.currency);
