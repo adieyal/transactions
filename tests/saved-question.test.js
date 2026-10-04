@@ -6,6 +6,7 @@ import { deriveTransactions } from "../transactions/derive.js";
 import { answerStory, suggestionWhat } from "../story/saved-question.js";
 import { rerunGoes } from "../assistant/prompts.js";
 import { savedHTML } from "../components/tx-year-saved.js";
+import { notesHTML } from "../components/tx-year-story.js";
 
 const today = "2026-09-30";
 const demo = { ...createRuntime().state, ...createDemoData(today) };
@@ -123,4 +124,26 @@ test("Run again shows what goes before anything is sent", () => {
   assert.match(shown, /Ready to send to ChatGPT/);
   assert.match(shown, /data-rerun-send="r1"/);
   assert.ok(shown.includes("answer from the last run"));
+});
+
+// The person's feedback: "Your notes" as a real table, tags as chips.
+test("Your notes is a table with Date, Payment, Amount and Note", () => {
+  const html = notesHTML([
+    {
+      date: "2026-01-10",
+      merchant: "Cobble Lane Garage",
+      amount: 120,
+      currency: "ILS",
+      text: "Tow home after the clutch went. #car #repair",
+    },
+  ]);
+  assert.match(html, /<table class="yr-notetable"><caption[^>]*>Your notes</);
+  assert.deepEqual(
+    [...html.matchAll(/<th scope="col"[^>]*>([^<]+)</g)].map((m) => m[1]),
+    ["Date", "Payment", "Amount", "Note"],
+  );
+  assert.match(html, /<td[^>]*>Cobble Lane Garage<\/td>/);
+  assert.match(html, /₪120/);
+  assert.equal([...html.matchAll(/class="yr-tag">#/g)].length, 2);
+  assert.match(html, /<span>Tow home after the clutch went\.<\/span>/);
 });

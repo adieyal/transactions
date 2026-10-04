@@ -300,10 +300,7 @@ function periodSection(derived, state, o, monthSentence, ctx) {
     note: o.p.story?.trim()
       ? { label: "Your description", text: o.p.story.trim() }
       : null,
-    notes: periodNotes(derived, o.p).map((n) => ({
-      date: n.date,
-      text: n.note,
-    })),
+    notes: periodNotes(derived, o.p).map((n) => ({ ...n, text: n.note })),
     after: [
       ...monthSentence(month),
       ...(compared ? [{ text: " " }, ...compared] : []),
@@ -377,7 +374,7 @@ export function yearMonthStory(
         dates: p ? dateRange(p.start, p.end).replace(/ \d{4}$/, "") : "",
         parts: head,
         notes: p
-          ? periodNotes(derived, p).map((n) => ({ date: n.date, text: n.note }))
+          ? periodNotes(derived, p).map((n) => ({ ...n, text: n.note }))
           : [],
       });
     } else if (s.kind === "yours") {

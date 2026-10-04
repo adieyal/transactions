@@ -811,7 +811,12 @@ tx-year .sp.on{background:var(--lit); border-bottom-color:var(--ink)}
 .yr-askfoot .yr-fine{margin:0}
 .yr-h3{margin:0 0 10px; font-size:16px; font-weight:600}
 .yr-sendlist{margin:0 0 12px; padding-left:20px; font-size:15px; line-height:1.6}
-.yr-bead.expected{opacity:.75}
+/* Expected beads: still dashed for "not yet", but tinted and outlined
+   strongly enough to see (the person's feedback). Over 3:1 against the band
+   in both themes: the dark theme lightens the outline. */
+.yr-bead.expected{opacity:1; background:color-mix(in srgb, var(--bead) 35%, transparent); border:2px dashed var(--bead)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .yr-bead.expected{border-color:color-mix(in srgb, var(--bead) 65%, #fff)} }
+:root[data-theme="dark"] .yr-bead.expected{border-color:color-mix(in srgb, var(--bead) 65%, #fff)}
 .yr-bead.expected.dim{opacity:.12}
 /* A phone shows the band above the story rather than over it: at 390px the
    band is taller than the screen, and sticky it would hide the story. */
@@ -836,3 +841,34 @@ tx-year .sp.yr-receipt.on{background:var(--lit); border-color:var(--ink)}
 .yr-notsent{margin:0 0 14px; font-size:14px; color:#3E474B}
 /* Keep a focused element clear of the sticky timeline (WCAG 2.4.11). */
 tx-year .yr-main *{scroll-margin-top:calc(var(--yr-band-h, 368px) + 16px)}
+/* The canvas views' tooltip: the old timeline's #tip, shown at once (components/tip.js). */
+.cv-tip{position:fixed; z-index:20; pointer-events:none; background:var(--raised); border:1px solid var(--wire); border-radius:6px; padding:6px 9px; font:13px/1.4 var(--ui); color:var(--ink); box-shadow:0 4px 14px rgba(0,0,0,.12); max-width:300px}
+.cv-tip[hidden]{display:none}
+.cv-tip .m{font-family:var(--display); font-size:15px}
+.cv-tip .s{color:var(--ink-2)}
+/* Editing a period on the canvas strips (components/period-edit.js). */
+.yr-pchip, .om-pchip{cursor:grab; touch-action:none; z-index:2}
+.cv-phandle{position:absolute; top:-8px; height:14px; width:12px; margin-left:-6px; padding:0; border:0; background:transparent; cursor:ew-resize; touch-action:none; z-index:1}
+.cv-phandle::after{content:""; position:absolute; left:4px; top:2px; bottom:2px; width:4px; border-radius:1px; background:rgba(166, 136, 60, 0.7)}
+.cv-pedit{position:fixed; z-index:21; width:min(340px, calc(100vw - 24px)); box-sizing:border-box; background:var(--panel); border:1px solid var(--wire); border-radius:10px; padding:14px; box-shadow:0 8px 24px rgba(30, 37, 40, 0.14); font:14px/1.45 var(--ui); color:var(--ink)}
+.cv-pelabel{display:block; font-weight:500; margin-bottom:6px}
+#cv-pname{width:100%; box-sizing:border-box; min-height:40px; padding:0 10px; border:1px solid var(--wire); border-radius:8px; font:400 16px var(--ui); color:var(--ink); background:var(--panel)}
+.cv-pedates{margin:8px 0 12px; font-size:13px; color:var(--ink-label)}
+.cv-perow{display:flex; flex-wrap:wrap; gap:8px}
+/* Your notes, as a table (tx-year-story.js notesHTML); rows stack on phones. */
+.yr-notetable{width:100%; border-collapse:collapse; font-size:15px; line-height:1.45}
+.yr-notetable caption{text-align:left; caption-side:top}
+.yr-notetable th{font-size:12px; font-weight:600; text-align:left; color:var(--ink-label); padding:0 12px 6px 0; border-bottom:1px solid var(--grid)}
+.yr-notetable td{padding:8px 12px 8px 0; border-bottom:1px solid var(--grid); vertical-align:top; color:var(--ink)}
+.yr-notetable tr:last-child td{border-bottom:0}
+.yr-notetable .num{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+.yr-notetable td.yr-notedate{white-space:nowrap; color:var(--ink-label)}
+.yr-notecell{display:flex; flex-wrap:wrap; gap:4px 6px; align-items:baseline}
+.yr-tag{display:inline-block; font-size:13px; line-height:1.4; padding:1px 8px; border-radius:999px; background:var(--band); border:1px solid var(--grid); color:var(--ink-body)}
+@media (max-width:560px){
+  .yr-notetable thead{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+  .yr-notetable tr{display:grid; grid-template-columns:auto 1fr auto; gap:2px 10px; padding:8px 0; border-bottom:1px solid var(--grid)}
+  .yr-notetable tr:last-child{border-bottom:0}
+  .yr-notetable td{display:block; padding:0; border:0}
+  .yr-notetable td:last-child{grid-column:1 / -1}
+}

@@ -38,11 +38,16 @@ function describe(t, byId) {
   return bits.join(" · ");
 }
 
+// What the tooltip over a bead says; the canvas views use it too
+// (components/tip.js).
+export const beadTipHTML = (t, byId) =>
+  html`<div class="m" dir="auto">${t.merchant}</div>${t.renamed ? html`<div class="s" dir="auto">${t.original}</div>` : ""}<div><b>${fmt(t.amount, undefined, t.currency)}</b> <span class="s">${describe(t, byId)}</span></div>${t.note ? html`<div class="s" dir="auto">${t.note}</div>` : ""}`;
+
 // The tooltip beside the pointer over a bead.
 export function showBeadTip(t, ev, byId) {
   const tip = $("#tip");
   const wrap = $("#tlwrap").getBoundingClientRect();
-  tip.innerHTML = html`<div class="m" dir="auto">${t.merchant}</div>${t.renamed ? html`<div class="s" dir="auto">${t.original}</div>` : ""}<div><b>${fmt(t.amount, undefined, t.currency)}</b> <span class="s">${describe(t, byId)}</span></div>${t.note ? html`<div class="s" dir="auto">${t.note}</div>` : ""}`;
+  tip.innerHTML = beadTipHTML(t, byId);
   tip.style.display = "block";
   let x = ev.clientX - wrap.left + 14,
     y = ev.clientY - wrap.top + 14;

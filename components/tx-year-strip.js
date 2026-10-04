@@ -1,18 +1,21 @@
 import { daysIn } from "../story/one-month.js";
 
+// The date under the pointer on the year's Periods strip.
+export const stripIso = (strip, x) => at(strip, x).iso;
+function at(strip, x) {
+  const r = strip.getBoundingClientRect();
+  const f = Math.min(0.9999, Math.max(0, (x - r.left) / r.width));
+  const cols = strip.dataset.cols.split(",");
+  const i = Math.floor(f * cols.length);
+  const days = daysIn(cols[i]);
+  const d = Math.floor((f * cols.length - i) * days) + 1;
+  return { f, iso: `${cols[i]}-${String(d).padStart(2, "0")}` };
+}
+
 // Dragging along the Periods strip marks a period, through the app's
 // own addPeriod (tx-mark-period), as on artboard 2.
 export function wireYearStrip(el) {
   let drag = null;
-  const at = (strip, x) => {
-    const r = strip.getBoundingClientRect();
-    const f = Math.min(0.9999, Math.max(0, (x - r.left) / r.width));
-    const cols = strip.dataset.cols.split(",");
-    const i = Math.floor(f * cols.length);
-    const days = daysIn(cols[i]);
-    const d = Math.floor((f * cols.length - i) * days) + 1;
-    return { f, iso: `${cols[i]}-${String(d).padStart(2, "0")}` };
-  };
   el.addEventListener("pointerdown", (e) => {
     const strip = e.target.closest(".yr-periods");
     if (!strip || e.target.closest("button") || e.button) return;

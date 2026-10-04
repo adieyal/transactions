@@ -1,4 +1,6 @@
 import { esc } from "../helpers.js";
+import { wireTip } from "./tip.js";
+import { wirePeriodEdit } from "./period-edit.js";
 import { coveredMonths, typicalMonth } from "../story/moment-kit.js";
 import { monthLong } from "../story/copy.js";
 import { yearMonthStory, yearStory } from "../story/year.js";
@@ -6,7 +8,7 @@ import { sameIds, wireHoverHighlight } from "../ui/highlight.js";
 import { emitHighlight, subscribeWhileConnected } from "./base.js";
 import { bandHTML } from "./tx-year-band.js";
 import { answeredHTML, askClick, askHTML } from "./tx-year-ask.js";
-import { wireYearStrip } from "./tx-year-strip.js";
+import { stripIso, wireYearStrip } from "./tx-year-strip.js";
 import { savedHTML } from "./tx-year-saved.js";
 import { rerunGoes, whatGoes } from "../assistant/prompts.js";
 import { answerStory, sinceLastRun } from "../story/saved-question.js";
@@ -259,6 +261,17 @@ export function createYearComponent(runtime, actions) {
         wire() {
           this.wired = true;
           wireYearStrip(this);
+          wireTip(this, () => runtime.derived?.byId);
+          wirePeriodEdit(this, {
+            strip: ".yr-periods",
+            isoAt: stripIso,
+            state,
+            actions: {
+              save: (k) => actions.save(k),
+              refresh: () => actions.refresh(),
+              removePeriod: (id) => actions.removePeriod(id),
+            },
+          });
           wireHoverHighlight(this, runtime, (ids) =>
             emitHighlight(this, [...ids]),
           );
@@ -391,6 +404,7 @@ export const contract = {
     "openLensEditor",
     "refresh",
     "refreshSoon",
+    "removePeriod",
     "restoreStarterLenses",
     "save",
   ],

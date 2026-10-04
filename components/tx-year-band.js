@@ -1,4 +1,5 @@
 import { MONTHS, esc, monthOf } from "../helpers.js";
+import { handlesHTML } from "./period-edit.js";
 import { dayShort, money } from "../story/copy.js";
 import { daysIn, monthAxis } from "../story/one-month.js";
 import { monthsSeen } from "../story/moment-kit.js";
@@ -74,7 +75,7 @@ function rowsHTML(derived, txns, scale, { year, compact, numbers }) {
             : (year ? 7 : 9) + Math.sqrt(a) * (year ? 0.7 : 0.85);
           const sz = Math.round(Math.min(compact ? 14 : 30, raw));
           const look = t.expected
-            ? `background: transparent; border: 1.5px dashed ${esc(col)}`
+            ? `--bead: ${esc(col)}`
             : back
               ? `background: var(--band); border-color: ${esc(col)}`
               : `background: ${esc(col)}`;
@@ -83,7 +84,7 @@ function rowsHTML(derived, txns, scale, { year, compact, numbers }) {
             : back
               ? `${dayShort(t.date)} · ${t.merchant} refund · ${money(a, t.currency)} back`
               : `${dayShort(t.date)} · ${t.merchant} · ${money(a, t.currency)}`;
-          return `<div class="yr-bead${back ? " back" : ""}${t.expected ? " expected" : ""}" data-id="${esc(t.id)}" title="${esc(title)}" style="top: ${WY}px; left: ${pct(scale.mid(t.date))}%; width: ${sz}px; height: ${sz}px; ${look}">${back ? `<span class="yr-minus" style="background: ${esc(col)}"></span>` : ""}</div>`;
+          return `<div class="yr-bead${back ? " back" : ""}${t.expected ? " expected" : ""}" data-id="${esc(t.id)}" data-tip="${esc(title)}" aria-label="${esc(title)}" style="top: ${WY}px; left: ${pct(scale.mid(t.date))}%; width: ${sz}px; height: ${sz}px; ${look}">${back ? `<span class="yr-minus" style="background: ${esc(col)}"></span>` : ""}</div>`;
         })
         .join("");
       let arcs = "";
@@ -145,7 +146,7 @@ function budgetHTML(ts, budget, cur, col, scale) {
         .reduce((a, t) => a + t.amount, 0);
       const h = Math.min(56, Math.round((v / budget) * LANE));
       const [, mm] = m.split("-").map(Number);
-      return `<div class="yr-budgetbox" title="${esc(`${MONTHS[mm - 1]}: ${money(v, cur)} of ${money(budget, cur)}`)}" style="height: ${h}px; left: calc(${pct((i / scale.N) * 100)}% + 3px); width: calc(${(100 / scale.N).toFixed(3)}% - 6px); border-color: ${esc(col)}; background: ${esc(col)}14"></div>`;
+      return `<div class="yr-budgetbox" data-tip="${esc(`${MONTHS[mm - 1]}: ${money(v, cur)} of ${money(budget, cur)}`)}" aria-label="${esc(`${MONTHS[mm - 1]}: ${money(v, cur)} of ${money(budget, cur)}`)}" style="height: ${h}px; left: calc(${pct((i / scale.N) * 100)}% + 3px); width: calc(${(100 / scale.N).toFixed(3)}% - 6px); border-color: ${esc(col)}; background: ${esc(col)}14"></div>`;
     })
     .join("");
   return `${boxes}<div class="yr-budgetline" style="width: ${pct(w)}%; bottom: ${4 + LANE}px; border-top-color: ${esc(col)}"></div><div class="yr-budgetlabel" style="right: ${pct(100 - w)}%; bottom: ${6 + LANE}px">${esc(`${money(budget, cur)} a month`)}</div>`;
@@ -165,7 +166,8 @@ function periodsOf(derived, state, scale, range) {
     `left: ${pct(scale.at(a))}%; width: ${pct(Math.max(scale.end(b) - scale.at(a), 0.8))}%`;
   const bands = [
     ...named.map(
-      (p) => `<div class="yr-pband" style="${span(p.start, p.end)}"></div>`,
+      (p) =>
+        `<div class="yr-pband" data-pid="${esc(p.id)}" style="${span(p.start, p.end)}"></div>`,
     ),
     ...stretches.map(
       (m) => `<div class="yr-sband" style="${span(m.from, m.to)}"></div>`,
@@ -174,7 +176,7 @@ function periodsOf(derived, state, scale, range) {
   const chips = [
     ...named.map(
       (p) =>
-        `<button class="yr-pchip" data-period="${esc(p.id)}" title="A period you named" style="left: ${pct(scale.at(p.start))}%">${esc(p.name)}</button>`,
+        `<button class="yr-pchip" data-period="${esc(p.id)}" data-tip="A period you named. Drag to move it, or click to rename or delete it." style="left: ${pct(scale.at(p.start))}%">${esc(p.name)}</button>${handlesHTML(p.id, pct(scale.at(p.start)), pct(scale.end(p.end)))}`,
     ),
     ...stretches.map((m) => {
       const r = shortRange(m.from, m.to)
@@ -249,7 +251,7 @@ export function bandHTML(derived, state, view) {
     <div class="yr-top"><div class="yr-scalelabel">${esc(label)}${txns.some((t) => t.expected) ? ", and what’s expected ahead" : ""}</div><div class="yr-flex"></div><button class="yr-compact" aria-pressed="${compact}">${compact ? "Full timeline" : "Compact timeline"}</button></div>
     <div class="yr-axisrow"><div class="yr-gutter"></div><div class="yr-axis">${axis}</div></div>
     ${totals}
-    <div class="yr-periodsrow"><div class="yr-gutter"></div><div class="yr-periods" data-cols="${esc((year ? scale.cols : [month]).join(","))}" data-scale="${year ? "year" : "month"}" title="Drag along this strip to mark a period">${chips}<div class="yr-pnew" hidden></div></div></div>
+    <div class="yr-periodsrow"><div class="yr-gutter"></div><div class="yr-periods" data-cols="${esc((year ? scale.cols : [month]).join(","))}" data-scale="${year ? "year" : "month"}" data-tip="Drag along this strip to mark a period">${chips}<div class="yr-pnew" hidden></div></div></div>
     <div class="yr-rows"><div class="yr-grid">${grid}${future}${win}${bands}</div>${rowsHTML(derived, txns, scale, { year, compact, numbers })}</div>
     ${year && !compact ? `<p class="yr-legend">${esc(LEGEND)}</p>` : ""}
   </div></div></section>`;
@@ -276,7 +278,7 @@ function numbersHTML(derived, state, view, scale, txns) {
       const cells = cols
         .map((ym, i) => {
           const has = set.has(ym);
-          return `<div class="yr-cover${has ? "" : " missing"}" title="${esc(`${MONTHS[Number(ym.slice(5)) - 1]}: ${has ? "statement added" : "no statement yet"}`)}" style="left: calc(${pct((i / cols.length) * 100)}% + 2px); width: calc(${(100 / cols.length).toFixed(3)}% - 4px)"></div>`;
+          return `<div class="yr-cover${has ? "" : " missing"}" data-tip="${esc(`${MONTHS[Number(ym.slice(5)) - 1]}: ${has ? "statement added" : "no statement yet"}`)}" aria-label="${esc(`${MONTHS[Number(ym.slice(5)) - 1]}: ${has ? "statement added" : "no statement yet"}`)}" style="left: calc(${pct((i / cols.length) * 100)}% + 2px); width: calc(${(100 / cols.length).toFixed(3)}% - 4px)"></div>`;
         })
         .join("");
       return `<div class="yr-coverrow"><div class="yr-gutter yr-small">${esc(account)}</div><div class="yr-covertrack">${cells}</div></div>`;

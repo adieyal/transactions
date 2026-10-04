@@ -1,4 +1,6 @@
 import { esc } from "../helpers.js";
+import { wireTip } from "./tip.js";
+import { handlesHTML, wirePeriodEdit } from "./period-edit.js";
 import { coveredMonths } from "../story/moments.js";
 import { answerKept, dayShort, monthLong } from "../story/copy.js";
 import {
@@ -76,7 +78,7 @@ export function createOneMonthComponent(runtime, actions) {
           <div class="om-track"><div class="om-line"></div>${r.beads
             .map(
               (b) =>
-                `<div class="om-bead" data-id="${esc(b.id)}" title="${esc(`${dayShort(b.date)} · ${b.merchant} · ${b.amount}`)}" style="left: ${x(b.day)}%; width: ${esc(b.size)}px; height: ${esc(b.size)}px; background: ${esc(r.color)}"></div>`,
+                `<div class="om-bead" data-id="${esc(b.id)}" data-tip="${esc(`${dayShort(b.date)} · ${b.merchant} · ${b.amount}`)}" aria-label="${esc(`${dayShort(b.date)} · ${b.merchant} · ${b.amount}`)}" style="left: ${x(b.day)}%; width: ${esc(b.size)}px; height: ${esc(b.size)}px; background: ${esc(r.color)}"></div>`,
             )
             .join("")}</div>
         </div>`,
@@ -88,13 +90,16 @@ export function createOneMonthComponent(runtime, actions) {
     const at = (p) =>
       `left: ${pct(((p.from - 1) / days) * 100)}%; width: ${pct(((p.to - p.from + 1) / days) * 100)}%`;
     const bands = [
-      ...periods.map((p) => `<div class="om-pband" style="${at(p)}"></div>`),
+      ...periods.map(
+        (p) =>
+          `<div class="om-pband" data-pid="${esc(p.id)}" style="${at(p)}"></div>`,
+      ),
       ...stretches.map((b) => `<div class="om-sband" style="${at(b)}"></div>`),
     ].join("");
     const chips = [
       ...periods.map(
         (p) =>
-          `<button class="om-pchip" data-period="${esc(p.id)}" title="A period you named" style="left: ${pct(((p.from - 1) / days) * 100)}%">${esc(p.name)}</button>`,
+          `<button class="om-pchip" data-period="${esc(p.id)}" data-tip="A period you named. Drag to move it, or click to rename or delete it." style="left: ${pct(((p.from - 1) / days) * 100)}%">${esc(p.name)}</button>${handlesHTML(p.id, pct(((p.from - 1) / days) * 100), pct((p.to / days) * 100))}`,
       ),
       ...stretches.map(
         (b) =>
@@ -104,7 +109,7 @@ export function createOneMonthComponent(runtime, actions) {
     const empty = !periods.length && !stretches.length;
     return `<section class="om-band" aria-label="Timeline"><div class="om-scroll"><div class="om-inner">
       <div class="om-axisrow"><div class="om-month">${esc(s.label)}</div><div class="om-axis">${axis}</div></div>
-      <div class="om-periodsrow"><div class="om-periodslabel">Periods</div><div class="om-periods${empty ? "" : " filled"}" title="Drag along this strip to mark a period">${empty ? esc(HINT) : chips}<div class="om-pnew" hidden></div></div></div>
+      <div class="om-periodsrow"><div class="om-periodslabel">Periods</div><div class="om-periods${empty ? "" : " filled"}" data-tip="Drag along this strip to mark a period">${empty ? esc(HINT) : chips}<div class="om-pnew" hidden></div></div></div>
       <div class="om-rows"><div class="om-grid">${grid}${bands}</div>${rows}</div>
     </div></div></section>`;
   }
@@ -280,6 +285,22 @@ export function createOneMonthComponent(runtime, actions) {
         }
         wire() {
           this.wired = true;
+          wireTip(this, () => runtime.derived?.byId);
+          wirePeriodEdit(this, {
+            strip: ".om-periods",
+            isoAt: (strip, x) => {
+              const r = strip.getBoundingClientRect();
+              const { days, month } = this.story.strip;
+              const d = Math.floor(((x - r.left) / r.width) * days) + 1;
+              return `${month}-${String(Math.min(days, Math.max(1, d))).padStart(2, "0")}`;
+            },
+            state,
+            actions: {
+              save: (k) => actions.save(k),
+              refresh: () => actions.refresh(),
+              removePeriod: (id) => actions.removePeriod(id),
+            },
+          });
           wireHoverHighlight(this, runtime, (ids) => emitHighlight(this, ids));
           this.addEventListener("click", (e) => {
             const a = e.target.closest("[data-answer]");
@@ -325,7 +346,7 @@ export const contract = {
   name: "tx-one-month",
   create: createOneMonthComponent,
   provides: ["defineOneMonth"],
-  requires: ["Store", "save"],
+  requires: ["Store", "refresh", "removePeriod", "save"],
   renders: [],
   wires: ["defineOneMonth"],
 };

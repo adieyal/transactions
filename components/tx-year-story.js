@@ -1,5 +1,5 @@
 import { esc } from "../helpers.js";
-import { answerKept, dayShort, monthLong } from "../story/copy.js";
+import { answerKept, dayShort, money, monthLong } from "../story/copy.js";
 
 const capital = (s) => s[0].toUpperCase() + s.slice(1);
 
@@ -11,7 +11,7 @@ const parts = (ps) =>
   ps
     .map((p) =>
       p.chip
-        ? `<span class="yr-chipinline" title="A period you named">${esc(p.chip)}</span>`
+        ? `<span class="yr-chipinline" data-tip="A period you named">${esc(p.chip)}</span>`
         : p.txnIds?.length
           ? `<span class="sp" tabindex="0" data-ids="${esc(p.txnIds.join(","))}">${esc(p.text)}</span>`
           : esc(p.text),
@@ -49,7 +49,7 @@ function stretchAsk(s, ui, backendKind) {
 export function sectionHTML(s, i, ui, backendKind) {
   const body = s.paragraphs.map((p) => para(p)).join("");
   const head = s.chip
-    ? `<div class="yr-headchip"><span class="yr-chipheading" title="A period you named">${esc(s.chip)}</span></div>`
+    ? `<div class="yr-headchip"><span class="yr-chipheading" data-tip="A period you named">${esc(s.chip)}</span></div>`
     : s.stretch
       ? `<div class="yr-headchip"><span class="yr-unnamed">A busy stretch, not named yet</span></div>`
       : "";
@@ -80,10 +80,31 @@ export function storyLensesHTML(state) {
     .join("")}</div></section>`;
 }
 
-// The notes written on a period's payments, each with its day.
-const notesHTML = (notes) =>
+// A note's words, with its #tags as small chips.
+const noteText = (text) =>
+  String(text)
+    .split(/(#[\p{L}\p{N}_-]+)/u)
+    .map((bit, i) =>
+      i % 2
+        ? `<span class="yr-tag">${esc(bit)}</span>`
+        : bit.trim()
+          ? `<span>${esc(bit.trim())}</span>`
+          : "",
+    )
+    .join(" ");
+
+// The notes written on a period's payments, as a table: the person asked
+// for this over the drawn list of day and note. At 390 each row stacks.
+export const notesHTML = (notes) =>
   notes.length
-    ? `<div class="yr-note"><div class="yr-notelabel">Your notes</div><div class="yr-notegrid">${notes.map((n) => `<span class="yr-notedate">${esc(dayShort(n.date))}</span><span dir="auto">${esc(n.text)}</span>`).join("")}</div></div>`
+    ? `<div class="yr-note"><table class="yr-notetable"><caption class="yr-notelabel">Your notes</caption>
+      <thead><tr><th scope="col">Date</th><th scope="col">Payment</th><th scope="col" class="num">Amount</th><th scope="col">Note</th></tr></thead>
+      <tbody>${notes
+        .map(
+          (n) =>
+            `<tr><td data-label="Date" class="yr-notedate">${esc(dayShort(n.date))}</td><td data-label="Payment" dir="auto">${esc(n.merchant ?? "")}</td><td data-label="Amount" class="num">${n.amount == null ? "" : esc(money(n.amount, n.currency))}</td><td data-label="Note"><div class="yr-notecell" dir="auto">${noteText(n.text)}</div></td></tr>`,
+        )
+        .join("")}</tbody></table></div>`
     : "";
 
 export function monthHTML(m) {
@@ -91,7 +112,7 @@ export function monthHTML(m) {
     .map(
       (
         p,
-      ) => `<div class="yr-headchip"><span class="yr-chipheading" title="A period you named">${esc(p.name)}</span> <span class="yr-dates">${esc(p.dates)}</span></div>
+      ) => `<div class="yr-headchip"><span class="yr-chipheading" data-tip="A period you named">${esc(p.name)}</span> <span class="yr-dates">${esc(p.dates)}</span></div>
       <div class="yr-prose">${para(p.parts)}</div>
       ${p.description ? `<div class="yr-note"><div class="yr-notelabel">Your description</div><div class="yr-notetext" dir="auto">${esc(p.description)}</div></div>` : ""}
       ${notesHTML(p.notes)}`,
