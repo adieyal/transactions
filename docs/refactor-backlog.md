@@ -18,7 +18,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 |    2 | [R3](#r3-one-refresh-path) One refresh path                                                                     |      M      |   Medium   | none (removes the duplicate `renderReports` call)                            |        **Done** (`next`)         |
 |    3 | [R1](#r1-declared-module-contracts-and-registry) Declared module contracts and registry                         |      M      |    Low     | none (turns the provider test into a contract test)                          |        **Done** (`next`)         |
 |    4 | [R4](#r4-pure-logic-out-of-the-ui) Pure logic out of the UI                                                     | L (4 × S/M) | Low–medium | none directly; shrinks `ui/chat.js` and `ui/timeline.js`                     |  R4a, c, d done; R4b part done   |
-|    5 | [R6](#r6-browser-file-readers-out-of-transactionsimportjs) Browser file readers out of `transactions/import.js` |      S      |    Low     | 3: `transactions/import.js uses window`, `… DOMParser`, `… XLSX`             |              **No**              |
+|    5 | [R6](#r6-browser-file-readers-out-of-transactionsimportjs) Browser file readers out of `transactions/import.js` |      S      |    Low     | 3: `transactions/import.js uses window`, `… DOMParser`, `… XLSX`             |        **Done** (`next`)         |
 |    6 | [R7](#r7-persistence-stops-importing-the-ui) Persistence stops importing the UI                                 |      S      |    Low     | `persistence.js (persistence) imports ui/dom.js (ui)`                        |               Yes                |
 |    7 | [R5](#r5-split-helpersjs) Split `helpers.js`                                                                    |      S      |    Low     | `helpers.js uses document`, `helpers.js uses new Date()`                     | Yes (touches every `$` importer) |
 |    8 | [R11](#r11-storage-keys-into-storagejs) Storage keys into `storage.js`                                          |      S      |    Low     | `ui/assistant-settings.js uses storage`, `ui/tour.js uses storage`           |   Settings: **no**; tour: yes    |
@@ -136,6 +136,12 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Size:** S. **Risk:** low.
 - **Removes:** `transactions/import.js uses window`, `… uses DOMParser`, `… uses XLSX`.
 - **Wait:** no. Only `transactions/import.js` and `ui/import.js` change, and story-first touches neither.
+- **Done** on branch `next`, 4 October 2026:
+  - `files.js` (platform) reads the bytes, turns web pages into table rows with `DOMParser`, and reads spreadsheets with SheetJS.
+  - `transactions/import.js` parses what it gets, with no browser APIs: `parseLeumiRows` (from table rows), `tableMatrix`, `csvMatrix`, `decodeText`, `guessHeaderRow`, `applyMapping` and `sigOf`.
+  - `decodeText` stays pure: `TextDecoder` is standard JavaScript and runs in Node.
+  - `tests/transactions.test.js` now parses a fictional Leumi page, a table and CSV text in Node.
+  - The three R6 allowlist entries are deleted.
 
 ### R7. Persistence stops importing the UI
 

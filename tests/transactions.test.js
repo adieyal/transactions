@@ -2,7 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRuntime } from "../state.js";
 import { parseAmount, parseDateCell } from "../transactions/parse.js";
-import { applyMapping, readMatrix } from "../transactions/import.js";
+import {
+  applyMapping,
+  csvMatrix,
+  decodeText,
+  guessHeaderRow,
+  parseLeumiRows,
+  sigOf,
+  tableMatrix,
+} from "../transactions/import.js";
+import { readMatrix } from "../files.js";
 import { parseRules } from "../transactions/rules.js";
 import { deriveTransactions } from "../transactions/derive.js";
 import { detectTransfers } from "../transactions/transfers.js";
@@ -185,4 +194,74 @@ test("transfers pair accounts, match card statement payments and respect overrid
   });
   assert.equal(result.info.payment.kind, "card");
   assert.equal(result.paid["Card|2026-09"], "payment");
+});
+
+// A fictional Leumi card page, as files.js reads it into table rows.
+const LEUMI = [
+  {
+    nested: true,
+    text: "פרוט עסקאות לכרטיס כרטיס בדוי 4821 לתקופה: ספטמבר 2026",
+  },
+  { cells: ["עסקאות בארץ"] },
+  {
+    cells: [
+      "תאריך העסקה",
+      "שם בית העסק",
+      "סכום העסקה",
+      "סוג העסקה",
+      "פרטים",
+      "סכום חיוב",
+    ],
+  },
+  { cells: ["03/08/26", "מאפיית הגבעה", "42.50 ₪", "רגילה", "", "42.50 ₪"] },
+  {
+    cells: [
+      "05/06/26",
+      "רהיטי האלון",
+      "1,200.00 ₪",
+      "תשלומים",
+      "תשלום 3 מתוך 6",
+      "200.00 ₪",
+    ],
+  },
+  { cells: ["", 'סה"כ', "", "", "", "242.50 ₪"] },
+];
+
+test("a Leumi card page parses from its table rows, without a browser", () => {
+  const batch = parseLeumiRows(LEUMI, "leumi.html");
+  assert.equal(batch.kind, "leumi");
+  assert.equal(batch.account, "כרטיס בדוי 4821");
+  assert.deepEqual(batch.periods, ["2026-09"]);
+  assert.equal(batch.rows.length, 2);
+  const [bread, desk] = batch.rows;
+  assert.deepEqual(
+    [bread.date, bread.merchant, bread.amount, bread.section],
+    ["2026-08-03", "מאפיית הגבעה", 42.5, "עסקאות בארץ"],
+  );
+  assert.deepEqual(desk.inst, { n: 3, of: 6 });
+  assert.equal(desk.chargeDate, "2026-09-10");
+  assert.equal(parseLeumiRows([{ cells: ["a", "b"] }], "x.html"), null);
+});
+
+test("generic tables, CSV text and header guessing work without a browser", () => {
+  assert.deepEqual(
+    tableMatrix([
+      { nested: true, text: "wrapper" },
+      { cells: ["date", "merchant", "amount"] },
+      { cells: ["", "", ""] },
+      { cells: ["2026-09-01", "Shop", "10"] },
+    ]),
+    [
+      ["date", "merchant", "amount"],
+      ["2026-09-01", "Shop", "10"],
+    ],
+  );
+  const bytes = new TextEncoder().encode('﻿a;b\n"x;y";2\n');
+  const m = csvMatrix(decodeText(bytes));
+  assert.deepEqual(m, [
+    ["a", "b"],
+    ["x;y", "2"],
+  ]);
+  assert.equal(sigOf(m[0]), "a|b");
+  assert.equal(typeof guessHeaderRow(m), "number");
 });

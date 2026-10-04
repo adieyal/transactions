@@ -1,19 +1,21 @@
-import { BIDI, fnv, isoOf, monthOf, pad2 } from "../helpers.js";
+import { BIDI, fnv, monthOf, pad2 } from "../helpers.js";
 import { HE_MONTHS, INST_RE, parseAmount, parseDateCell } from "./parse.js";
 
-function parseLeumiHTML(html, file) {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  if (!doc.body || !doc.body.textContent.includes("תאריך העסקה")) return null;
+// A Leumi card statement saved as a web page, from its table rows (see
+// tableRows in files.js): { nested, text } for a row wrapping other tables,
+// { cells } for the rest. Returns a batch, or null when it isn't one.
+function parseLeumiRows(tableRows, file) {
+  if (!tableRows.some((r) => r.cells?.includes("תאריך העסקה"))) return null;
   const rows = [];
   let account = null,
     period = null,
     section = "",
     cols = null;
   const occ = {};
-  for (const tr of doc.querySelectorAll("tr")) {
-    if (tr.querySelector("tr")) {
+  for (const tr of tableRows) {
+    if (tr.nested) {
       // an outer row wrapping nested tables: only use it for the card header
-      const t = tr.textContent.replace(BIDI, "").replace(/\s+/g, " ");
+      const t = tr.text.replace(BIDI, "").replace(/\s+/g, " ");
       if (t.length < 400) {
         const m = t.match(
           /פרוט עסקאות לכרטיס\s+(.+?)\s+לתקופה:?\s*(\S+)\s+(\d{4})/,
@@ -26,9 +28,7 @@ function parseLeumiHTML(html, file) {
       }
       continue;
     }
-    const cells = [...tr.cells].map((c) =>
-      c.textContent.replace(BIDI, "").replace(/\s+/g, " ").trim(),
-    );
+    const cells = tr.cells;
     const joined = cells.join(" ");
     const hm =
       joined.length < 400 &&
@@ -109,17 +109,12 @@ function parseLeumiHTML(html, file) {
   return { kind: "leumi", account, periods: [period], file, rows: out };
 }
 
-function htmlMatrix(html) {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const m = [];
-  for (const tr of doc.querySelectorAll("tr")) {
-    if (tr.querySelector("tr")) continue;
-    const c = [...tr.cells].map((x) =>
-      x.textContent.replace(BIDI, "").replace(/\s+/g, " ").trim(),
-    );
-    if (c.some(Boolean)) m.push(c);
-  }
-  return m;
+// A generic table from a web page: the rows that aren't wrappers, without
+// empty ones.
+function tableMatrix(tableRows) {
+  return tableRows
+    .filter((r) => !r.nested && r.cells.some(Boolean))
+    .map((r) => r.cells);
 }
 
 function csvMatrix(text) {
@@ -165,31 +160,6 @@ function decodeText(buf) {
     } catch {}
   }
   return t.replace(/^\uFEFF/, "");
-}
-
-async function readMatrix(file) {
-  const buf = new Uint8Array(await file.arrayBuffer());
-  const head = new TextDecoder("latin1")
-    .decode(buf.slice(0, 1024))
-    .toLowerCase();
-  if (/<(html|table|!doctype)/.test(head)) {
-    const text = decodeText(buf);
-    const leumi = parseLeumiHTML(text, file.name);
-    if (leumi) return { batch: leumi };
-    return { matrix: htmlMatrix(text) };
-  }
-  if (/\.(csv|txt|tsv)$/i.test(file.name))
-    return { matrix: csvMatrix(decodeText(buf)) };
-  if (!window.XLSX)
-    throw new Error(
-      "The spreadsheet reader didn't load, so .xlsx files can't be opened right now. Export as CSV instead.",
-    );
-  const wb = XLSX.read(buf, { type: "array", cellDates: true });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const m = XLSX.utils
-    .sheet_to_json(ws, { header: 1, raw: true, defval: "" })
-    .map((r) => r.map((c) => (c instanceof Date ? isoOf(c) : c)));
-  return { matrix: m.filter((r) => r.some((c) => String(c).trim())) };
 }
 
 const sigOf = (row) =>
@@ -267,4 +237,12 @@ function applyMapping(matrix, map, file) {
     rows: out,
   };
 }
-export { applyMapping, guessHeaderRow, readMatrix, sigOf };
+export {
+  applyMapping,
+  csvMatrix,
+  decodeText,
+  guessHeaderRow,
+  parseLeumiRows,
+  sigOf,
+  tableMatrix,
+};

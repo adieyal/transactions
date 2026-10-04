@@ -1,11 +1,7 @@
 import { $, esc, fmt, fnv, monthName } from "../helpers.js";
 import { toast } from "./dom.js";
-import {
-  applyMapping,
-  guessHeaderRow,
-  readMatrix,
-  sigOf,
-} from "../transactions/import.js";
+import { applyMapping, guessHeaderRow, sigOf } from "../transactions/import.js";
+import { readMatrix } from "../files.js";
 
 export function createImport(runtime, actions) {
   const { state, caps } = runtime;

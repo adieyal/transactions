@@ -30,6 +30,7 @@ const LAYERS = {
   "storage.js": "persistence",
   "assistant.js": "platform",
   "downloads.js": "platform",
+  "files.js": "platform",
   "state.js": "app",
   "registry.js": "app",
   // A UI factory at the root until R4 splits its prompts from its handlers.
@@ -77,10 +78,6 @@ const PURE_ALLOW = [
   // R5: `$` moves to ui/dom.js and TODAY is passed in from main.js.
   { v: "helpers.js uses document", fix: "R5" },
   { v: "helpers.js uses new Date()", fix: "R5" },
-  // R6: the browser file readers move out to a platform module.
-  { v: "transactions/import.js uses window", fix: "R6" },
-  { v: "transactions/import.js uses DOMParser", fix: "R6" },
-  { v: "transactions/import.js uses XLSX", fix: "R6" },
 ];
 
 // Only the named adapters may talk to the network or name storage keys (ADR 0007).
