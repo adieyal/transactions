@@ -105,6 +105,7 @@ export function createBackupImport(runtime, actions) {
         pending = null;
         dialog.close();
         toast(doneMessage);
+        actions.askCurrencies();
       } catch (error) {
         $("#backupError").textContent = error.message;
       } finally {
@@ -123,6 +124,7 @@ export const contract = {
   provides: ["replaceDemo", "restartDemo", "wireBackupImport"],
   requires: [
     "applyPanel",
+    "askCurrencies",
     "endTour",
     "refresh",
     "resetPanelScroll",

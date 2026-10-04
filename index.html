@@ -100,6 +100,16 @@
   </main>
 </div>
 
+<dialog id="curDlg" aria-labelledby="curTitle">
+  <div class="dlg">
+    <h2 id="curTitle">Which currency are these statements in?</h2>
+    <div class="sub">These statements were saved before Transactions recorded each statement's currency, and their format doesn't say. Their amounts stay off the page until you choose. You're asked once.</div>
+    <div class="mapgrid" id="curList"></div>
+    <div class="row-actions" style="justify-content:flex-end">
+      <button class="btn small quiet" id="curLater">Not now</button> <button class="btn small" id="curOk">Save</button>
+    </div>
+  </div>
+</dialog>
 <dialog id="mapDlg" aria-labelledby="mapTitle">
   <div class="dlg">
     <h2 id="mapTitle">Teach Transactions this file</h2>

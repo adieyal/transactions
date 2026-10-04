@@ -1,7 +1,14 @@
-import { esc, fmt, fnv, monthName } from "../helpers.js";
+import { CURRENCIES, esc, fmt, fnv, monthName } from "../helpers.js";
 import { $, toast } from "./dom.js";
-import { applyMapping, guessHeaderRow, sigOf } from "../transactions/import.js";
+import {
+  applyMapping,
+  columnWords,
+  detectCurrency,
+  guessHeaderRow,
+  sigOf,
+} from "../transactions/import.js";
 import { readMatrix } from "../files.js";
+import { needsCurrency, setCurrency } from "../documents.js";
 
 export function createImport(runtime, actions) {
   const { state, caps } = runtime;
@@ -125,6 +132,11 @@ export function createImport(runtime, actions) {
         details: null,
         dateFormat: "DMY",
         expenseSign: "positive",
+        // The currency the file shows, or the one the person chose; never a
+        // default. currencyChosen keeps a choice over what is detected.
+        currency: null,
+        currencyChosen: false,
+        currencyColumn: null,
         account: fileName.replace(/\.[^.]+$/, ""),
       };
       const H = matrix[hdr] || [];
@@ -132,12 +144,12 @@ export function createImport(runtime, actions) {
         const i = H.findIndex((c) => re.test(String(c)));
         return i < 0 ? null : i;
       };
-      map.date = find(/date|תאריך/i);
-      map.merchant = find(/descr|payee|merchant|name|תיאור|שם|בית העסק|פרטים/i);
-      map.debit = find(/debit|withdraw|חובה/i);
-      map.credit = find(/credit|deposit|זכות/i);
+      for (const k of ["date", "merchant", "debit", "credit", "currencyColumn"])
+        map[k] = find(columnWords(k));
       map.amount =
-        map.debit == null && map.credit == null ? find(/amount|סכום/i) : null;
+        map.debit == null && map.credit == null
+          ? find(columnWords("amount"))
+          : null;
       if (preset) Object.assign(map, preset);
       $("#mapTitle").textContent = preset
         ? "Which account is this?"
@@ -153,6 +165,15 @@ export function createImport(runtime, actions) {
             `<option value="${i}"${sel === i ? " selected" : ""}>${i + 1}: ${esc(String((matrix[map.headerRow] || [])[i] ?? "").slice(0, 24))}</option>`,
         ).join("");
       const draw = () => {
+        const found = detectCurrency(matrix, map);
+        if (!map.currencyChosen) map.currency = found;
+        const currencyNote = map.currencyChosen
+          ? ""
+          : found
+            ? " Found in the file; change it if it's wrong."
+            : map.currencyColumn != null
+              ? " Read from the currency column."
+              : " The file doesn't say.";
         $("#mapTable").innerHTML =
           `<tr><th></th>${Array.from({ length: ncol }, (_, i) => `<th>${i + 1}</th>`).join("")}</tr>` +
           matrix
@@ -167,7 +188,7 @@ export function createImport(runtime, actions) {
         $("#mapGrid").innerHTML =
           `<label>Heading row<input type="number" min="0" data-k="headerRow" value="${map.headerRow}"></label>${f("date", "Date")}${f("merchant", "Merchant or description")}${f("amount", "Amount (one signed column)")}
         <label>In that column, spending is<select data-k="expenseSign"><option value="positive"${map.expenseSign === "positive" ? " selected" : ""}>positive</option><option value="negative"${map.expenseSign === "negative" ? " selected" : ""}>negative</option></select></label>
-        ${f("debit", "…or money out column")}${f("credit", "…and money in column")}${f("orig", "Original amount (optional)")}${f("type", "Type (optional)")}${f("details", "Details (optional)")}
+        ${f("debit", "…or money out column")}${f("credit", "…and money in column")}${f("currencyColumn", "Currency column (optional)")}${f("orig", "Original amount (optional)")}${f("type", "Type (optional)")}${f("details", "Details (optional)")}
         <label>Dates are written<select data-k="dateFormat">${[
           ["DMY", "day/month/year"],
           ["MDY", "month/day/year"],
@@ -178,8 +199,10 @@ export function createImport(runtime, actions) {
               `<option value="${v}"${map.dateFormat === v ? " selected" : ""}>${l}</option>`,
           )
           .join("")}</select></label>
-        <label>Account name<input data-k="account" value="${esc(map.account)}"></label>`;
+        <label>Account name<input data-k="account" value="${esc(map.account)}"></label>
+        <label>Currency<select data-k="currency"><option value=""${map.currency ? "" : " selected"}>Choose…</option>${CURRENCIES.map((c) => `<option value="${esc(c)}"${map.currency === c ? " selected" : ""}>${esc(c)}</option>`).join("")}</select><span class="sub" id="mapCurNote">${esc(currencyNote)}</span></label>`;
         const b = applyMapping(matrix, map, fileName);
+        const unpriced = !map.currency && b.rows.length === 0;
         $("#mapPreview").innerHTML = b.rows.length
           ? `<tr><th>Date</th><th>Merchant</th><th>Amount</th></tr>` +
             b.rows
@@ -190,7 +213,11 @@ export function createImport(runtime, actions) {
               )
               .join("") +
             `<tr><td colspan="3" class="sub">${b.rows.length} rows in total</td></tr>`
-          : `<tr><td class="sub">No rows read yet. Choose at least a date column and an amount (or money out/in) column.</td></tr>`;
+          : unpriced &&
+              applyMapping(matrix, { ...map, currency: "XXX" }, fileName).rows
+                .length
+            ? `<tr><td class="sub">Choose the currency these amounts are in. The file doesn't say, and Transactions never guesses one.</td></tr>`
+            : `<tr><td class="sub">No rows read yet. Choose at least a date column and an amount (or money out/in) column.</td></tr>`;
         $("#mapOk").disabled = !b.rows.length;
       };
       $("#mapGrid").oninput = (e) => {
@@ -198,7 +225,10 @@ export function createImport(runtime, actions) {
         if (!k) return;
         let v = e.target.value;
         if (["headerRow"].includes(k)) v = Math.max(0, +v || 0);
-        else if (!["expenseSign", "dateFormat", "account"].includes(k))
+        else if (k === "currency") {
+          v = v || null;
+          map.currencyChosen = !!v;
+        } else if (!["expenseSign", "dateFormat", "account"].includes(k))
           v = v === "" ? null : +v;
         map[k] = v;
         if (k === "amount" && v != null) {
@@ -270,13 +300,51 @@ ${JSON.stringify(matrix.slice(0, 18).map((r) => r.map((c) => String(c ?? "").sli
     });
   }
 
-  return { importFiles };
+  // Statements saved before they recorded a currency, in a format that
+  // doesn't say one: asked once, all together, and saved with the answer.
+  // Until then their amounts stay off the page rather than in a guess.
+  function askCurrencies() {
+    const waiting = needsCurrency(state);
+    if (!waiting.length) return;
+    const dlg = $("#curDlg");
+    const options = `<option value="">Choose…</option>${CURRENCIES.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}`;
+    $("#curList").innerHTML = waiting
+      .map(
+        (b) =>
+          `<label><span dir="auto">${esc(b.account)}</span> <span class="sub">${esc(b.periods.length === 1 ? monthName(b.periods[0]) : `${b.periods.length} months`)} · <span dir="auto">${esc(b.file)}</span></span><select data-batch="${esc(b.id)}">${options}</select></label>`,
+      )
+      .join("");
+    const chosen = () =>
+      [...$("#curList").querySelectorAll("select")].filter((s) => s.value);
+    $("#curOk").disabled = true;
+    $("#curList").onchange = () => {
+      // One answer fills the others still unanswered, since statements
+      // usually share a currency; each can still be changed.
+      const first = chosen()[0]?.value;
+      for (const s of $("#curList").querySelectorAll("select"))
+        if (!s.value && first) s.value = first;
+      $("#curOk").disabled = chosen().length < waiting.length;
+    };
+    $("#curOk").onclick = () => {
+      for (const s of chosen()) {
+        const b = state.batches[s.dataset.batch];
+        setCurrency(b, s.value);
+        actions.saveBatch(b);
+      }
+      dlg.close();
+      actions.refresh();
+    };
+    $("#curLater").onclick = () => dlg.close();
+    dlg.showModal();
+  }
+
+  return { importFiles, askCurrencies };
 }
 
 export const contract = {
   name: "import",
   create: createImport,
-  provides: ["importFiles"],
+  provides: ["importFiles", "askCurrencies"],
   requires: [
     "AI",
     "openTab",

@@ -150,6 +150,7 @@ async function boot() {
   actions.applyPanel();
   runtime.state.loaded = true;
   refresh();
+  actions.askCurrencies();
   actions.maybeStartTour();
 }
 

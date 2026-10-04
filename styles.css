@@ -386,6 +386,8 @@ body.nopanel .qcount{min-width:0; width:16px; padding:4px 0; margin:4px 0 0}
 .mtitle{font:500 30px/1.15 var(--display); margin:8px 0 12px}
 .msum .mp{font:400 17px/1.6 var(--display); margin:0 0 12px}
 .msum .mp-overview{font-size:19.5px; line-height:1.5}
+.msum .mp-heading{font-weight:600; letter-spacing:.04em; margin:18px 0 2px; font-size:13px; color:var(--ink-2)}
+.msum .mp-currencies{font-style:italic}
 /* Figures that light up the timeline: a faint underline that firms up on
    hover and focus, so prose stays easy to read. */
 .sp{text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; text-decoration-color:color-mix(in srgb,var(--ink-3) 35%,transparent); cursor:default; transition:background .15s, text-decoration-color .15s; border-radius:2px}

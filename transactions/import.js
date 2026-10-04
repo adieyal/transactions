@@ -197,6 +197,34 @@ function guessHeaderRow(m) {
   return 0;
 }
 
+// Words in column headings that say what a column holds, per language. Any
+// language can be added; none is needed for the dialog to work.
+const COLUMN_WORDS = {
+  en: {
+    date: ["date"],
+    merchant: ["descr", "payee", "merchant", "name"],
+    debit: ["debit", "withdraw"],
+    credit: ["credit", "deposit"],
+    amount: ["amount"],
+    currencyColumn: ["currency", "ccy"],
+  },
+  he: {
+    date: ["תאריך"],
+    merchant: ["תיאור", "שם", "בית העסק", "פרטים"],
+    debit: ["חובה"],
+    credit: ["זכות"],
+    amount: ["סכום"],
+    currencyColumn: ["מטבע"],
+  },
+};
+const columnWords = (k) =>
+  new RegExp(
+    Object.values(COLUMN_WORDS)
+      .flatMap((l) => l[k] || [])
+      .join("|"),
+    "i",
+  );
+
 // A row's currency: from the currency column when it holds an ISO code or a
 // symbol, otherwise the one the file was found or said to be in.
 function rowCurrency(row, map) {
@@ -303,6 +331,8 @@ function applyMapping(matrix, map, file) {
   };
 }
 export {
+  COLUMN_WORDS,
+  columnWords,
   currencyIn,
   detectCurrency,
   applyMapping,
