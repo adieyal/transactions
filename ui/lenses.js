@@ -1,6 +1,6 @@
 import { debounce, esc, fmt, monthName } from "../helpers.js";
 import { $, html, paneShown, toast } from "./dom.js";
-import { lensInput } from "../lens-api.js";
+import { lensInput, viewProblem } from "../lens-api.js";
 import { newLensSandbox } from "./lens-sandbox.js";
 
 export function createLenses(runtime, actions) {
@@ -16,6 +16,8 @@ export function createLenses(runtime, actions) {
     );
 
   function renderView(v) {
+    const problem = viewProblem(v);
+    if (problem) throw new Error(problem);
     if (v.kind === "bars") {
       const items = (v.items || []).slice(0, 40);
       const max = Math.max(1e-9, ...items.map((i) => Math.abs(+i.value || 0)));
@@ -40,11 +42,7 @@ export function createLenses(runtime, actions) {
     }
     if (v.kind === "number")
       return `<div class="lnum"${v.ids ? ` data-ids="${esc(v.ids.join(","))}" style="cursor:pointer"` : ""}>${typeof v.value === "number" ? fmt(v.value, 0) : esc(v.value)}</div><div class="sub">${esc(v.label || "")}</div>`;
-    if (v.kind === "text")
-      return `<p dir="auto" style="margin:0">${esc(v.text)}</p>`;
-    throw new Error(
-      `Unknown view kind “${v.kind}”. Use bars, table, number or text.`,
-    );
+    return `<p dir="auto" style="margin:0">${esc(v.text)}</p>`;
   }
 
   function renderLenses() {

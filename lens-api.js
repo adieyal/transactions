@@ -125,6 +125,41 @@ export const VIEW_KINDS = [
   { kind: "text", shape: '{ kind: "text", text }', doc: "A sentence or two." },
 ];
 
+// Says, in the app's voice, what is wrong with the shape of a lens's view,
+// or returns null when it can be drawn.
+export function viewProblem(v) {
+  if (!v || typeof v !== "object" || Array.isArray(v))
+    return 'This lens didn’t return a view. It should return an object such as { kind: "text", text: "…" }.';
+  const list = (x) => x == null || Array.isArray(x);
+  const isObj = (x) => x && typeof x === "object" && !Array.isArray(x);
+  if (v.kind === "bars") {
+    if (!list(v.items))
+      return "This lens returned bars in an unexpected shape: items should be a list.";
+    if (!v.items?.every(isObj) && v.items?.length)
+      return "This lens returned bars in an unexpected shape: each item should look like { label, value }.";
+    if (v.items?.some((i) => !list(i.ids)))
+      return "This lens returned bars in an unexpected shape: ids should be a list of transaction ids.";
+    return null;
+  }
+  if (v.kind === "table") {
+    if (!list(v.columns))
+      return "This lens returned a table in an unexpected shape: columns should be a list of headings.";
+    if (!list(v.rows))
+      return "This lens returned a table in an unexpected shape: rows should be a list.";
+    if (v.rows?.some((r) => !Array.isArray(r)))
+      return "This lens returned a table in an unexpected shape: rows should be lists of values.";
+    if (!list(v.rowIds) || v.rowIds?.some((r) => !list(r)))
+      return "This lens returned a table in an unexpected shape: rowIds should be lists of transaction ids.";
+    return null;
+  }
+  if (v.kind === "number")
+    return list(v.ids)
+      ? null
+      : "This lens returned a number in an unexpected shape: ids should be a list of transaction ids.";
+  if (v.kind === "text") return null;
+  return `This lens returned a view of kind “${v.kind}”, which the app can’t draw. Use bars, table, number or text.`;
+}
+
 export const ARRAY_METHODS = [
   ["filter", "filter(t => …)", "Keep the items where the test is true."],
   ["map", "map(t => …)", "Turn each item into something else."],

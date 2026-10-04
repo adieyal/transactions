@@ -9,6 +9,7 @@ import {
   lensLib,
   publicTxn,
   runLens,
+  viewProblem,
 } from "../lens-api.js";
 
 const TODAY = "2026-09-30";
@@ -56,4 +57,30 @@ test("what a lens gets is plain data that can be posted to the sandbox", async (
     derived.txns.filter((t) => !t.transfer).length,
   );
   assert.equal(input.data.today, TODAY);
+});
+
+test("a malformed view is described in plain words, never as a JS error", () => {
+  assert.equal(
+    viewProblem({ kind: "table", columns: ["a"], rows: [["x"]] }),
+    null,
+  );
+  assert.equal(
+    viewProblem({ kind: "bars", items: [{ label: "x", value: 1 }] }),
+    null,
+  );
+  assert.equal(viewProblem({ kind: "text", text: "hi" }), null);
+  assert.equal(
+    viewProblem({ kind: "table", columns: ["a"], rows: [{ a: 1 }] }),
+    "This lens returned a table in an unexpected shape: rows should be lists of values.",
+  );
+  for (const v of [
+    null,
+    42,
+    { kind: "bars", items: "nope" },
+    { kind: "bars", items: [{ label: "x", value: 1, ids: "t1" }] },
+    { kind: "table", rows: "nope" },
+    { kind: "number", value: 1, ids: 3 },
+    { kind: "pie" },
+  ])
+    assert.match(viewProblem(v), /^This lens /);
 });
