@@ -740,7 +740,8 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
           actions.saveLenses();
           actions.renderLenses();
           l.textContent = "Added to Lenses";
-          $("#lenses").lastElementChild?.scrollIntoView({
+          actions.openTab("lenses");
+          $("#lenses .lens:last-of-type")?.scrollIntoView({
             block: "nearest",
             behavior: "smooth",
           });

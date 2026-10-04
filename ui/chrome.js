@@ -7,7 +7,9 @@ export function createChrome(runtime, actions) {
   const { state, caps } = runtime;
   function applyPanel() {
     document.body.classList.toggle("nopanel", !state.view.panel);
-    $("#panelBtn").hidden = state.view.panel;
+    const label = state.view.panel ? "Hide the panel" : "Show the panel";
+    $("#hidePanel").title = label;
+    $("#hidePanel").setAttribute("aria-label", label);
     state.loaded && actions.renderTimeline();
   }
 
@@ -44,7 +46,7 @@ export function createChrome(runtime, actions) {
       actions.saveView();
       applyPanel();
     }
-    ["threads", "ask", "reports"].forEach((w) => {
+    ["lenses", "threads", "ask", "reports"].forEach((w) => {
       $("#tab-" + w).setAttribute("aria-selected", w === which);
       $("#pane-" + w).classList.toggle("on", w === which);
     });
@@ -87,15 +89,11 @@ export function createChrome(runtime, actions) {
       actions.refresh();
     };
     $("#hidePanel").onclick = () => {
-      state.view.panel = false;
+      state.view.panel = !state.view.panel;
       actions.saveView();
       applyPanel();
     };
-    $("#panelBtn").onclick = () => {
-      state.view.panel = true;
-      actions.saveView();
-      applyPanel();
-    };
+    $("#tab-lenses").onclick = () => openTab("lenses");
     $("#tab-threads").onclick = () => openTab("threads");
     $("#tab-reports").onclick = () => openTab("reports");
     $("#tab-ask").onclick = () => openTab("ask");

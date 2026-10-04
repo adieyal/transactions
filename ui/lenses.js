@@ -104,7 +104,7 @@ export function createLenses(runtime, actions) {
       el.innerHTML = "";
       return;
     }
-    let h = `<div class="sec-h"><h2>Lenses</h2>${runtime.derived.filtered ? `<span class="sub">Showing only what matches the filter.</span>` : ""}<span class="sub">Small programs over your transactions. Open one to read or change it.</span></div><div class="lens-grid">`;
+    let h = `<p class="lead">Small programs over your transactions. Click a bar or row to light up its beads on the timeline.${runtime.derived.filtered ? ` <b>Showing only what matches the filter.</b>` : ""}</p><div class="lens-grid">`;
     state.lenses.forEach((l) => {
       let body,
         err = null,
@@ -116,10 +116,8 @@ export function createLenses(runtime, actions) {
         err = e.message || String(e);
         body = "";
       }
-      const wide =
-        l.wide ?? (view?.kind === "table" && (view.columns || []).length >= 4);
-      h += `<article class="lens${wide ? " wide" : ""}" data-lens="${l.id}"><h3><span contenteditable="true" spellcheck="false" data-title="${l.id}">${esc(l.title)}</span></h3>${body}${err ? `<div class="err">${esc(err)}</div>` : ""}
-      <div class="foot"><button data-edit="${l.id}">Edit code</button><button data-wide="${l.id}" data-was="${wide ? 1 : 0}">${wide ? "Narrower" : "Full width"}</button>${caps.sample ? `<button data-fix="${l.id}">${err ? "Fix with " + actions.AI() : "Change with " + actions.AI()}</button>` : ""}<button data-del="${l.id}">Remove</button></div></article>`;
+      h += `<article class="lens" data-lens="${l.id}"><h3><span contenteditable="true" spellcheck="false" data-title="${l.id}">${esc(l.title)}</span></h3>${body}${err ? `<div class="err">${esc(err)}</div>` : ""}
+      <div class="foot"><button data-edit="${l.id}">Edit code</button>${caps.sample ? `<button data-fix="${l.id}">${err ? "Fix with " + actions.AI() : "Change with " + actions.AI()}</button>` : ""}<button data-del="${l.id}">Remove</button></div></article>`;
     });
     h += `<div class="newlens">${
       caps.sample
@@ -146,14 +144,6 @@ export function createLenses(runtime, actions) {
           x.classList.remove("on"),
         );
         if (!same) b.classList.add("on");
-        return;
-      }
-      const w = ev.target.closest("[data-wide]");
-      if (w) {
-        const l = state.lenses.find((x) => x.id === w.dataset.wide);
-        l.wide = w.dataset.was !== "1";
-        actions.saveLenses();
-        renderLenses();
         return;
       }
       const t = ev.target.closest("[data-edit]");

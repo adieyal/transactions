@@ -38,10 +38,21 @@ header{display:flex; align-items:center; gap:18px; padding:14px 22px 12px; flex-
 .btn:disabled{opacity:.45; cursor:default}
 .linkish{border:0; background:none; padding:0; color:var(--focus); text-decoration:underline; text-underline-offset:2px}
 main{display:grid; grid-template-columns:minmax(0,1fr) 400px; min-height:0}
-body.nopanel main{grid-template-columns:minmax(0,1fr)}
-body.nopanel .right{display:none}
-.tabs .hidepanel{margin-left:auto; border:0; background:none; color:var(--ink-2); font-size:13px; padding:12px 0 10px}
-.tabs .hidepanel:hover{color:var(--ink)}
+.tabs .hidepanel{margin-left:auto; align-self:center; display:grid; place-items:center; width:28px; height:28px; border:0; border-radius:6px; background:none; color:var(--ink-2); padding:0}
+.tabs .hidepanel:hover{color:var(--ink); background:var(--grid)}
+.tabs .hidepanel svg{transition:transform .15s}
+/* Hidden panel: a slim rail of vertical tabs; any tab reopens the panel. */
+@media (min-width:981px){
+  body.nopanel main{grid-template-columns:minmax(0,1fr) 40px}
+  body.nopanel .right{overflow:hidden}
+  body.nopanel .pane{display:none!important}
+  body.nopanel .tabs{flex-direction:column; align-items:center; padding:8px 0; border-bottom:0; gap:4px; height:100%}
+  body.nopanel .tabs .hidepanel{order:-1; margin:0 0 6px}
+  body.nopanel .tabs .hidepanel svg{transform:rotate(180deg)}
+  body.nopanel .tab{writing-mode:vertical-rl; padding:12px 8px; margin:0; border-bottom:0; border-radius:6px; font-size:13.5px}
+  body.nopanel .tab[aria-selected="true"]{color:var(--ink-2)}
+  body.nopanel .tab:hover{background:var(--grid); color:var(--ink)}
+}
 .parkbtn{cursor:pointer; opacity:.55}
 .parkbtn:hover,.parkbtn:focus{opacity:1; outline:none}
 .parkbtn rect{fill:transparent}
@@ -73,10 +84,10 @@ body.nopanel .right{display:none}
   .tabs .hidepanel{display:none}
   .editor,#rules{min-height:320px}
   header{padding:12px 14px}
-  #insp,#lenses{margin-left:14px; margin-right:14px}
+  #insp{margin-left:14px; margin-right:14px}
   .empty{margin:20px 14px 0}
 }
-#tlwrap{position:relative; padding:10px 16px 0 0; user-select:none; -webkit-user-select:none}
+#tlwrap{position:relative; padding:10px 0 0 0; user-select:none; -webkit-user-select:none}
 #tl svg{display:block; overflow:visible}
 #tl text{fill:var(--ink); font-family:var(--ui)}
 .axis{font-size:11.5px; fill:var(--ink-2)!important}
@@ -158,18 +169,15 @@ dl.kv dd{margin:0}
 .row-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px}
 .row-actions input{border:1px solid var(--wire); background:var(--raised); border-radius:6px; padding:5px 9px; min-width:160px}
 /* lenses */
-#lenses{margin:22px 16px 0 24px}
 .sec-h{display:flex; align-items:baseline; gap:12px; margin:0 0 10px}
 .sec-h h2{font:500 21px/1.2 var(--display); margin:0}
-.lens-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:16px}
-.lens.wide{grid-column:1 / -1}
+.lens-grid{display:grid; grid-template-columns:minmax(0,1fr); gap:12px}
 .lens{background:var(--raised); border:1px solid var(--grid); border-radius:10px; padding:12px 14px 10px; display:flex; flex-direction:column; min-width:0}
 .lens h3{font:600 14.5px/1.3 var(--ui); margin:0 0 8px; display:flex; gap:8px; align-items:baseline}
 .lens h3 span{flex:1}
 .lens .foot{display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:auto; padding-top:10px; font-size:12.5px}
 .lens .foot button{border:0; background:none; color:var(--ink-2); padding:0; white-space:nowrap}
 .lens .foot button:hover{color:var(--ink)}
-.lens textarea{width:100%; min-height:170px; font:12.5px/1.5 var(--code); border:1px solid var(--wire); border-radius:6px; background:var(--panel); padding:8px; margin-top:8px; resize:vertical; white-space:pre; tab-size:2}
 .lens .err{color:var(--warn); font:12.5px/1.4 var(--code); white-space:pre-wrap; margin-top:6px}
 .bars{display:flex; flex-direction:column; gap:4px}
 .bar{display:grid; grid-template-columns:minmax(70px,38%) 1fr auto; gap:8px; align-items:center; font-size:13px; border:0; background:none; padding:2px 0; text-align:start}

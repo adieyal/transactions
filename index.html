@@ -17,7 +17,6 @@
     <span class="sub" id="demoNotice">Demo · all example data is fictional</span>
     <div class="spacer"></div>
     <div class="chips" id="ranges" role="group" aria-label="Time range"></div>
-    <button class="btn quiet" id="panelBtn" hidden>Threads and Ask</button>
     <button class="btn" id="addBtn">Add statements</button>
     <div class="menu" id="moreMenu">
       <button class="btn quiet" id="moreBtn" aria-haspopup="true" aria-expanded="false">More</button>
@@ -47,16 +46,19 @@
       <div id="parkbar" aria-label="Parked threads"></div>
       <div id="insp"></div>
       <div id="changes"></div>
-      <div id="lenses"></div>
     </section>
     <aside class="right">
       <div class="tabs" role="tablist">
-        <button class="tab" role="tab" id="tab-threads" aria-selected="true" aria-controls="pane-threads">Threads</button>
+        <button class="tab" role="tab" id="tab-lenses" aria-selected="true" aria-controls="pane-lenses">Lenses</button>
+        <button class="tab" role="tab" id="tab-threads" aria-selected="false" aria-controls="pane-threads">Threads</button>
         <button class="tab" role="tab" id="tab-ask" aria-selected="false" aria-controls="pane-ask">Ask</button>
         <button class="tab" role="tab" id="tab-reports" aria-selected="false" aria-controls="pane-reports">Reports</button>
-        <button class="hidepanel" id="hidePanel" title="Give the timeline the whole width">Hide panel</button>
+        <button class="hidepanel" id="hidePanel" title="Hide the panel" aria-label="Hide the panel"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
-      <div class="pane on" id="pane-threads" role="tabpanel" aria-labelledby="tab-threads">
+      <div class="pane on" id="pane-lenses" role="tabpanel" aria-labelledby="tab-lenses">
+        <div id="lenses"></div>
+      </div>
+      <div class="pane" id="pane-threads" role="tabpanel" aria-labelledby="tab-threads">
         <p class="lead">Each thread is a wire on the timeline. Type a name, then indented bits of merchant names, #tags from your notes, or /patterns/. Put the cursor on a line to see what it catches.</p>
         <div class="editor" id="editor">
           <div class="gutter" aria-hidden="true"><div class="gutter-in" id="gutter"></div></div>

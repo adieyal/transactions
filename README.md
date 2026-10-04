@@ -100,13 +100,13 @@ The demo's **Holiday in Lantern Bay** includes all charges in those dates, inclu
 
 ### 11. Lenses
 
-Lenses are saved views calculated from the current transactions. The starter lenses summarize spending by thread, upcoming commitments, and recurring merchants. They can show bars, tables, numbers, or text. Click supported results to highlight their transactions on the timeline.
+Lenses are saved views calculated from the current transactions. They open in the **Lenses** tab of the side panel, the default tab, so they stay beside the timeline as you scroll. The starter lenses summarize spending by thread, upcoming commitments, and recurring merchants. They can show bars, tables, numbers, or text. Click supported results to highlight their transactions on the timeline.
 
 ![Three starter lenses calculated from demo transactions](docs/screenshots/11-lenses.png)
 
 ### 12. Edit lens code
 
-Choose **Edit code** on a lens to open the editor. It highlights the JavaScript that calculates the result, suggests `txns`, `lib` and transaction fields as you type, marks syntax errors, and shows a live preview beside a reference of everything a lens can use. Press Escape or **Done** to close it. You can also rename a lens, expand it, remove it, or add a blank one. If an assistant is connected, you can ask it to write a lens from a question.
+Choose **Edit code** on a lens to open the editor. It highlights the JavaScript that calculates the result, suggests `txns`, `lib` and transaction fields as you type, marks syntax errors, and shows a live preview beside a reference of everything a lens can use. Press Escape or **Done** to close it. You can also rename a lens, remove it, or add a blank one. If an assistant is connected, you can ask it to write a lens from a question.
 
 The screenshot shows the code behind the spending-by-thread chart.
 
