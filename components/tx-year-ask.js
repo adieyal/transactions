@@ -1,6 +1,6 @@
 import { esc } from "../helpers.js";
 import { answerStory } from "../story/saved-question.js";
-import { answerHTML } from "./tx-year-saved.js";
+import { CHECKED, answerHTML } from "./tx-year-saved.js";
 
 // The year's Ask section (artboard 3): connect, write, check what goes,
 // and the answer. Nothing is sent from here; tx-year asks the chat, and only
@@ -33,11 +33,13 @@ export function answeredHTML(ui, state, ai, byId) {
     .reverse()
     .find((t) => t.role === "assistant" && t.q === ui.asked);
   if (!reply) return "";
+  const story =
+    reply.pending || reply.error ? null : answerStory(reply.content, byId);
   const text = reply.pending
     ? `<p class="yr-fine">${esc(reply.status || "Looking through your statements…")}</p>`
     : reply.error
       ? `<p class="yr-fine">${esc(reply.error)}</p>`
-      : answerHTML(answerStory(reply.content, byId));
+      : answerHTML(story);
   const saved = state.reports.some(
     (r) => r.q === ui.asked && r.answer === reply.content,
   );
@@ -47,6 +49,6 @@ export function answeredHTML(ui, state, ai, byId) {
       : `<button class="yr-small" data-save-question${saved ? " disabled" : ""}>${saved ? "Saved to your stories" : "Save as a story"}</button>`;
   return `<section class="yr-sec"><div class="yr-side"><div class="yr-seclabel">You asked</div></div>
     <div class="yr-col-story"><div class="yr-note gap"><div class="yr-notelabel">Your question</div><div class="yr-notetext" dir="auto">${esc(ui.asked)}</div></div>
-    <div class="yr-answered by">Answered by ${esc(ai)}</div>${text}
+    <div class="yr-answered by">Answered by ${esc(ai)}${story?.checked ? ` · ${CHECKED}` : ""}</div>${text}
     <div class="yr-chips">${save}<button class="yr-small" data-ask-again>Ask a follow-up</button></div></div></section>`;
 }

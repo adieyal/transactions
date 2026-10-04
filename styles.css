@@ -640,7 +640,71 @@ tx-year[hidden]{display:none}
 .yr-legend{margin:10px 0 0 170px; font-size:13px; line-height:1.5; color:var(--ink-label)}
 .yr-main{max-width:1440px; margin:0 auto; padding:32px 28px 72px; display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start; box-sizing:border-box}
 .yr-story{flex:999 1 760px; min-width:0}
-.yr-bench:empty{display:none}
+.yr-bench{flex:1 1 360px; max-width:440px; min-width:0; box-sizing:border-box; background:var(--panel); border:1px solid var(--grid); border-radius:14px; padding:14px 18px 20px; font:400 15px var(--ui); color:var(--ink)}
+.yr-bench.sticky{position:sticky; top:calc(var(--yr-band-h, 368px) + 16px); max-height:calc(100vh - var(--yr-band-h, 368px) - 32px); overflow-y:auto}
+@media (max-width:700px){.yr-bench.sticky{position:static; max-height:none}}
+.bn-tabs{display:flex; gap:2px; padding:3px; border-radius:10px; background:var(--grid); margin-bottom:14px}
+.bn-tab{flex:1; font:500 14px var(--ui); min-height:38px; padding:0 10px; border:0; border-radius:8px; cursor:pointer; background:transparent; color:var(--ink-body)}
+.bn-tab[aria-selected="true"]{background:var(--raised); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.bn-empty{padding:6px 4px}
+.bn-empty p{margin:0 0 10px; font-size:14px; line-height:1.55; color:var(--ink-body)}
+.bn-empty p:last-child{margin:0}
+.bn-empty .bn-lead{font-size:16px; line-height:1.5; color:var(--ink)}
+.bn-h2{margin:0 0 4px; font:500 26px/1.2 var(--display)}
+.bn-story{margin:0 0 14px; font:400 17px/1.6 var(--display)}
+.bn-label{display:block; font-size:13px; color:var(--ink-label); margin-bottom:4px}
+.bn-input{width:100%; box-sizing:border-box; min-height:40px; padding:0 10px; border:1px solid var(--wire); border-radius:8px; background:var(--raised); font:400 15px var(--ui); color:var(--ink)}
+.bn-fine{margin:4px 0 14px; font-size:13px; color:var(--ink-label)}
+.bn-fine.top{margin:10px 0 0}
+.bn-dl{display:grid; grid-template-columns:96px minmax(0, 1fr); gap:6px 12px; margin:0 0 16px; font-size:14px; line-height:1.45}
+.bn-dl dt{color:var(--ink-label)}
+.bn-dl dd{margin:0; min-width:0; overflow-wrap:anywhere}
+.bn-thread{font-weight:600}
+.bn-caught{padding:0; border:0; background:none; font:inherit; color:var(--link); text-decoration:underline; cursor:pointer; text-align:left}
+.bn-notelabel{display:block; font-size:12px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-label); margin-bottom:6px}
+.bn-note{width:100%; box-sizing:border-box; min-height:76px; padding:10px; border:1px solid var(--wire); border-radius:8px; background:var(--raised); font:400 15px/1.5 var(--ui); color:var(--ink); resize:vertical}
+.bn-row{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.bn-small{font:500 14px var(--ui); min-height:40px; padding:0 14px; border:1px solid var(--wire); border-radius:8px; background:var(--raised); color:var(--ink); cursor:pointer}
+.bn-dark{font:500 14px var(--ui); min-height:40px; padding:0 16px; border:1px solid var(--ink); border-radius:8px; background:var(--ink); color:var(--paper); cursor:pointer}
+.bn-sub{margin:0 0 6px; font-size:14px; color:var(--ink-body)}
+.bn-merchants{margin:0 0 14px; font-size:13px; line-height:1.5; color:var(--ink-label)}
+.bn-acts{margin:10px 0 12px}
+.bn-tags{align-items:center; margin:0 0 14px}
+.bn-tagchip{display:inline-flex; align-items:center; padding:2px 10px; border:1px solid var(--wire); border-radius:12px; font-size:13px; color:var(--ink-body)}
+.bn-msg{margin:0 0 14px; padding:10px 12px; border-radius:8px; background:#E4E8E3; font-size:14px; line-height:1.5}
+.bn-tagrow{display:flex; gap:8px; margin:0 0 14px}
+.bn-tagrow input{flex:1; min-width:0; min-height:40px; padding:0 10px; border:1px solid var(--wire); border-radius:8px; background:var(--raised); font:400 15px var(--ui); color:var(--ink)}
+.bn-one .bn-tagrow{margin-top:10px}
+.bn-tell{border-top:1px solid var(--grid); padding-top:14px}
+.bn-tell > .bn-row{margin:0 0 12px}
+.bn-told{background:var(--raised); border:1px solid var(--grid); border-radius:10px; padding:14px 16px}
+.bn-told p{margin:0 0 10px; font:400 18px/1.6 var(--display)}
+.bn-p{margin:0 0 12px; font-size:14px; line-height:1.55; color:var(--ink-body)}
+.bn-rules{background:var(--raised); border:1px solid var(--grid); border-radius:10px; padding:8px 0; max-height:560px; overflow-y:auto}
+.bn-line{display:flex; align-items:baseline; gap:12px; width:100%; min-height:28px; padding:2px 12px 2px 0; border:0; text-align:left; cursor:pointer; font:400 15px/1.5 var(--ui); color:var(--ink); background:transparent; box-sizing:border-box}
+.bn-line.on{background:var(--lit)}
+.bn-line.blank{min-height:12px; cursor:default}
+.bn-line.comment{cursor:default}
+.bn-line.comment span:last-child{color:var(--ink-2); font-style:italic}
+.bn-gutter{flex:0 0 52px; text-align:right; font-size:12px; color:var(--ink-label)}
+.bn-line.head span:last-child{font-weight:600}
+.bn-line.head .bn-gutter{font-weight:600; color:var(--ink-body)}
+.bn-line:not(.head):not(.comment) span:last-child{padding-left:18px; white-space:pre}
+.bn-lenses{display:flex; flex-direction:column; gap:14px}
+.bn-lenses > .bn-row{margin:0}
+.bn-card{background:var(--raised); border:1px solid var(--grid); border-radius:12px; padding:16px 18px; min-width:0}
+.bn-h3{margin:0 0 12px; font-size:16px; font-weight:600}
+.bn-links{display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:10px}
+.bn-link{padding:0; min-height:28px; border:0; background:none; font:500 13px var(--ui); color:var(--ink-body); text-decoration:underline; cursor:pointer}
+.yr-bead.sel{box-shadow:0 0 0 2px var(--band), 0 0 0 4px var(--ink); z-index:3}
+.yr-gather{position:absolute; z-index:4; pointer-events:none; border:1px dashed var(--link); background:rgba(36,70,200,.07)}
+.yr-rows .yr-bead{cursor:pointer}
+.yr-seclabel.strong{font-weight:600; color:var(--ink)}
+.yr-lensfigs{display:flex; flex-direction:column; gap:14px}
+.yr-lensfig{margin:0; background:var(--raised); border:1px solid var(--grid); border-radius:12px; padding:16px 18px}
+.yr-lensfig figcaption{display:flex; justify-content:space-between; gap:10px; margin-bottom:10px}
+.yr-lenstitle{font-size:16px; font-weight:600}
+.yr-lensnote{font-size:12px; color:var(--ink-label)}
 .yr-pick{display:flex; flex-wrap:wrap; align-items:center; gap:8px 24px; margin-bottom:28px}
 .yr-pick .yr-side{flex:0 0 170px; font-size:13px; color:var(--ink-label)}
 .yr-pickrow{display:flex; flex-wrap:wrap; align-items:center; gap:8px; flex:1 1 420px}
@@ -726,6 +790,8 @@ tx-year .sp.yr-receipt.on{background:var(--lit); border-color:var(--ink)}
 .yr-budgetbox{position:absolute; bottom:4px; box-sizing:border-box; border:1px solid; border-bottom:0; border-radius:3px 3px 0 0; opacity:.7}
 .yr-budgetline{position:absolute; left:0; border-top:1px dashed; opacity:.7}
 .yr-budgetlabel{position:absolute; margin-right:4px; font-size:11px; color:#4A5458; white-space:nowrap}
-.yr-addbudget{display:none; align-self:flex-start; margin-top:2px; font:500 12px var(--ui); min-height:24px; padding:0 8px; border:1px solid #B7BEBD; border-radius:12px; background:#FFFFFF; color:#1E2528; cursor:pointer}
-.yr-row:hover .yr-addbudget, .yr-addbudget:focus-visible{display:inline-flex; align-items:center}
+/* Hidden until the row is hovered, as drawn, but still in the tab order: a
+   keyboard reaches it, and it shows while focused. */
+.yr-addbudget{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; align-self:flex-start; margin-top:2px; font:500 12px var(--ui); min-height:0; padding:0; border:0; border-radius:12px; background:#FFFFFF; color:#1E2528; cursor:pointer}
+.yr-row:hover .yr-addbudget, .yr-row:focus-within .yr-addbudget{position:static; width:auto; height:auto; overflow:visible; clip-path:none; display:inline-flex; align-items:center; min-height:24px; padding:0 8px; border:1px solid #B7BEBD}
 .yr-notsent{margin:0 0 14px; font-size:14px; color:#3E474B}

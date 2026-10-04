@@ -42,8 +42,16 @@ export function answerStory(answer, byId) {
           .replace(/\s{2,}/g, " ")
           .trim();
         cited.push(...txnIds);
-        return txnIds.length
-          ? { text, txnIds: [...new Set(txnIds)] }
+        const ids = [...new Set(txnIds)];
+        return ids.length
+          ? {
+              text,
+              txnIds: ids,
+              checked: figuresMatch(
+                text,
+                ids.map((id) => byId.get(id)),
+              ),
+            }
           : { text, unchecked: true };
       }),
     )
@@ -51,8 +59,35 @@ export function answerStory(answer, byId) {
   return {
     paragraphs,
     unchecked: paragraphs.flat().some((s) => s.unchecked),
+    // "each sentence checked against your transactions": true only when
+    // every sentence cites payments and each amount it names is one of them,
+    // or the sum of a merchant's, or of all of them.
+    checked: paragraphs.length > 0 && paragraphs.flat().every((s) => s.checked),
     chips: chips([...new Set(cited)].map((id) => byId.get(id))),
   };
+}
+
+// The amounts a sentence names: "₪1,600", "ZAR 119", "$12.50", "€26.50".
+const FIGURE =
+  /(?:\p{Sc}\s?|\b[A-Z]{3}\s)(\d[\d,]*(?:\.\d+)?)|(\d[\d,]*(?:\.\d+)?)\s?\p{Sc}/gu;
+export function figures(text) {
+  return [...String(text).matchAll(FIGURE)].map((m) =>
+    Number((m[1] ?? m[2]).replace(/,/g, "")),
+  );
+}
+
+// Each named amount matches a cited payment, a merchant's total among them,
+// or the total of them all, to the nearest whole unit as the story rounds.
+function figuresMatch(text, ts) {
+  const sums = new Map();
+  for (const t of ts)
+    sums.set(t.merchant, (sums.get(t.merchant) ?? 0) + Math.abs(t.amount));
+  const ok = [
+    ...ts.map((t) => Math.abs(t.amount)),
+    ...sums.values(),
+    ts.reduce((a, t) => a + Math.abs(t.amount), 0),
+  ];
+  return figures(text).every((f) => ok.some((v) => Math.abs(v - f) < 1));
 }
 
 // "Meadow Paws · 18 Sep · ₪95", "Meadow Paws · 11 payments · ₪55 each".

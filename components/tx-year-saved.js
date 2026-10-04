@@ -7,6 +7,8 @@ import { MONTHS, esc } from "../helpers.js";
 export const STRUCK_NOTE =
   "The struck sentence couldn’t be checked against your transactions, so it’s shown as unchecked.";
 
+export const CHECKED = "each sentence checked against your transactions";
+
 // "30 Sep 2026", as drawn.
 const runDate = (iso) => {
   const [y, m, d] = iso.split("-").map(Number);
@@ -42,7 +44,7 @@ export function savedHTML(r, story, { canRun }) {
       ${r.error ? `<p class="yr-fine">${esc(r.error)}</p>` : ""}
       ${r.answer ? answerHTML(story) : ""}
       ${receipts}
-      ${r.answer && r.by ? `<p class="yr-answered">Answered by ${esc(r.by)}</p>` : ""}
+      ${r.answer && r.by ? `<p class="yr-answered">Answered by ${esc(r.by)}${story.checked ? ` · ${CHECKED}` : ""}</p>` : ""}
       <div class="yr-chips"><button class="yr-small" data-change-question="${esc(r.id)}">Change the question</button><button class="yr-small" data-remove-question="${esc(r.id)}">Remove</button></div>
     </div>
   </div>`;

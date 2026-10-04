@@ -2,6 +2,7 @@ import { debounce, esc, fmt, monthName } from "../helpers.js";
 import { $, html, paneShown, toast } from "./dom.js";
 import { lensInput, viewProblem } from "../lens-api.js";
 import { newLensSandbox } from "./lens-sandbox.js";
+import { STARTER_LENSES } from "../defaults.js";
 
 export function createLenses(runtime, actions) {
   const { state, caps } = runtime;
@@ -120,15 +121,7 @@ export function createLenses(runtime, actions) {
         return;
       }
       if (ev.target.id === "lensBlank") {
-        const l = {
-          id: "l" + Date.now().toString(36),
-          title: "Untitled lens",
-          code: `// txns: your transactions. lib: sum, groupBy, month, fmt, expected, threads.\nreturn { kind: "number", value: lib.sum(txns, t => t.amount), label: "Everything on your statements" };`,
-        };
-        state.lenses.push(l);
-        actions.save("lenses");
-        renderLenses();
-        actions.openLensEditor(l.id);
+        addBlankLens();
         return;
       }
       if (ev.target.id === "lensGo") {
@@ -183,7 +176,33 @@ export function createLenses(runtime, actions) {
     art.querySelector("tx-lens")?.update();
   }, 250);
 
+  function addBlankLens() {
+    const l = {
+      id: "l" + Date.now().toString(36),
+      title: "Untitled lens",
+      code: `// txns: your transactions. lib: sum, groupBy, month, fmt, expected, threads.\nreturn { kind: "number", value: lib.sum(txns, t => t.amount), label: "Everything on your statements" };`,
+    };
+    state.lenses.push(l);
+    actions.save("lenses");
+    renderLenses();
+    actions.refresh();
+    actions.openLensEditor(l.id);
+  }
+
+  // Puts back any starter lens that was removed; the person's own stay.
+  function restoreStarterLenses() {
+    const have = new Set(state.lenses.map((l) => l.id));
+    const missing = STARTER_LENSES.filter((l) => !have.has(l.id));
+    if (!missing.length) return toast("The starter lenses are all here.");
+    state.lenses = [...state.lenses, ...missing.map((l) => ({ ...l }))];
+    actions.save("lenses");
+    renderLenses();
+    actions.refresh();
+  }
+
   return {
+    addBlankLens,
+    restoreStarterLenses,
     renderLenses,
     renderView,
     rerunLens,
@@ -196,13 +215,22 @@ export const contract = {
   name: "lenses",
   create: createLenses,
   provides: [
+    "addBlankLens",
+    "restoreStarterLenses",
     "renderLenses",
     "renderView",
     "rerunLens",
     "runLens",
     "wireLenses",
   ],
-  requires: ["AI", "openLensEditor", "sampleErr", "save", "writeLens"],
+  requires: [
+    "AI",
+    "openLensEditor",
+    "refresh",
+    "sampleErr",
+    "save",
+    "writeLens",
+  ],
   renders: ["renderLenses"],
   wires: ["wireLenses"],
 };

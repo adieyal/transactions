@@ -10,11 +10,19 @@ import { wireYearStrip } from "./tx-year-strip.js";
 import { savedHTML } from "./tx-year-saved.js";
 import { whatGoes } from "../assistant/prompts.js";
 import { answerStory } from "../story/saved-question.js";
+import {
+  benchClick,
+  benchHTML,
+  benchInput,
+  resetBench,
+  selectedIds,
+} from "./tx-year-bench.js";
+import { wireGather } from "./tx-year-gather.js";
 
 const PRIVATE = "Only you see this. Your answer stays on this device.";
 
-// <tx-year>: artboard 3 without its side panel (the bench is M4, and has an
-// empty slot here). The Year scale tells the covered months as sections,
+// <tx-year>: artboard 3, the timeline band, the story column and the bench
+// beside it (tx-year-bench.js). The Year scale tells the covered months as sections,
 // each lighting its stretch of the timeline while pointed at; the Month
 // scale is one month inside the year. Asking goes through the app's chat
 // (actions.ask), only when Send is pressed.
@@ -28,6 +36,27 @@ export function createYearComponent(runtime, actions) {
     text: "",
     asked: null,
     story: null,
+    bench: "details",
+    manyName: "",
+    manyMsg: "",
+    told: false,
+    toldSaved: false,
+    tagging: false,
+    tag: "",
+    activeLine: null,
+  };
+  // What the bench (tx-year-bench.js) may do, through this contract.
+  const benchActions = {
+    addBlankLens: () => actions.addBlankLens(),
+    addPeriod: (...a) => actions.addPeriod(...a),
+    addReport: (...a) => actions.addReport(...a),
+    bulkTag: (...a) => actions.bulkTag(...a),
+    highlight: (ids) => actions.highlight(ids),
+    openLensEditor: (id) => actions.openLensEditor(id),
+    refresh: () => actions.refresh(),
+    refreshSoon: () => actions.refreshSoon(),
+    restoreStarterLenses: () => actions.restoreStarterLenses(),
+    save: (k) => actions.save(k),
   };
   // The saved question picked from the story list, if it still exists.
   const picked = () =>
@@ -140,6 +169,7 @@ export function createYearComponent(runtime, actions) {
         <div class="yr-chips"><button class="yr-chipbtn" data-mark-period>Mark a period</button><button class="yr-chipbtn" data-open="month">Write a note</button><button class="yr-chipbtn" data-open="reports">Tell the story of something else</button></div>
         <p class="yr-fine">This story is written from your statements and your notes, and it changes when you add either.</p>
       </div></div>
+      ${lensesHTML()}
       ${answeredHTML(ui, state, actions.AI(), runtime.derived.byId)}
       <section class="yr-sec" aria-label="Ask"><div class="yr-side"><div class="yr-seclabel">Ask</div></div><div class="yr-col-story">${askHTML(
         ui,
@@ -155,9 +185,21 @@ export function createYearComponent(runtime, actions) {
       )}</div></section>`;
   }
 
-  // The story column, and an empty slot for the bench (M4).
+  // Lenses the person added to the story, each run in its <tx-lens>.
+  function lensesHTML() {
+    const ls = state.lenses.filter((l) => l.inStory);
+    if (!ls.length) return "";
+    return `<section class="yr-sec yr-lensesec" aria-label="Your lenses"><div class="yr-side"><div class="yr-seclabel strong">Your lenses</div></div><div class="yr-col-story yr-lensfigs">${ls
+      .map(
+        (l) =>
+          `<figure class="yr-lensfig"><figcaption><span class="yr-lenstitle" dir="auto">${esc(l.title)}</span><span class="yr-lensnote">Your lens · updates with each statement</span></figcaption><tx-lens lens="${esc(l.id)}"></tx-lens></figure>`,
+      )
+      .join("")}</div></section>`;
+  }
+
+  // The story column, and the bench beside it.
   function pageHTML(band, ms, year, month, story) {
-    return `${band}<main class="yr-main"><div class="yr-story">${pickerHTML(ms, year, month)}${!year ? monthHTML(story) : picked() ? savedHTML(picked(), answerStory(picked().answer, runtime.derived.byId), { canRun: caps.sample }) : yearHTML(story)}</div><aside class="yr-bench" aria-label="Details and tools"></aside></main>`;
+    return `${band}<main class="yr-main"><div class="yr-story">${pickerHTML(ms, year, month)}${!year ? monthHTML(story) : picked() ? savedHTML(picked(), answerStory(picked().answer, runtime.derived.byId), { canRun: caps.sample }) : yearHTML(story)}</div><aside class="yr-bench${state.compactTimeline ? " sticky" : ""}" aria-label="Details and tools">${benchHTML(ui, runtime)}</aside></main>`;
   }
 
   // The notes written on a period's payments, each with its day.
@@ -225,9 +267,25 @@ export function createYearComponent(runtime, actions) {
             label: year ? this.story.title : monthLong(month),
             focus: sec ? { from: sec.from, to: sec.to } : null,
           });
-          const focus = this.querySelector("textarea:focus") ? "ask" : null;
+          // A field being typed in keeps its focus and caret.
+          const f = this.querySelector("input:focus, textarea:focus");
+          const at = f && [f.selectionStart, f.selectionEnd];
           this.innerHTML = pageHTML(band, ms, year, month, this.story);
-          if (focus) this.querySelector("#ask")?.focus();
+          const back = f?.id && this.querySelector(`#${CSS.escape(f.id)}`);
+          if (back && "value" in back) {
+            back.focus();
+            if (at[0] != null) back.setSelectionRange(at[0], at[1]);
+          }
+          if (ui.focusAsk) {
+            ui.focusAsk = false;
+            const ask = this.querySelector("#ask");
+            ask?.focus();
+            ask?.setSelectionRange(ask.value.length, ask.value.length);
+            ask?.scrollIntoView({ block: "center" });
+          }
+          const bandEl = this.querySelector(".yr-band");
+          if (bandEl)
+            this.style.setProperty("--yr-band-h", `${bandEl.offsetHeight}px`);
           this.markWindow();
           this.mark();
         }
@@ -250,8 +308,10 @@ export function createYearComponent(runtime, actions) {
           this.querySelectorAll(".sp[data-ids]").forEach((sp) =>
             sp.classList.toggle("on", sameIds(sp.dataset.ids.split(","), hl)),
           );
+          const sel = state.selection;
           this.querySelectorAll(".yr-bead").forEach((b) => {
             const on = hl.has(b.dataset.id);
+            b.classList.toggle("sel", sel.has(b.dataset.id));
             b.classList.toggle("dim", lit && !on);
             b.classList.toggle("ring", ring && on);
           });
@@ -262,6 +322,20 @@ export function createYearComponent(runtime, actions) {
           this.querySelectorAll(".yr-row").forEach((r) =>
             r.classList.toggle("focus", threads.has(r.dataset.thread)),
           );
+        }
+        // A new selection: Details, with the timeline folded to its compact
+        // strip so both stay in view (Copy rules s9).
+        pick(ids, toggle) {
+          const sel = new Set(toggle ? selectedIds(runtime) : []);
+          for (const id of ids)
+            if (toggle && sel.has(id)) sel.delete(id);
+            else sel.add(id);
+          state.selection = sel;
+          resetBench(ui);
+          ui.manyName = "";
+          if (sel.size) state.compactTimeline = true;
+          state.highlight = new Set();
+          actions.refresh();
         }
         go(scale, month) {
           state.scale = scale;
@@ -299,12 +373,30 @@ export function createYearComponent(runtime, actions) {
             }
           });
           this.addEventListener("input", (e) => {
+            if (benchInput(e, ui, runtime, benchActions)) return;
             if (e.target.id === "ask") ui.text = e.target.value;
             if (e.target.id === "stretch-name") ui.name = e.target.value;
           });
+          this.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && e.target.id === "bench-tag") {
+              e.preventDefault();
+              this.querySelector("[data-bench-tag-add]")?.click();
+            }
+          });
+          // Click a bead for its details; shift-click to add or take it out.
+          wireGather(this, (ids, add) => this.pick(ids, add));
           this.addEventListener("click", (e) => {
+            const bead = e.target.closest(".yr-bead[data-id]");
+            if (bead) return this.pick([bead.dataset.id], e.shiftKey);
             const t = e.target.closest("button");
             if (!t) return;
+            if (t.closest(".yr-bench")) {
+              if (benchClick(t, ui, runtime, benchActions, this)) {
+                if (ui.focusAsk) this.go("year");
+                else this.render();
+              }
+              return;
+            }
             const d = t.dataset;
             if ("toYear" in d) this.go("year");
             else if (d.month) this.go("month", d.month);
@@ -422,7 +514,20 @@ export const contract = {
   name: "tx-year",
   create: createYearComponent,
   provides: ["defineYear"],
-  requires: ["AI", "highlight", "openAISettings", "refresh", "save"],
+  requires: [
+    "AI",
+    "addBlankLens",
+    "addPeriod",
+    "addReport",
+    "bulkTag",
+    "highlight",
+    "openAISettings",
+    "openLensEditor",
+    "refresh",
+    "refreshSoon",
+    "restoreStarterLenses",
+    "save",
+  ],
   renders: [],
   wires: ["defineYear"],
 };

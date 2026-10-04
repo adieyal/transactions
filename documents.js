@@ -32,7 +32,8 @@ const isBool = (v) => typeof v === "boolean";
 const isName = (n) => record(n) && text(n.name);
 // fromBackup: true for a lens that came from an imported backup (shown with
 // a label; it runs in the sandbox like any lens). off: the earlier
-// switched-off flag, still accepted and read as fromBackup.
+// switched-off flag, still accepted and read as fromBackup. inStory: true
+// for a lens the person added to the year's story ("Your lenses").
 const flag = (v) => v == null || typeof v === "boolean";
 const isLens = (l) =>
   record(l) &&
@@ -40,7 +41,8 @@ const isLens = (l) =>
   text(l.title) &&
   text(l.code) &&
   flag(l.off) &&
-  flag(l.fromBackup);
+  flag(l.fromBackup) &&
+  flag(l.inStory);
 // A lens saved while imported lenses were switched off: now labelled instead.
 const fromOff = ({ off, ...l }) => (off ? { ...l, fromBackup: true } : l);
 const isPeriod = (p) =>
