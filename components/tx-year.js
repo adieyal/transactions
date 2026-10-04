@@ -7,7 +7,7 @@ import { sameIds } from "../ui/highlight.js";
 import { wireLinkedRefs } from "./linked-ref.js";
 import { beadStops, wireBeadKeys } from "./bead-keys.js";
 import { subscribeWhileConnected } from "./base.js";
-import { bandHTML } from "./tx-year-band.js";
+import { bandHTML, wireBudgetLines } from "./tx-year-band.js";
 import {
   benchClick,
   benchHTML,
@@ -275,6 +275,11 @@ export function createYearComponent(runtime, actions) {
               this.querySelector("[data-bench-tag-add]")?.click();
             }
           });
+          wireBudgetLines(this, {
+            budgetDragged: (name, v) => actions.budgetDragged(name, v),
+            removeBudget: (name) => actions.removeBudget(name),
+            refresh: () => actions.refresh(),
+          });
           // Click a bead for its details; shift-click to add or take it out.
           wireGather(this, (ids, add) => this.pick(ids, add));
           wireLensView(this);
@@ -317,7 +322,10 @@ export function createYearComponent(runtime, actions) {
             else if (t.classList.contains("yr-compact")) {
               state.compactTimeline = !state.compactTimeline;
               this.render();
-            } else if (d.open)
+            } else if (d.bdel) actions.removeBudget(d.bdel);
+            else if (d.addBudget)
+              actions.addBudget(d.addBudget, "You can change it in Threads.");
+            else if (d.open)
               this.dispatchEvent(
                 new CustomEvent("tx-open-bench", {
                   bubbles: true,
@@ -380,6 +388,9 @@ export const contract = {
   requires: [
     "Store",
     "addBlankLens",
+    "addBudget",
+    "budgetDragged",
+    "removeBudget",
     "addPeriod",
     "addReport",
     "bulkTag",

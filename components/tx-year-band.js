@@ -132,7 +132,7 @@ function rowsHTML(derived, txns, scale, { year, compact, numbers }) {
             .map((t) => t.id)
             .join(","),
         )}" style="color: ${esc(col)}; font-size: ${compact ? 13 : 15}px">${esc(thread)}</span>${meta ? `<span class="yr-meta">${esc(meta)}</span>` : ""}${add}</div>
-        <div class="yr-track">${budget ? budgetHTML(ts, budget, cur, col, scale) : ""}<div class="yr-wire" style="top: ${WY}px"></div>${arcs ? `<svg class="yr-arcs" viewBox="0 0 1000 ${RH}" preserveAspectRatio="none" aria-hidden="true"><path d="${esc(arcs)}" style="stroke: ${esc(col)}"></path></svg>` : ""}${beads}</div>
+        <div class="yr-track">${budget ? budgetHTML(ts, budget, cur, col, scale, thread) : ""}<div class="yr-wire" style="top: ${WY}px"></div>${arcs ? `<svg class="yr-arcs" viewBox="0 0 1000 ${RH}" preserveAspectRatio="none" aria-hidden="true"><path d="${esc(arcs)}" style="stroke: ${esc(col)}"></path></svg>` : ""}${beads}</div>
       </div>`;
     })
     .join("");
@@ -140,8 +140,8 @@ function rowsHTML(derived, txns, scale, { year, compact, numbers }) {
 
 // Numbers on, a thread with a budget: each month's payments as a box
 // against the budget's dashed line, 40px high ("Apr: ₪305 of ₪300").
-const LANE = 40;
-function budgetHTML(ts, budget, cur, col, scale) {
+export const LANE = 40;
+function budgetHTML(ts, budget, cur, col, scale, thread) {
   const months = scale.cols.length - (scale.ahead ? 1 : 0);
   const w = (months / scale.N) * 100;
   const boxes = scale.cols
@@ -155,7 +155,10 @@ function budgetHTML(ts, budget, cur, col, scale) {
       return `<div class="yr-budgetbox" data-tip="${esc(`${MONTHS[mm - 1]}: ${money(v, cur)} of ${money(budget, cur)}`)}" aria-label="${esc(`${MONTHS[mm - 1]}: ${money(v, cur)} of ${money(budget, cur)}`)}" style="height: ${h}px; left: calc(${pct((i / scale.N) * 100)}% + 3px); width: calc(${(100 / scale.N).toFixed(3)}% - 6px); border-color: ${esc(col)}; background: ${esc(col)}14"></div>`;
     })
     .join("");
-  return `${boxes}<div class="yr-budgetline" style="width: ${pct(w)}%; bottom: ${4 + LANE}px; border-top-color: ${esc(col)}"></div><div class="yr-budgetlabel" style="right: ${pct(100 - w)}%; bottom: ${6 + LANE}px">${esc(`${money(budget, cur)} a month`)}</div>`;
+  // The old timeline's budget controls: a circled cross by the label
+  // removes it (data-bdel), and the handle at the line's end drags it.
+  const label = `${money(budget, cur)} a month`;
+  return `${boxes}<div class="yr-budgetline" data-bline="${esc(thread)}" style="width: ${pct(w)}%; bottom: ${4 + LANE}px; border-top-color: ${esc(col)}"></div><div class="yr-budgetlabel" style="right: ${pct(100 - w)}%; bottom: ${6 + LANE}px">${esc(label)}<button class="yr-bdel" data-bdel="${esc(thread)}" aria-label="${esc(`Remove the budget for ${thread}`)}" data-tip="Remove this budget"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M5.5,5.5l5,5m0,-5l-5,5"/></svg></button></div><div class="yr-bhandle" data-bthread="${esc(thread)}" data-budget="${esc(budget)}" tabindex="0" role="slider" aria-label="${esc(`Budget for ${thread}`)}" aria-valuenow="${esc(budget)}" aria-valuetext="${esc(label)}" data-tip="Drag up or down to set the monthly budget" style="left: calc(${pct(w)}% - 6px); bottom: ${4 + LANE - 6}px; border-color: ${esc(col)}"></div>`;
 }
 
 // Busy stretches the app found, for <tx-period-strip>, which draws them as
@@ -277,4 +280,70 @@ function numbersHTML(derived, state, view, scale, txns) {
     })
     .join("");
   return `<div class="yr-outrow"><div class="yr-gutter yr-small">Went out</div><div class="yr-outs">${outs}</div></div>${cover}`;
+}
+
+// The budget handle, as on the old timeline: drag it up or down, arrows
+// step it, Delete removes the budget. The line and its label follow the
+// drag; budgetDragged rounds and saves the value let go at.
+export function wireBudgetLines(host, actions) {
+  let drag = null;
+  const step = (b) => (b >= 1000 ? 100 : b >= 100 ? 50 : 10);
+  host.addEventListener("pointerdown", (e) => {
+    const h = e.target.closest?.(".yr-bhandle");
+    if (!h || e.button) return;
+    // Ahead of the gather's listeners on the same element.
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    h.setPointerCapture(e.pointerId);
+    drag = { h, y: e.clientY, budget: +h.dataset.budget, up: 0 };
+  });
+  host.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    e.stopImmediatePropagation();
+    drag.up = Math.max(-LANE, drag.y - e.clientY);
+    const track = drag.h.parentElement;
+    const move = (sel, base) => {
+      const el = track.querySelector(sel);
+      if (el) el.style.bottom = `${base + drag.up}px`;
+    };
+    move(".yr-bhandle", 4 + LANE - 6);
+    move(".yr-budgetline", 4 + LANE);
+    move(".yr-budgetlabel", 6 + LANE);
+  });
+  const end = (e, keep) => {
+    if (!drag) return;
+    e.stopImmediatePropagation();
+    const d = drag;
+    drag = null;
+    if (keep && Math.abs(d.up) > 2)
+      actions.budgetDragged(
+        d.h.dataset.bthread,
+        (d.budget * (LANE + d.up)) / LANE,
+      );
+    else actions.refresh();
+  };
+  host.addEventListener("pointerup", (e) => end(e, true));
+  host.addEventListener("pointercancel", (e) => end(e, false));
+  host.addEventListener("keydown", (e) => {
+    const h = e.target.closest?.(".yr-bhandle");
+    if (!h) return;
+    const name = h.dataset.bthread,
+      b = +h.dataset.budget;
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      e.stopPropagation();
+      actions.removeBudget(name);
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      actions.budgetDragged(
+        name,
+        Math.max(0, b + (e.key === "ArrowUp" ? step(b) : -step(b))),
+      );
+      requestAnimationFrame(() =>
+        host
+          .querySelector(`.yr-bhandle[data-bthread="${CSS.escape(name)}"]`)
+          ?.focus(),
+      );
+    }
+  });
 }

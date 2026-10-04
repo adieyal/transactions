@@ -276,6 +276,20 @@ export function createTimeline(runtime, actions) {
     return actions.commit(budget(state, { thread: name, value }));
   }
 
+  // A budget line let go at a new value (here, or on the year band, which
+  // passes the raw value): rounded as the drag rounds it, then saved.
+  function budgetDragged(name, value) {
+    const v = Math.max(0, niceBudget(value));
+    const th = runtime.derived.R.threads.find((t) => t.name === name);
+    if (!th || v === th.budget) return actions.refresh();
+    setBudget(name, v);
+    if (v > 0)
+      toast(
+        `${name}: ${fmt(v, 0, runtime.derived.allTxns.find((t) => t.thread === name)?.currency)} a month. Drag the line again any time, or edit it in Threads.`,
+      );
+    else toast(`Removed the budget for ${name}.`);
+  }
+
   // The period band under a point, and which side if it is on an edge.
   function bandAt({ x, y }) {
     if (y < TL.perTop) return null;
@@ -301,7 +315,7 @@ export function createTimeline(runtime, actions) {
       layout: () => TL,
       positions: () => POS,
       renderTimeline,
-      setBudget,
+      budgetDragged,
       removeBudget,
       bandAt,
     });
@@ -524,8 +538,10 @@ export function createTimeline(runtime, actions) {
 
   return {
     addBudget,
+    budgetDragged,
     clearFocus,
     highlight,
+    removeBudget,
     renderParkbar,
     renderTimeline,
     select,
@@ -540,8 +556,10 @@ export const contract = {
   create: createTimeline,
   provides: [
     "addBudget",
+    "budgetDragged",
     "clearFocus",
     "highlight",
+    "removeBudget",
     "renderParkbar",
     "renderTimeline",
     "select",

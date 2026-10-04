@@ -1,7 +1,5 @@
-import { fmt } from "../helpers.js";
 import { dragTo, startDrag } from "../transactions/period-drag.js";
 import { editPeriod } from "../model/index.js";
-import { $, toast } from "./dom.js";
 import { isoFromMs, niceBudget } from "./timeline-layout.js";
 
 // Dragging on the timeline: drawing a period on the period strip, moving or
@@ -11,7 +9,7 @@ import { isoFromMs, niceBudget } from "./timeline-layout.js";
 // Returns active(), true while a drag is under way.
 export function wireTimelineDrag(host, runtime, actions, ctx) {
   const { state } = runtime;
-  const { renderTimeline, setBudget, removeBudget, bandAt } = ctx;
+  const { renderTimeline, budgetDragged, removeBudget, bandAt } = ctx;
   let mode = null;
   const pt = (ev) => {
     const r = host.getBoundingClientRect();
@@ -139,12 +137,7 @@ export function wireTimelineDrag(host, runtime, actions, ctx) {
           ?.focus();
         return;
       }
-      setBudget(name, v);
-      if (v > 0)
-        toast(
-          `${name}: ${fmt(v, 0, runtime.derived.allTxns.find((t) => t.thread === name)?.currency)} a month. Drag the line again any time, or edit it in Threads.`,
-        );
-      else toast(`Removed the budget for ${name}.`);
+      budgetDragged(name, v);
       return;
     }
     if (md0.kind === "move" || md0.kind === "resize") {

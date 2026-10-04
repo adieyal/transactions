@@ -21,9 +21,12 @@ import { refIds, togglePin, wireLinkedRefs } from "./linked-ref.js";
 // - grab a period's name, or anywhere in its column, to move it, and within
 //   4px of a side, the whole height, to resize it, by whole days;
 // - names that would overlap stack on rows of 28px, as the drag goes;
-// - click a name for a card to rename it, open its details (tx-open-period)
-//   or delete it (removePeriod, with Undo); arrows move it a day, and Shift
-//   with an arrow its end.
+// - click a name to select it, as the old timeline did: a circled cross
+//   after its end removes it (removePeriod, with Undo), so does Delete
+//   (ui/chrome.js), and a 7px handle at each end resizes it;
+// - double-click or Enter opens a card to rename it, open its details
+//   (tx-open-period) or delete it; arrows move it a day, and Shift with an
+//   arrow its end.
 // Whatever the element wraps (a view's thread rows) is the rest of the
 // periods' columns: the tints are drawn behind it, and presses on it move
 // and resize. Busy stretches the view found come in as JSON: [{ from, to,
@@ -61,8 +64,8 @@ export function createPeriodStrip(runtime, actions) {
   // A name nudged from the keyboard keeps its focus across the refresh,
   // which may draw a new element in this one's place.
   let refocus = null;
-  // A name clicked pins its payments (linked-ref.js) and opens its card;
-  // the pin refreshes the view, so the card opens in the next render.
+  // An open card survives the refreshes its own clicks cause, which may
+  // draw a new strip in this one's place.
   let reopen = null;
 
   function definePeriodStrip() {
@@ -107,8 +110,16 @@ export function createPeriodStrip(runtime, actions) {
           const chips = [
             ...named.map(
               (p) =>
-                `<button class="${L.chip}" data-period="${esc(p.id)}" data-ref data-period-ref="${esc(p.id)}" data-tip="${esc(`${p.name}: a period you named. Drag to move it, drag a side to change its dates, or click to rename or delete it.`)}" style="left: ${pct(sc.at(p.start))}%; min-width: ${pct(Math.max(sc.end(p.end) - sc.at(p.start), 0.008))}%">${esc(p.name)}</button>`,
+                `<button class="${L.chip}${p.id === state.periodSel ? " on" : ""}" data-period="${esc(p.id)}" data-ref data-period-ref="${esc(p.id)}" data-tip="${esc(`${p.name}: a period you named. Click to select it, drag to move it, drag an end to change its dates, or double-click to rename it.`)}" style="left: ${pct(sc.at(p.start))}%; min-width: ${pct(Math.max(sc.end(p.end) - sc.at(p.start), 0.008))}%">${esc(p.name)}</button>`,
             ),
+            // The selected period's end handles and remove button (the old
+            // timeline's rect.pedge and g.xbtn[data-pdel]).
+            ...named
+              .filter((p) => p.id === state.periodSel)
+              .map(
+                (p) =>
+                  `<span class="ps-edge" data-pedge="${esc(p.id)}" data-edge="start" aria-hidden="true" style="left: calc(${pct(sc.at(p.start))}% - 3px)"></span><span class="ps-edge" data-pedge="${esc(p.id)}" data-edge="end" aria-hidden="true" style="left: calc(${pct(sc.end(p.end))}% - 4px)"></span><button class="ps-del" data-pdel="${esc(p.id)}" aria-label="${esc(`Remove ${p.name}`)}" data-tip="Remove this period (Delete)" style="left: calc(${pct(sc.end(p.end))}% + 6px)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7"/><path d="M5,5l6,6m0,-6l-6,6"/></svg></button>`,
+              ),
             ...stretches.map(
               (s) =>
                 `<button class="sp ${L.schip}" ${Object.entries(s.data || {})
@@ -137,11 +148,8 @@ export function createPeriodStrip(runtime, actions) {
           );
           this.stack();
           this.placeBands();
-          if (reopen && this.chip(reopen)) {
-            const id = reopen;
-            reopen = null;
-            this.openCard(id);
-          }
+          if (reopen && !this.querySelector(".cv-pedit") && this.chip(reopen))
+            this.openCard(reopen);
           const back = refocus && this.chip(refocus);
           if (back) {
             refocus = null;
@@ -155,7 +163,7 @@ export function createPeriodStrip(runtime, actions) {
         // dates or its name, whichever is wider, and lane 0 is at the top.
         stack() {
           const s = this.strip;
-          const chips = [...s.querySelectorAll(":scope > button")];
+          const chips = [...s.querySelectorAll(":scope > button:not(.ps-del)")];
           const { laneOf, lanes } = periodLanes(
             chips.map((c, i) => ({
               id: i,
@@ -163,11 +171,21 @@ export function createPeriodStrip(runtime, actions) {
               end: c.offsetLeft + c.offsetWidth + 6,
             })),
           );
-          if (lanes < 2) return;
-          s.style.height = `${lanes * LANE}px`;
-          chips.forEach((c, i) => {
-            const bottom = parseFloat(getComputedStyle(c).bottom) || 0;
-            c.style.bottom = `${(lanes - 1 - laneOf[i]) * LANE + bottom}px`;
+          if (lanes >= 2) {
+            s.style.height = `${lanes * LANE}px`;
+            chips.forEach((c, i) => {
+              const bottom = parseFloat(getComputedStyle(c).bottom) || 0;
+              c.style.bottom = `${(lanes - 1 - laneOf[i]) * LANE + bottom}px`;
+            });
+          }
+          // The handles and the remove button ride on their name's row.
+          s.querySelectorAll("[data-pedge], [data-pdel]").forEach((x) => {
+            const c = this.chip(x.dataset.pedge || x.dataset.pdel);
+            if (!c) return;
+            x.style.bottom = c.style.bottom || "";
+            // The cross goes after the name when the name runs past the end.
+            if (x.dataset.pdel)
+              x.style.left = `${Math.max(x.offsetLeft, c.offsetLeft + c.offsetWidth + 4)}px`;
           });
         }
         // The tints line up with the strip and run the height of what the
@@ -200,6 +218,9 @@ export function createPeriodStrip(runtime, actions) {
         // unless it lands on a bead or another control. Shift-drag is left
         // to the view (it gathers).
         hitAt(e) {
+          const edge = e.target.closest?.(".ps-strip [data-pedge]");
+          if (edge && edge.closest("tx-period-strip") === this)
+            return { id: edge.dataset.pedge, edge: edge.dataset.edge };
           const chip = e.target.closest?.(".ps-strip [data-period]");
           if (chip && chip.closest("tx-period-strip") === this) {
             const hit = periodAt(this.columns(), e.clientX, state.periodSel);
@@ -210,7 +231,9 @@ export function createPeriodStrip(runtime, actions) {
           if (
             e.shiftKey ||
             !e.target.closest ||
-            e.target.closest(".ps-own, [data-id], button, input, a, label")
+            e.target.closest(
+              ".ps-own, [data-id], button, input, a, label, [role=slider]",
+            )
           )
             return null;
           return periodAt(this.columns(), e.clientX, state.periodSel);
@@ -233,7 +256,12 @@ export function createPeriodStrip(runtime, actions) {
             }
             // On the strip itself: mark a new period.
             const s = e.target.closest?.(".ps-strip");
-            if (!s || s !== this.strip || e.target.closest("button")) return;
+            if (
+              !s ||
+              s !== this.strip ||
+              e.target.closest("button, [data-pedge]")
+            )
+              return;
             draw = { x: e.clientX, f: this.fraction(e.clientX), moved: false };
             s.setPointerCapture(e.pointerId);
             e.stopPropagation();
@@ -294,6 +322,7 @@ export function createPeriodStrip(runtime, actions) {
             drag = null;
             if (!d.moved) return;
             dragged = true;
+            state.periodSel = d.p.id;
             // The drag moved the period live; the command records it from
             // where it started.
             const to = { start: d.p.start, end: d.p.end };
@@ -320,25 +349,44 @@ export function createPeriodStrip(runtime, actions) {
               const id = this.querySelector(".cv-pedit").dataset.pid;
               this.closeCard();
               this.chip(id)?.focus();
+            } else if (chip && e.key === "Enter") {
+              e.preventDefault();
+              this.openCard(chip.dataset.period);
             } else if (e.key === "Enter" && e.target.id === "cv-pname") {
               this.querySelector("[data-pedit-save]")?.click();
             }
           });
           this.addEventListener("click", (e) => {
+            const del = e.target.closest(".ps-strip [data-pdel]");
+            if (del) {
+              e.stopImmediatePropagation();
+              return actions.removePeriod(del.dataset.pdel);
+            }
             const chip = e.target.closest(".ps-strip [data-period]");
             if (chip) {
               // Ahead of this element's own linked-ref listener.
               e.stopImmediatePropagation();
               if (dragged) return void (dragged = false);
+              // Select or let go, as on the old timeline; the pin follows.
+              const id = chip.dataset.period;
+              // A double-click opens the card; read from the second click,
+              // since the first redraws the strip under the pointer.
+              if (e.detail >= 2) {
+                state.periodSel = id;
+                this.openCard(id);
+                return void actions.refresh();
+              }
               const ids = refIds(chip, runtime);
               const pinned =
                 ids.length &&
                 ids.length === state.selection.size &&
                 ids.every((i) => state.selection.has(i));
-              reopen = pinned ? null : chip.dataset.period;
-              if (pinned) this.closeCard();
-              if (ids.length) togglePin(chip, runtime);
-              else this.openCard(chip.dataset.period);
+              // The pin goes first: selecting payments lets go of any period.
+              const want = state.periodSel === id ? null : id;
+              if (ids.length && pinned === !want) togglePin(chip, runtime);
+              state.periodSel = want;
+              refocus = id;
+              actions.refresh();
               return;
             }
             const card = e.target.closest(".cv-pedit");
@@ -373,13 +421,15 @@ export function createPeriodStrip(runtime, actions) {
           );
         }
         closeCard() {
+          reopen = null;
           this.querySelector(".cv-pedit")?.remove();
         }
         openCard(id) {
           const p = periodOf(id),
             chip = this.chip(id);
           if (!p || !chip) return;
-          this.closeCard();
+          this.querySelector(".cv-pedit")?.remove();
+          reopen = id;
           const r = chip.getBoundingClientRect();
           const left = Math.max(
             12,
