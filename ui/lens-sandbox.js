@@ -12,8 +12,11 @@ const TIMEOUT_MS = 1500;
 const CSP = "default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'";
 
 // Runs inside the frame. lib's functions are rebuilt here; its data comes in.
+// fmtSource is a function's source text, which may be a declaration
+// ("function Yl(n,e,t){…}" once minified); eval returns nothing for a
+// declaration, so it is read as an expression.
 function runner(fmtSource) {
-  const fmt = (0, eval)(fmtSource);
+  const fmt = (0, eval)(`(${fmtSource})`);
   addEventListener("message", (e) => {
     const { id, code, txns, data } = e.data || {};
     const lib = {
@@ -43,7 +46,9 @@ function runner(fmtSource) {
   });
 }
 
-const srcdoc = `<!doctype html><meta http-equiv="Content-Security-Policy" content="${CSP}"><script>(${runner})(${JSON.stringify(String(lensFmt))})<\/script>`;
+// The frame's script, exported so a test can run it as the build minifies it.
+export const sandboxScript = `(${runner})(${JSON.stringify(String(lensFmt))})`;
+const srcdoc = `<!doctype html><meta http-equiv="Content-Security-Policy" content="${CSP}"><script>${sandboxScript}<\/script>`;
 
 export function newLensSandbox(doc = document) {
   let frame = null,
