@@ -45,6 +45,9 @@ export function createChatComponent(runtime, actions) {
   let askCtl = null;
   let current = null;
   let asker = null;
+  // The reply whose question still has to be brought into view: once, when
+  // it is sent, so later redraws never pull the page back to it.
+  let reveal = null;
   let seq = 0;
 
   const compact = (t) =>
@@ -170,6 +173,7 @@ export function createChatComponent(runtime, actions) {
     askCtl = new AbortController();
     current = reply;
     asker = from;
+    reveal = reply;
     show();
     try {
       reply.content = await callAssistant(
@@ -324,8 +328,9 @@ export function createChatComponent(runtime, actions) {
           const log = this.querySelector(".ch-log");
           log.innerHTML = !state.turns.length && !caps.sample ? "" : logHTML();
           log.scrollTop = log.scrollHeight;
-          // The question just sent, in view at once.
-          if (asker === this && current) {
+          // The question just sent, in view at once (and only then).
+          if (asker === this && current && reveal === current) {
+            reveal = null;
             const q = log.querySelectorAll(".q");
             q[q.length - 1]?.scrollIntoView({ block: "nearest" });
           }

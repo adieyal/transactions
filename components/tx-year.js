@@ -146,15 +146,17 @@ export function createYearComponent(runtime, actions) {
           const slot = this.querySelector("[data-chat-slot]");
           this.chat ||= newChat();
           if (slot && this.chat) slot.append(this.chat);
+          // Focus comes back where it was without moving the page: a
+          // redraw must never scroll the person to the chat.
           if (typing) {
-            typing.focus();
-            typing.setSelectionRange(at[0], at[1]);
+            typing.focus({ preventScroll: true });
+            typing.setSelectionRange?.(at[0], at[1]);
           }
           if (left) this.querySelector(".yr-scroll").scrollLeft = left;
           beadStops(this, ".yr-bead[data-id]");
           const back = f?.id && this.querySelector(`#${CSS.escape(f.id)}`);
           if (back && "value" in back) {
-            back.focus();
+            back.focus({ preventScroll: true });
             if (at[0] != null) back.setSelectionRange(at[0], at[1]);
           }
           showLensView(this, ui);

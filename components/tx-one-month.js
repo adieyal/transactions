@@ -193,8 +193,8 @@ export function createOneMonthComponent(runtime, actions) {
           this.chat ||= newChat();
           if (slot && this.chat) slot.append(this.chat);
           if (typing) {
-            typing.focus();
-            typing.setSelectionRange(at[0], at[1]);
+            typing.focus({ preventScroll: true });
+            typing.setSelectionRange?.(at[0], at[1]);
           }
           beadStops(this, ".om-bead[data-id]");
           const sc = this.querySelector(".om-scroll");
