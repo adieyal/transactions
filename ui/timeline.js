@@ -95,9 +95,9 @@ export function createTimeline(runtime, actions) {
         const has = runtime.derived.coverage[a]?.has(monthOf(mm));
         if (x1 - x0 > 2)
           s += has
-            ? `<rect class="cov-on${state.hiddenAccounts.has(a) ? " hidden-acct" : ""}" data-acct="${esc(a)}" data-period="${monthOf(mm)}" x="${x0 + 1}" y="${y}" width="${x1 - x0 - 2}" height="8" rx="2"><title>${esc(a)}: statement for ${monthName(monthOf(mm))}</title></rect>`
+            ? `<rect class="cov-on${state.hiddenAccounts.has(a) ? " hidden-acct" : ""}" data-acct="${esc(a)}" data-period="${monthOf(mm)}" x="${x0 + 1}" y="${y}" width="${Math.max(0, x1 - x0 - 2)}" height="8" rx="2"><title>${esc(a)}: statement for ${monthName(monthOf(mm))}</title></rect>`
             : mm < runtime.today
-              ? `<rect class="cov-off" x="${x0 + 1.5}" y="${y + 0.5}" width="${x1 - x0 - 3}" height="7" rx="2"><title>No ${monthName(monthOf(mm))} statement for ${esc(bidi(a))}</title></rect>`
+              ? `<rect class="cov-off" x="${x0 + 1.5}" y="${y + 0.5}" width="${Math.max(0, x1 - x0 - 3)}" height="7" rx="2"><title>No ${monthName(monthOf(mm))} statement for ${esc(bidi(a))}</title></rect>`
               : "";
       });
       const ex = L.expByMonth[monthOf(mm)];
