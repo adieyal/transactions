@@ -236,9 +236,10 @@ export const KEYWORDS = [
 
 const words = (s) => ` ${String(s).toLowerCase()} `;
 
-// Suggested answers without an assistant: the last answer given for the
-// same merchant, then keyword matches, then the generic options.
-export function answerOptions(m, merchantAnswers = {}) {
+// Suggested answers: the last answer given for the same merchant, then
+// keyword matches, then any labels an assistant suggested when asked, then
+// the generic options.
+export function answerOptions(m, merchantAnswers = {}, assisted = []) {
   const out = [];
   const add = (option) => {
     if (!out.some((o) => o.label === option.label)) out.push(option);
@@ -261,6 +262,13 @@ export function answerOptions(m, merchantAnswers = {}) {
   for (const k of KEYWORDS)
     if (k.terms.some((term) => names.includes(" " + term)))
       add({ label: k.label, action: k.action, source: "keyword" });
+  // Labels an assistant suggested, only after someone asked for them.
+  for (const label of assisted)
+    add({
+      label,
+      action: m.kind === "cluster" ? "period" : "note",
+      source: "assistant",
+    });
   GENERIC_ANSWERS.forEach(add);
   return out;
 }

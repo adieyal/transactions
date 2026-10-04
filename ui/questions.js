@@ -2,6 +2,7 @@ import { $, TODAY, esc } from "../helpers.js";
 import { toast } from "./dom.js";
 import { detectMoments, findMoments } from "../story/moments.js";
 import { answerMoment } from "../story/answers.js";
+import { suggestAnswers } from "../story/assist.js";
 import {
   PRIVACY_NOTE,
   answerOptions,
@@ -13,7 +14,16 @@ import {
 } from "../story/copy.js";
 
 export function createQuestions(runtime, actions) {
-  const { state } = runtime;
+  const { state, caps } = runtime;
+  // Assistant suggestions, kept for this session only: labels per moment,
+  // the moments being asked about, and a short note when a reply wasn't used.
+  const assisted = {},
+    notes = {},
+    asking = new Set();
+  const optionsFor = (m) =>
+    answerOptions(m, state.merchantAnswers, assisted[m.id] || []).filter(
+      (o) => o.action !== "skip",
+    );
   let open = [];
   // The card with a text field open: { id, action, where }, where is the
   // list it was opened in (the Questions tab or Your month).
@@ -26,9 +36,7 @@ export function createQuestions(runtime, actions) {
   }
 
   function cardHTML(m, where = "questions") {
-    const options = answerOptions(m, state.merchantAnswers).filter(
-      (o) => o.action !== "skip",
-    );
+    const options = optionsFor(m);
     const form =
       writing?.id === m.id && writing.where === where
         ? `<form class="qwrite" data-qform>
@@ -45,7 +53,11 @@ export function createQuestions(runtime, actions) {
               (o, i) =>
                 `<button class="qchip" data-qopt="${i}" dir="auto">${esc(o.label)}</button>`,
             )
-            .join("")}<button class="qskip" data-qskip>Skip</button></div>`;
+            .join("")}<button class="qskip" data-qskip>Skip</button>${
+            caps.sample && !assisted[m.id]
+              ? `<button class="qassist" data-qassist title="Sends this question and the merchant names to ${esc(actions.AI())}"${asking.has(m.id) ? " disabled" : ""}>${asking.has(m.id) ? "Asking…" : "Suggest answers"}</button>`
+              : ""
+          }</div>${notes[m.id] ? `<p class="qnote">${esc(notes[m.id])}</p>` : ""}`;
     return `<li class="qcard" data-qid="${esc(m.id)}" data-ids="${esc(m.txnIds.join(","))}">
       <div class="qmeta"><span class="qkind">${esc(kindLabel(m))}</span><span>${esc(momentWhen(m))}</span></div>
       <p class="qtext" dir="auto">${esc(questionText(m))}</p>
@@ -143,6 +155,23 @@ export function createQuestions(runtime, actions) {
     });
   }
 
+  // Only ever from a press of Suggest answers.
+  async function askSuggestions(m) {
+    if (!caps.sample || asking.has(m.id)) return;
+    asking.add(m.id);
+    delete notes[m.id];
+    rerender();
+    try {
+      const r = await suggestAnswers(caps.sample, m);
+      if (r.ok) assisted[m.id] = r.labels;
+      else notes[m.id] = `Kept the usual options: ${r.reason}.`;
+    } catch (e) {
+      notes[m.id] = actions.sampleErr(e);
+    }
+    asking.delete(m.id);
+    rerender();
+  }
+
   function wireQuestions() {
     wireCards($("#questions"), "questions");
   }
@@ -159,15 +188,17 @@ export function createQuestions(runtime, actions) {
         rerender();
         return;
       }
+      if (e.target.closest("[data-qassist]")) {
+        askSuggestions(m);
+        return;
+      }
       if (e.target.closest("[data-qskip]")) {
         answer(m, { action: "skip" });
         return;
       }
       const opt = e.target.closest("[data-qopt]");
       if (opt) {
-        const options = answerOptions(m, state.merchantAnswers).filter(
-          (o) => o.action !== "skip",
-        );
+        const options = optionsFor(m);
         const o = options[+opt.dataset.qopt];
         if (o.source === "generic") {
           writing = { id: m.id, action: o.action, where };

@@ -396,3 +396,8 @@ body.nopanel .qcount{min-width:0; width:16px; padding:4px 0; margin:4px 0 0}
 .bw-a{text-align:right; font-variant-numeric:tabular-nums}
 .bw-ctx{grid-column:2 / -1; color:var(--ink-2); font-size:12.5px}
 .pnotes li .sp{align-self:flex-start}
+/* assistant help, only when asked */
+.qassist{min-height:36px; padding:0 10px; border:0; background:none; color:var(--focus); font-size:13.5px; margin-left:auto}
+.qassist:disabled{color:var(--ink-3)}
+.qnote,.mpnote{font-size:12.5px; color:var(--ink-2); margin:6px 0 0}
+.mpolish{margin:4px 0 2px}
