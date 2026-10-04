@@ -1,6 +1,6 @@
 import { $, TODAY, esc } from "../helpers.js";
 import { toast } from "./dom.js";
-import { detectMoments, findMoments } from "../story/moments.js";
+import { MAX_SHOWN, detectMoments, findMoments } from "../story/moments.js";
 import { answerMoment } from "../story/answers.js";
 import { suggestAnswers } from "../story/assist.js";
 import {
@@ -28,6 +28,8 @@ export function createQuestions(runtime, actions) {
   // The card with a text field open: { id, action, where }, where is the
   // list it was opened in (the Questions tab or Your month).
   let writing = null;
+  // Whether "More questions" was left open, kept across re-renders.
+  let moreOpen = false;
 
   function openMoments() {
     if (!state.loaded || !runtime.derived) return [];
@@ -83,8 +85,16 @@ export function createQuestions(runtime, actions) {
       body = `<p class="sub">No statements yet. Questions appear here once you add some.</p>`;
     else if (!open.length)
       body = `<p class="sub">No more questions for now. New ones may appear when you add statements.</p>`;
-    else
-      body = `<ul class="qlist">${open.map((m) => cardHTML(m, "questions")).join("")}</ul>`;
+    else {
+      // The highest-ranked few, with the rest folded away.
+      const cards = (ms) => ms.map((m) => cardHTML(m, "questions")).join("");
+      const rest = open.slice(MAX_SHOWN);
+      body = `<ul class="qlist">${cards(open.slice(0, MAX_SHOWN))}</ul>${
+        rest.length
+          ? `<details class="qmore"${moreOpen || rest.some((m) => m.id === writing?.id) ? " open" : ""}><summary>More questions (${rest.length})</summary><ul class="qlist">${cards(rest)}</ul></details>`
+          : ""
+      }`;
+    }
     pane.innerHTML = `<p class="lead">Your statements show where money went. Here are a few things a short note would explain. Answer any you like, or none at all.</p>
       <div class="qprivacy" id="qPrivacy">${esc(privacy.banner)}</div>
       ${body}${tally}`;
@@ -200,7 +210,14 @@ export function createQuestions(runtime, actions) {
       if (opt) {
         const options = optionsFor(m);
         const o = options[+opt.dataset.qopt];
-        if (o.source === "generic") {
+        if (o.action === "threads") {
+          // Light the charges up and open the Threads editor. The question
+          // stays until they are in threads, or skipped.
+          state.highlight = new Set(m.txnIds);
+          state.selection.clear();
+          actions.openTab("threads");
+          actions.refresh();
+        } else if (o.source === "generic") {
           writing = { id: m.id, action: o.action, where };
           rerender();
           pane.querySelector("[data-qtext]")?.focus();
@@ -223,6 +240,13 @@ export function createQuestions(runtime, actions) {
       if (!m || !writing || !text) return;
       answer(m, { action: writing.action, text });
     });
+    pane.addEventListener(
+      "toggle",
+      (e) => {
+        if (e.target.matches?.(".qmore")) moreOpen = e.target.open;
+      },
+      true,
+    );
     pane.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && writing) {
         e.stopPropagation();

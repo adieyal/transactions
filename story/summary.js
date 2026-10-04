@@ -102,7 +102,20 @@ function overview(month, ctx) {
               : `${M} was a quiet month: ${s} went out, less than half a typical month (${typ}).`;
     parts.push({ text, txnIds: ids(out) });
   }
-  const refunds = ctx.month.filter((t) => t.amount < 0 && !t.transfer);
+  const cameIn = ctx.month.filter((t) => t.inflow);
+  if (cameIn.length) {
+    const from = [...new Set(cameIn.map((t) => t.merchant))];
+    parts.push(
+      { text: " " },
+      {
+        text: `${money(-total(cameIn))} came in from ${list(from)}.`,
+        txnIds: ids(cameIn),
+      },
+    );
+  }
+  const refunds = ctx.month.filter(
+    (t) => t.amount < 0 && !t.transfer && !t.inflow,
+  );
   if (refunds.length)
     parts.push(
       { text: " " },
@@ -463,7 +476,12 @@ export function periodNotes(derived, period, { regular = false } = {}) {
 
 // A thread told as a summary, a month strip and a blow-by-blow list.
 export function summarizeThread(derived, state, name) {
-  const ts = derived.allTxns.filter((t) => t.thread === name).sort(byDate);
+  const inThread = derived.allTxns
+    .filter((t) => t.thread === name)
+    .sort(byDate);
+  // Money that came in is told on its own, never netted against charges.
+  const cameIn = inThread.filter((t) => t.inflow);
+  const ts = inThread.filter((t) => !t.inflow);
   const months = coveredMonths(derived).map((m) => {
     const inMonth = ts.filter((t) => monthOf(t.date) === m);
     return {
@@ -473,15 +491,16 @@ export function summarizeThread(derived, state, name) {
       txnIds: ids(inMonth),
     };
   });
-  const items = ts.map((t) => ({
+  const items = inThread.map((t) => ({
     id: t.id,
     date: t.date,
     merchant: t.merchant,
     amount: t.amount,
+    inflow: !!t.inflow,
     periods: t.periods || [],
     note: t.note || "",
   }));
-  if (!ts.length)
+  if (!inThread.length)
     return {
       sections: [
         { kind: "empty", parts: [{ text: `Nothing is in ${name} yet.` }] },
@@ -489,6 +508,12 @@ export function summarizeThread(derived, state, name) {
       months,
       items,
     };
+  const inPart = cameIn.length && {
+    text: `${money(-total(cameIn))} came in from ${list([...new Set(cameIn.map((t) => t.merchant))])}.`,
+    txnIds: ids(cameIn),
+  };
+  if (!ts.length)
+    return { sections: [{ kind: "overview", parts: [inPart] }], months, items };
   const charges = ts.filter((t) => t.amount > 0);
   const merchants = [...new Set(ts.map((t) => t.merchant))];
   const first = monthOf(ts[0].date),
@@ -538,6 +563,11 @@ export function summarizeThread(derived, state, name) {
             },
           ]
         : []),
+      ...(!inPart
+        ? []
+        : typical != null && charges.length >= 3
+          ? [{ text: " " }, inPart]
+          : [inPart]),
     ],
   });
   const keys = new Set(ts.map((t) => t.key));

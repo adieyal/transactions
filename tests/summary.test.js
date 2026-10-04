@@ -95,10 +95,8 @@ test("the demo's April is the move, with its question inline", () => {
       "question",
       "₪2,313 went to Bluebell Removals, Kettle & Coil, Northgate Hardware and Linen Lane within a week. Want to name this period?",
     ],
-    [
-      "question",
-      "₪144 went to Northgate Hardware in April 2026, the first time it appears in your statements. Want to add a note?",
-    ],
+    // Northgate Hardware's first month is part of the move question, so it
+    // isn't asked about again.
     [
       "question",
       "Bills came to ₪305 of ₪300 in April 2026, the first month above the budget. Want to add a note?",

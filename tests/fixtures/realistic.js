@@ -40,7 +40,11 @@ export const M = {
   florist: "Sweetpea Florist",
 };
 
+// The phone sits in a thread of cheaper charges with a budget it is always
+// over, as in the playtest.
 export const RULES = `To Cancel  [budget 60]
+  skyreach mobile
+  tunebox
   #to_cancel
 
 Bills
@@ -48,9 +52,7 @@ Bills
   card fee
 
 Subscriptions
-  skyreach mobile
   streamly
-  tunebox
 
 Groceries  [budget 1200]
   greenbasket market

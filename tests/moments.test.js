@@ -151,7 +151,15 @@ test("open moments are ranked, capped at three a month, and fold into bigger one
   assert.ok(ids.has(find(all, "cluster", "Bluebell Removals").id));
   // Bluebell Removals is new, but it is part of the move: one question, not two.
   assert.ok(!ids.has(find(all, "new", "Bluebell Removals").id));
-  assert.ok(!ids.has(find(all, "large", "Kettle & Coil").id));
+  // Kettle & Coil is measured against its own charges, so it isn't large;
+  // Northgate Hardware is new, but it was asked about in the move.
+  assert.equal(find(all, "large", "Kettle & Coil"), undefined);
+  assert.ok(!ids.has(find(all, "new", "Northgate Hardware").id));
+  // Each merchant is asked about once, across all months.
+  const asked = open
+    .filter((m) => !["budget", "loose"].includes(m.kind))
+    .flatMap((m) => m.facts.keys);
+  assert.equal(new Set(asked).size, asked.length);
 });
 
 test("the shipped demo explains the car and the holiday and leaves the move open", () => {
@@ -327,7 +335,8 @@ test("question copy states the facts and offers options without an assistant", (
   assert.deepEqual(labels(move), ["Moving house", ...generic]);
   const garage = find(all, "large", "Cobble Lane Garage");
   assert.deepEqual(labels(garage), ["Car repair", ...generic]);
-  assert.deepEqual(labels(find(all, "spike", "Meadow Paws")), generic);
+  // One charge on one day isn't a period.
+  assert.deepEqual(labels(find(all, "spike", "Meadow Paws")), generic.slice(1));
   const { merchantAnswers } = applyAnswer({}, garage, {
     status: "answered",
     choice: "Clutch",

@@ -113,6 +113,7 @@ export const KIND_LABELS = {
   rhythm: "Same day each month",
   new: "First time",
   budget: "Budget",
+  loose: "Not in a thread",
 };
 
 export function kindLabel(m) {
@@ -154,6 +155,8 @@ export function momentFact(m) {
       return `${money(f.total)} went to ${f.merchant} in ${monthLong(m.month)}, the first time it appears in your statements.`;
     case "budget":
       return `${f.thread} came to ${money(f.spent)} of ${money(f.budget)} in ${monthLong(m.month)}${f.first ? ", the first month above the budget" : ""}.`;
+    case "loose":
+      return `${cap(plural(f.count, "charge"))} at ${plural(f.places, "place")}, ${money(f.total)} in all, aren't in any thread yet.`;
   }
   return "";
 }
@@ -161,7 +164,11 @@ export function momentFact(m) {
 // States the fact and offers an option. Never asks why.
 export function questionText(m) {
   const offer =
-    m.kind === "cluster" ? "Want to name this period?" : "Want to add a note?";
+    m.kind === "cluster"
+      ? "Want to name this period?"
+      : m.kind === "loose"
+        ? "Want to sort them into threads?"
+        : "Want to add a note?";
   return `${momentFact(m)} ${offer}`;
 }
 
@@ -235,13 +242,34 @@ export const KEYWORDS = [
 ];
 
 const words = (s) => ` ${String(s).toLowerCase()} `;
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// Naming a period fits a moment with several charges or several days that is
+// about an event, not a single charge or a merchant's routine.
+const PERIOD_KINDS = new Set(["cluster", "large", "new", "gap"]);
+export const periodFits = (m) =>
+  PERIOD_KINDS.has(m.kind) &&
+  !m.facts.stopped &&
+  (m.txnIds.length > 1 || m.from !== m.to);
+
+export const SORT_ANSWER = {
+  label: "Sort them in Threads",
+  action: "threads",
+  source: "generic",
+};
 
 // Suggested answers: the last answer given for the same merchant, then
 // keyword matches, then any labels an assistant suggested when asked, then
 // the generic options.
 export function answerOptions(m, merchantAnswers = {}, assisted = []) {
+  if (m.kind === "loose") return [SORT_ANSWER, GENERIC_ANSWERS.at(-1)];
   const out = [];
+  const period = periodFits(m);
   const add = (option) => {
+    if (option.action === "period" && !period) {
+      if (option.source === "generic") return;
+      option = { ...option, action: "note" };
+    }
     if (!out.some((o) => o.label === option.label)) out.push(option);
   };
   for (const key of m.facts.keys || []) {

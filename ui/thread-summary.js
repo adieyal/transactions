@@ -14,7 +14,9 @@ export function createThreadSummary(runtime, actions) {
     const { sections, months, items } = summarizeThread(derived, state, name);
     const color = derived.colorOf[name] || "var(--ink)";
     const rule = derived.R.threads.find((t) => t.name === name);
-    const spent = items.reduce((s, t) => s + t.amount, 0);
+    const spent = items
+      .filter((t) => !t.inflow)
+      .reduce((s, t) => s + t.amount, 0);
     const max = Math.max(1, ...months.map((m) => Math.abs(m.total)));
     const strip = months
       .map((m) => {

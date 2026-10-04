@@ -250,7 +250,7 @@ export function createTimeline(runtime, actions) {
     visibleRows.forEach((row, ri) => {
       const cy = rowY[ri];
       const total = row.items
-        .filter((t) => t.kind === "actual")
+        .filter((t) => t.kind === "actual" && !t.inflow)
         .reduce((a, t) => a + t.amount, 0);
       if (row.name === "__parked") {
         s += `<line class="wire parked" x1="${labelW}" x2="${W - padR}" y1="${cy}" y2="${cy}"/>`;

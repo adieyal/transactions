@@ -15,6 +15,7 @@ function deriveTransactions(state, { today = TODAY } = {}) {
     coverage[b.account] ||= new Set();
     b.periods.forEach((p) => coverage[b.account].add(p));
   }
+  const purchaseCoverage = purchaseMonths(state.batches);
   const TR = detectTransfers([...all.values()], state);
   const txns = [];
   for (const r of all.values()) {
@@ -57,6 +58,13 @@ function deriveTransactions(state, { today = TODAY } = {}) {
         }
     if (t.matchLine != null) (lineHits[t.matchLine] ||= []).push(t);
   }
+  // money in: a credit that isn't a transfer, from a merchant never paid.
+  // A credit from a merchant you also paid is a refund.
+  const paid = new Set(
+    txns.filter((t) => t.amount > 0 && !t.transfer).map((t) => t.key),
+  );
+  for (const t of txns)
+    t.inflow = t.amount < 0 && !t.transfer && !paid.has(t.key);
   // recurring: same merchant in two or more statement months; projected only if it's in the latest one
   const groups = {};
   for (const t of txns)
@@ -199,6 +207,7 @@ function deriveTransactions(state, { today = TODAY } = {}) {
     links,
     accounts,
     coverage,
+    purchaseCoverage,
     names,
     colorOf,
     lineHits,
@@ -209,6 +218,43 @@ function deriveTransactions(state, { today = TODAY } = {}) {
     stmts: TR.stmts,
     stmtPaid: TR.paid,
   };
+}
+
+// The calendar months of purchases each account's statements cover. A card
+// statement is often labelled with the month it is charged and holds the
+// month before's purchases, so each statement label is shifted back by its
+// usual gap between purchase and statement month. Instalments are left out:
+// their dates are the original purchase.
+const monthIndex = (ym) => {
+  const [y, m] = ym.split("-").map(Number);
+  return y * 12 + m - 1;
+};
+const fromIndex = (i) =>
+  `${Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`;
+function purchaseMonths(batches) {
+  const lagOf = (rows, label) => {
+    const lags = rows
+      .filter((r) => !r.inst && r.date)
+      .map(
+        (r) => monthIndex(r.period || label) - monthIndex(r.date.slice(0, 7)),
+      )
+      .sort((a, b) => a - b);
+    return lags.length ? Math.max(0, lags[(lags.length - 1) >> 1]) : null;
+  };
+  const accountLag = {};
+  for (const b of Object.values(batches)) {
+    const lag = lagOf(b.rows, b.periods[0]);
+    if (lag != null) (accountLag[b.account] ||= []).push(lag);
+  }
+  const out = {};
+  for (const b of Object.values(batches)) {
+    const lags = (accountLag[b.account] || [0]).sort((x, y) => x - y);
+    const lag = lagOf(b.rows, b.periods[0]) ?? lags[(lags.length - 1) >> 1];
+    out[b.account] ||= new Set();
+    for (const p of b.periods)
+      out[b.account].add(fromIndex(monthIndex(p) - lag));
+  }
+  return out;
 }
 
 function parseQuery(q) {
