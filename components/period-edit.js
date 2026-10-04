@@ -1,111 +1,135 @@
 import { esc } from "../helpers.js";
 import { dateRange } from "../story/copy.js";
+import {
+  dragTo,
+  periodAt,
+  periodLanes,
+  startDrag,
+} from "../transactions/period-drag.js";
 
 // Editing a named period on the Periods strip of the canvas views
-// (tx-year-band, tx-one-month), as the timeline before the canvas allowed:
-// drag its chip to move it, drag a side handle to resize it, and click the
-// chip for a card to rename or delete it. Deleting goes through the app's
-// removePeriod, which offers Undo. The person asked for these back after
-// testing the canvas.
+// (tx-year-band, tx-one-month), with the old timeline's own rules
+// (transactions/period-drag.js): grab a period anywhere along its column or
+// its name to move it, or within 4px of either side, the whole height of
+// the timeline, to resize it. It moves by whole days and redraws as it
+// goes, so periods it comes to overlap stack on another row. Click the name
+// for a card to rename or delete it; deleting goes through the app's
+// removePeriod, which offers Undo.
 
-// The two side handles of a period; left and right are percentages.
-export const handlesHTML = (id, left, right) =>
-  ["start", "end"]
-    .map(
-      (edge, i) =>
-        `<button class="cv-phandle" data-pedge="${edge}" data-pid="${esc(id)}" tabindex="-1" aria-hidden="true" style="left: ${esc([left, right][i])}%"></button>`,
-    )
-    .join("");
+// Periods and busy stretches packed into rows of the strip, as on the old
+// timeline, so no two names overlap: each takes its dates or its name,
+// whichever is wider, and lane 0 is at the top. Called after each render.
+const LANE = 28;
+export function stackPeriods(host, strip) {
+  const s = host.querySelector(strip);
+  const chips = s ? [...s.querySelectorAll(":scope > button")] : [];
+  if (!chips.length) return;
+  const { laneOf, lanes } = periodLanes(
+    chips.map((c, i) => ({
+      id: i,
+      start: c.offsetLeft,
+      end: c.offsetLeft + c.offsetWidth + 6,
+    })),
+  );
+  if (lanes < 2) return;
+  s.style.height = `${lanes * LANE}px`;
+  chips.forEach((c, i) => {
+    const bottom = parseFloat(getComputedStyle(c).bottom) || 0;
+    c.style.bottom = `${(lanes - 1 - laneOf[i]) * LANE + bottom}px`;
+  });
+}
 
 const DAY = 86400000;
 const shift = (iso, days) =>
   new Date(Date.parse(`${iso}T00:00:00Z`) + days * DAY)
     .toISOString()
     .slice(0, 10);
-const between = (a, b) =>
-  Math.round(
-    (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / DAY,
-  );
 
-// isoAt(strip, clientX): the date under the pointer on a strip.
-// strip: the strip's selector. Returns nothing; listens on host.
-export function wirePeriodEdit(host, { strip, isoAt, state, actions }) {
+// strip: the strip's selector, and bands: the selector of the periods'
+// columns (each with data-pid). inv(strip, clientX): the time at x, in ms.
+// redraw(): draw the view again. Returns nothing; listens on host.
+export function wirePeriodEdit(
+  host,
+  { strip, bands, inv, redraw, state, actions },
+) {
   let drag = null;
   let dragged = false;
+  let frame = 0;
   const periodOf = (id) => state.periods.find((p) => p.id === id);
-  const parts = (id) =>
-    host.querySelectorAll(
-      `[data-pid="${CSS.escape(id)}"], [data-period="${CSS.escape(id)}"]`,
-    );
-
-  host.addEventListener("pointerdown", (e) => {
-    if (e.button) return;
-    dragged = false;
-    const handle = e.target.closest(".cv-phandle");
-    const chip = !handle && e.target.closest("[data-period]");
-    const el = handle || chip;
-    const s = el?.closest(strip);
-    if (!s) return;
-    const id = handle ? handle.dataset.pid : chip.dataset.period;
-    const p = periodOf(id);
-    if (!p) return;
-    drag = {
-      id,
-      p,
-      s,
-      edge: handle?.dataset.pedge,
-      x0: e.clientX,
-      from: isoAt(s, e.clientX),
-      moved: false,
-    };
-    e.preventDefault();
-  });
-  host.addEventListener("pointermove", (e) => {
-    if (!drag) return;
-    const dx = e.clientX - drag.x0;
-    // Captured only once it moves, so a plain click still lands on the chip.
-    if (!drag.moved && Math.abs(dx) > 4) {
-      drag.moved = true;
-      drag.s.setPointerCapture(e.pointerId);
+  const columns = () =>
+    [...host.querySelectorAll(`${bands}[data-pid]`)].map((el) => {
+      const r = el.getBoundingClientRect();
+      return { id: el.dataset.pid, a: r.left, b: r.right };
+    });
+  // A press on a period's name, or in its column below the strip, unless it
+  // lands on a bead or another control. Shift-drag still gathers.
+  const hitAt = (e) => {
+    const chip = e.target.closest(`${strip} [data-period]`);
+    if (chip) {
+      const hit = periodAt(columns(), e.clientX, state.periodSel);
+      return hit?.id === chip.dataset.period
+        ? hit
+        : { id: chip.dataset.period, edge: undefined };
     }
-    if (!drag.moved) return;
-    if (drag.edge) {
-      // A ghost from the fixed side to the pointer.
-      const r = drag.s.getBoundingClientRect();
-      const other = host.querySelector(
-        `.cv-phandle[data-pid="${CSS.escape(drag.id)}"][data-pedge="${drag.edge === "start" ? "end" : "start"}"]`,
-      );
-      const ox = other.getBoundingClientRect().left + 1 - r.left;
-      const px = Math.min(r.width, Math.max(0, e.clientX - r.left));
-      const ghost = drag.s.querySelector(".yr-pnew, .om-pnew");
-      Object.assign(ghost.style, {
-        left: `${Math.min(ox, px)}px`,
-        width: `${Math.abs(px - ox)}px`,
-      });
-      ghost.hidden = false;
-    } else parts(drag.id).forEach((el) => (el.style.translate = `${dx}px 0`));
+    if (
+      e.shiftKey ||
+      !e.target.closest(".yr-rows, .om-rows") ||
+      e.target.closest("[data-id], button, input, a")
+    )
+      return null;
+    return periodAt(columns(), e.clientX, state.periodSel);
+  };
+  const draw = () => {
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      redraw();
+    });
+  };
+
+  host.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (e.button) return;
+      dragged = false;
+      const hit = hitAt(e);
+      const p = hit && periodOf(hit.id);
+      if (!p || !host.querySelector(strip)) return;
+      drag = { ...startDrag(p, e.clientX, hit.edge), p };
+      // Ahead of the strip's marking and the rows' gathering.
+      e.stopPropagation();
+      e.preventDefault();
+    },
+    true,
+  );
+  host.addEventListener("pointermove", (e) => {
+    if (!drag) {
+      const hit = e.buttons ? null : hitAt(e);
+      host.style.cursor = !hit ? "" : hit.edge ? "ew-resize" : "grab";
+      return;
+    }
+    const was = drag.moved;
+    const to = dragTo(drag, e.clientX, (x) =>
+      inv(host.querySelector(strip), x),
+    );
+    // Captured only once it moves, so a plain click still lands on the name.
+    if (drag.moved && !was) host.setPointerCapture(e.pointerId);
+    if (!to || (to.start === drag.p.start && to.end === drag.p.end)) return;
+    Object.assign(drag.p, to);
+    draw();
   });
-  const finish = (e, keep) => {
+  const finish = (keep) => {
     if (!drag) return;
     const d = drag;
     drag = null;
     if (!d.moved) return;
     dragged = true;
-    if (!keep) return actions.refresh();
-    const to = isoAt(d.s, e.clientX);
-    if (d.edge) {
-      const fixed = d.edge === "start" ? d.p.end : d.p.start;
-      [d.p.start, d.p.end] = [fixed, to].sort();
-    } else {
-      const n = between(d.from, to);
-      d.p.start = shift(d.p.start, n);
-      d.p.end = shift(d.p.end, n);
-    }
-    actions.save("periods");
+    if (!keep) [d.p.start, d.p.end] = [d.start, d.end];
+    else actions.save("periods");
     actions.refresh();
   };
-  host.addEventListener("pointerup", (e) => finish(e, true));
-  host.addEventListener("pointercancel", (e) => finish(e, false));
+  host.addEventListener("pointerup", () => finish(true));
+  host.addEventListener("pointercancel", () => finish(false));
 
   // The chip's keys: Enter opens the card, arrows move the period a day,
   // and Shift with an arrow moves its end.
@@ -175,7 +199,6 @@ export function wirePeriodEdit(host, { strip, isoAt, state, actions }) {
         else openCard(chip.dataset.period);
         return;
       }
-      if (e.target.closest(".cv-phandle")) return e.stopPropagation();
       const card = e.target.closest(".cv-pedit");
       if (!card) return;
       e.stopPropagation();

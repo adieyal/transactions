@@ -11,6 +11,7 @@ import {
   ms,
 } from "../helpers.js";
 import { TRANSFERS } from "../transactions/constants.js";
+import { periodAt } from "../transactions/period-drag.js";
 import { layoutTimeline, niceBudget } from "./timeline-layout.js";
 import { wireTimelineDrag } from "./timeline-drag.js";
 import { describeTransfer, showBeadTip } from "./timeline-text.js";
@@ -286,15 +287,7 @@ export function createTimeline(runtime, actions) {
   // The period band under a point, and which side if it is on an edge.
   function bandAt({ x, y }) {
     if (y < TL.perTop) return null;
-    const band = TL.bands.find((b) => x >= b.a - 4 && x <= b.b + 4);
-    if (!band) return null;
-    const edge =
-      Math.abs(x - band.a) <= 4
-        ? "start"
-        : Math.abs(x - band.b) <= 4
-          ? "end"
-          : undefined;
-    return { id: band.id, edge };
+    return periodAt(TL.bands, x, state.periodSel);
   }
 
   function wireTimeline() {

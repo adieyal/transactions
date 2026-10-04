@@ -1,7 +1,14 @@
 import { daysIn } from "../story/one-month.js";
 
-// The date under the pointer on the year's Periods strip.
-export const stripIso = (strip, x) => at(strip, x).iso;
+// The time under the pointer on the year's Periods strip, in ms, for
+// moving and resizing periods (components/period-edit.js).
+export function stripTime(strip, x) {
+  const { f } = at(strip, x);
+  const cols = strip.dataset.cols.split(",");
+  const i = Math.floor(f * cols.length);
+  const days = (f * cols.length - i) * daysIn(cols[i]);
+  return Date.parse(`${cols[i]}-01T00:00:00Z`) + days * 864e5;
+}
 function at(strip, x) {
   const r = strip.getBoundingClientRect();
   const f = Math.min(0.9999, Math.max(0, (x - r.left) / r.width));

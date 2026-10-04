@@ -1,5 +1,4 @@
 import { MONTHS, esc, monthOf } from "../helpers.js";
-import { handlesHTML } from "./period-edit.js";
 import { dayShort, money } from "../story/copy.js";
 import { daysIn, monthAxis } from "../story/one-month.js";
 import { monthsSeen } from "../story/moment-kit.js";
@@ -176,7 +175,7 @@ function periodsOf(derived, state, scale, range) {
   const chips = [
     ...named.map(
       (p) =>
-        `<button class="yr-pchip" data-period="${esc(p.id)}" data-tip="A period you named. Drag to move it, or click to rename or delete it." style="left: ${pct(scale.at(p.start))}%">${esc(p.name)}</button>${handlesHTML(p.id, pct(scale.at(p.start)), pct(scale.end(p.end)))}`,
+        `<button class="yr-pchip" data-period="${esc(p.id)}" data-tip="${esc(`${p.name}: a period you named. Drag to move it, drag a side to change its dates, or click to rename or delete it.`)}" style="left: ${pct(scale.at(p.start))}%; min-width: ${pct(Math.max(scale.end(p.end) - scale.at(p.start), 0.8))}%">${esc(p.name)}</button>`,
     ),
     ...stretches.map((m) => {
       const r = shortRange(m.from, m.to)

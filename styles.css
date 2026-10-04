@@ -847,9 +847,11 @@ tx-year .yr-main *{scroll-margin-top:calc(var(--yr-band-h, 368px) + 16px)}
 .cv-tip .m{font-family:var(--display); font-size:15px}
 .cv-tip .s{color:var(--ink-2)}
 /* Editing a period on the canvas strips (components/period-edit.js). */
-.yr-pchip, .om-pchip{cursor:grab; touch-action:none; z-index:2}
-.cv-phandle{position:absolute; top:-8px; height:14px; width:12px; margin-left:-6px; padding:0; border:0; background:transparent; cursor:ew-resize; touch-action:none; z-index:1}
-.cv-phandle::after{content:""; position:absolute; left:4px; top:2px; bottom:2px; width:4px; border-radius:1px; background:rgba(166, 136, 60, 0.7)}
+/* A name spans at least its period's dates, so it can be grabbed anywhere
+   along them; stackPeriods puts names that would overlap on rows of 28px. */
+.yr-pchip, .om-pchip{cursor:grab; touch-action:none; z-index:2; text-align:left}
+.yr-periodsrow{height:auto; min-height:28px}
+.om-periodsrow{height:auto; min-height:36px}
 .cv-pedit{position:fixed; z-index:21; width:min(340px, calc(100vw - 24px)); box-sizing:border-box; background:var(--panel); border:1px solid var(--wire); border-radius:10px; padding:14px; box-shadow:0 8px 24px rgba(30, 37, 40, 0.14); font:14px/1.45 var(--ui); color:var(--ink)}
 .cv-pelabel{display:block; font-weight:500; margin-bottom:6px}
 #cv-pname{width:100%; box-sizing:border-box; min-height:40px; padding:0 10px; border:1px solid var(--wire); border-radius:8px; font:400 16px var(--ui); color:var(--ink); background:var(--panel)}

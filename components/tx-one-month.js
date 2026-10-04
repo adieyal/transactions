@@ -1,6 +1,6 @@
 import { esc } from "../helpers.js";
 import { wireTip } from "./tip.js";
-import { handlesHTML, wirePeriodEdit } from "./period-edit.js";
+import { stackPeriods, wirePeriodEdit } from "./period-edit.js";
 import { coveredMonths } from "../story/moments.js";
 import { answerKept, dayShort, monthLong } from "../story/copy.js";
 import {
@@ -99,7 +99,7 @@ export function createOneMonthComponent(runtime, actions) {
     const chips = [
       ...periods.map(
         (p) =>
-          `<button class="om-pchip" data-period="${esc(p.id)}" data-tip="A period you named. Drag to move it, or click to rename or delete it." style="left: ${pct(((p.from - 1) / days) * 100)}%">${esc(p.name)}</button>${handlesHTML(p.id, pct(((p.from - 1) / days) * 100), pct((p.to / days) * 100))}`,
+          `<button class="om-pchip" data-period="${esc(p.id)}" data-tip="${esc(`${p.name}: a period you named. Drag to move it, drag a side to change its dates, or click to rename or delete it.`)}" style="left: ${pct(((p.from - 1) / days) * 100)}%; min-width: ${pct(((p.to - p.from + 1) / days) * 100)}%">${esc(p.name)}</button>`,
       ),
       ...stretches.map(
         (b) =>
@@ -180,7 +180,11 @@ export function createOneMonthComponent(runtime, actions) {
                 strip: periodStrip(runtime.derived, state, m),
               }
             : null;
+          const left = this.querySelector(".om-scroll")?.scrollLeft;
           this.innerHTML = this.story ? pageHTML(this.story) : "";
+          stackPeriods(this, ".om-periods");
+          const sc = this.querySelector(".om-scroll");
+          if (sc && left) sc.scrollLeft = left;
           this.mark();
         }
         // Lit-up phrases, beads and days, from the store's highlight.
@@ -288,12 +292,16 @@ export function createOneMonthComponent(runtime, actions) {
           wireTip(this, () => runtime.derived?.byId);
           wirePeriodEdit(this, {
             strip: ".om-periods",
-            isoAt: (strip, x) => {
+            bands: ".om-pband",
+            inv: (strip, x) => {
               const r = strip.getBoundingClientRect();
               const { days, month } = this.story.strip;
-              const d = Math.floor(((x - r.left) / r.width) * days) + 1;
-              return `${month}-${String(Math.min(days, Math.max(1, d))).padStart(2, "0")}`;
+              return (
+                Date.parse(`${month}-01T00:00:00Z`) +
+                ((x - r.left) / r.width) * days * 864e5
+              );
             },
+            redraw: () => this.render(),
             state,
             actions: {
               save: (k) => actions.save(k),

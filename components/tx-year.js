@@ -1,6 +1,6 @@
 import { esc } from "../helpers.js";
 import { wireTip } from "./tip.js";
-import { wirePeriodEdit } from "./period-edit.js";
+import { stackPeriods, wirePeriodEdit } from "./period-edit.js";
 import { coveredMonths, typicalMonth } from "../story/moment-kit.js";
 import { monthLong } from "../story/copy.js";
 import { yearMonthStory, yearStory } from "../story/year.js";
@@ -8,7 +8,7 @@ import { sameIds, wireHoverHighlight } from "../ui/highlight.js";
 import { emitHighlight, subscribeWhileConnected } from "./base.js";
 import { bandHTML } from "./tx-year-band.js";
 import { answeredHTML, askClick, askHTML } from "./tx-year-ask.js";
-import { stripIso, wireYearStrip } from "./tx-year-strip.js";
+import { stripTime, wireYearStrip } from "./tx-year-strip.js";
 import { savedHTML } from "./tx-year-saved.js";
 import { rerunGoes, whatGoes } from "../assistant/prompts.js";
 import { answerStory, sinceLastRun } from "../story/saved-question.js";
@@ -179,7 +179,11 @@ export function createYearComponent(runtime, actions) {
           // A field being typed in keeps its focus and caret.
           const f = this.querySelector("input:focus, textarea:focus");
           const at = f && [f.selectionStart, f.selectionEnd];
+          // The timeline's own scroller keeps its place.
+          const left = this.querySelector(".yr-scroll")?.scrollLeft;
           this.innerHTML = pageHTML(band, ms, year, month, this.story);
+          stackPeriods(this, ".yr-periods");
+          if (left) this.querySelector(".yr-scroll").scrollLeft = left;
           const back = f?.id && this.querySelector(`#${CSS.escape(f.id)}`);
           if (back && "value" in back) {
             back.focus();
@@ -264,7 +268,9 @@ export function createYearComponent(runtime, actions) {
           wireTip(this, () => runtime.derived?.byId);
           wirePeriodEdit(this, {
             strip: ".yr-periods",
-            isoAt: stripIso,
+            bands: ".yr-pband",
+            inv: stripTime,
+            redraw: () => this.render(),
             state,
             actions: {
               save: (k) => actions.save(k),

@@ -1,4 +1,5 @@
-import { fmt, ms } from "../helpers.js";
+import { fmt } from "../helpers.js";
+import { dragTo, startDrag } from "../transactions/period-drag.js";
 import { $, toast } from "./dom.js";
 import { isoFromMs, niceBudget } from "./timeline-layout.js";
 
@@ -47,22 +48,10 @@ export function wireTimelineDrag(host, runtime, actions, ctx) {
         renderTimeline();
       }
     } else if (mode.kind === "move" || mode.kind === "resize") {
-      const days = Math.round((TL.inv(x) - TL.inv(mode.x)) / 864e5);
-      if (Math.abs(x - mode.x) > 3) mode.moved = true;
-      if (!mode.moved) return;
-      const p = state.periods.find((q) => q.id === mode.id);
+      const to = dragTo(mode, x, TL.inv);
+      const p = to && state.periods.find((q) => q.id === mode.id);
       if (!p) return;
-      if (mode.kind === "move") {
-        p.start = isoFromMs(ms(mode.start) + days * 864e5);
-        p.end = isoFromMs(ms(mode.end) + days * 864e5);
-      } else if (mode.edge === "start")
-        p.start = isoFromMs(
-          Math.min(ms(mode.end), ms(mode.start) + days * 864e5),
-        );
-      else
-        p.end = isoFromMs(
-          Math.max(ms(mode.start), ms(mode.end) + days * 864e5),
-        );
+      Object.assign(p, to);
       renderTimeline();
     }
   });
@@ -114,15 +103,7 @@ export function wireTimelineDrag(host, runtime, actions, ctx) {
       );
       if (!p) return;
       const edge = g ? ev.target.closest(".pedge")?.dataset.edge : hit.edge;
-      mode = {
-        kind: edge ? "resize" : "move",
-        edge,
-        id: p.id,
-        x,
-        start: p.start,
-        end: p.end,
-        moved: false,
-      };
+      mode = startDrag(p, x, edge);
       host.setPointerCapture(ev.pointerId);
       ev.preventDefault();
       return;

@@ -1,5 +1,6 @@
 import { addMonths, monthOf, ms } from "../helpers.js";
 import { LOOSE, TRANSFERS } from "../transactions/constants.js";
+import { periodLanes } from "../transactions/period-drag.js";
 
 // Where everything on the timeline goes, as plain numbers: the time scale,
 // statement bars, period lanes, thread rows, budget bands, beads, arcs and
@@ -91,24 +92,12 @@ export function layoutTimeline({ derived, state, today, width }) {
   const expY = axisY + 16;
 
   // Periods, packed into lanes so overlapping ones sit on top of each other.
-  const pers = state.periods
-    .filter((p) => ms(p.end) >= t0 && ms(p.start) <= t1)
-    .sort((a, b) =>
-      a.start < b.start ? -1 : a.start > b.start ? 1 : a.end > b.end ? -1 : 1,
-    );
-  const laneEnds = [],
-    laneOf = {};
-  for (const p of pers) {
-    let l = laneEnds.findIndex((e) => e < p.start);
-    if (l < 0) {
-      l = laneEnds.length;
-      laneEnds.push(p.end);
-    } else laneEnds[l] = p.end;
-    laneOf[p.id] = l;
-  }
+  const { pers, laneOf, lanes } = periodLanes(
+    state.periods.filter((p) => ms(p.end) >= t0 && ms(p.start) <= t1),
+  );
   const laneH = 20,
     perTop = expY + 8,
-    perBottom = perTop + Math.max(1, laneEnds.length) * laneH;
+    perBottom = perTop + Math.max(1, lanes) * laneH;
   const top = perBottom + 10;
   const periodX = (p) => ({
     a: Math.max(labelW, X(ms(p.start))),
@@ -273,16 +262,8 @@ export function layoutTimeline({ derived, state, today, width }) {
     arcs,
     cardLinks,
     budgetMeta,
-    // The selected period first, then the narrowest, so the most specific
-    // band wins where periods overlap.
-    bands: pers
-      .map((p) => ({ id: p.id, ...periodX(p) }))
-      .filter((p) => p.b > p.a)
-      .sort(
-        (p, q) =>
-          (q.id === state.periodSel) - (p.id === state.periodSel) ||
-          p.b - p.a - (q.b - q.a),
-      ),
+    // Each period's column, for periodAt.
+    bands: pers.map((p) => ({ id: p.id, ...periodX(p) })),
     // From an x position back to a time.
     inv: (x) => t0 + ((x - labelW) / (W - labelW - padR)) * (t1 - t0),
   };
