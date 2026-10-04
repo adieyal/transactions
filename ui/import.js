@@ -10,7 +10,7 @@ import {
   sigOf,
 } from "../transactions/import.js";
 import { readMatrix } from "../files.js";
-import { needsCurrency, setCurrency } from "../documents.js";
+import { answerCurrencies, needsCurrency } from "../documents.js";
 
 export function createImport(runtime, actions) {
   const { state, caps } = runtime;
@@ -384,23 +384,24 @@ ${JSON.stringify(matrix.slice(0, 18).map((r) => r.map((c) => String(c ?? "").sli
           `<label><span dir="auto">${esc(b.account)}</span> <span class="sub">${esc(b.periods.length === 1 ? monthName(b.periods[0]) : `${b.periods.length} months`)} · <span dir="auto">${esc(b.file)}</span></span><select data-batch="${esc(b.id)}">${options}</select></label>`,
       )
       .join("");
-    const chosen = () =>
-      [...$("#curList").querySelectorAll("select")].filter((s) => s.value);
-    $("#curOk").disabled = true;
-    $("#curList").onchange = () => {
-      // One answer fills the others still unanswered, since statements
-      // usually share a currency; each can still be changed.
-      const first = chosen()[0]?.value;
-      for (const s of $("#curList").querySelectorAll("select"))
-        if (!s.value && first) s.value = first;
-      $("#curOk").disabled = chosen().length < waiting.length;
+    const selects = () => [...$("#curList").querySelectorAll("select")];
+    const sync = () => {
+      $("#curOk").disabled = !selects().some((s) => s.value);
     };
+    // Only the "All of them" choice fills the others, and it says so; one
+    // statement's answer is never copied to another.
+    $("#curAll").innerHTML = options;
+    $("#curAll").onchange = () => {
+      for (const s of selects()) s.value = $("#curAll").value;
+      sync();
+    };
+    $("#curList").onchange = sync;
+    sync();
     $("#curOk").onclick = () => {
-      for (const s of chosen()) {
-        const b = state.batches[s.dataset.batch];
-        setCurrency(b, s.value);
-        actions.saveBatch(b);
-      }
+      const answers = Object.fromEntries(
+        selects().map((s) => [s.dataset.batch, s.value]),
+      );
+      for (const b of answerCurrencies(state, answers)) actions.saveBatch(b);
       dlg.close();
       actions.refresh();
     };

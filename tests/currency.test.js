@@ -336,3 +336,30 @@ test("original amounts keep their currency's own decimals", async () => {
   assert.equal(fmtExact(1234.5, "EUR"), "€1,234.50");
   assert.match(fmtExact(12.345, "BHD"), /BHD\s12\.345$/);
 });
+
+test("one statement's currency answer is never copied to another", async () => {
+  const { answerCurrencies } = await import("../documents.js");
+  const { state } = createRuntime();
+  const batch = (id) => ({
+    id,
+    kind: "generic",
+    currency: null,
+    account: "Fictional " + id,
+    periods: ["2026-09"],
+    file: id + ".csv",
+    added: TODAY,
+    rows: [{ id: "r" + id, date: "2026-09-02", amount: 5 }],
+  });
+  state.batches = { a: batch("a"), b: batch("b") };
+  const changed = answerCurrencies(state, { a: "CAD", b: "" });
+  assert.deepEqual(
+    changed.map((b) => b.id),
+    ["a"],
+  );
+  assert.equal(state.batches.a.rows[0].currency, "CAD");
+  assert.deepEqual(
+    needsCurrency(state).map((b) => b.id),
+    ["b"],
+    "the unanswered statement keeps waiting",
+  );
+});

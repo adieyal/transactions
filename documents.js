@@ -337,6 +337,14 @@ export function setCurrency(batch, currency) {
   return batch;
 }
 
+// The person's answers, { batchId: currency }; a statement left unanswered
+// keeps waiting. Returns the statements that changed, to be saved.
+export function answerCurrencies(state, answers) {
+  return Object.entries(answers)
+    .filter(([id, c]) => c && state.batches[id])
+    .map(([id, c]) => setCurrency(state.batches[id], c));
+}
+
 // The workspace that replaces the demo when someone adds their own first
 // statements: every saved document back to how a new workspace starts
 // (fresh, from createRuntime), no statements, no demo threads, and no longer

@@ -390,6 +390,9 @@ body.nopanel .qcount{min-width:0; width:16px; padding:4px 0; margin:4px 0 0}
 .msum .mp-currencies{font-style:italic}
 .mwaiting{border:1px solid var(--wire); background:var(--raised); border-radius:8px; padding:10px 12px; margin:0 0 14px; font-size:15px; line-height:1.5}
 .mwaiting .btn{margin-left:4px}
+.curall{display:block; margin:10px 0 14px; font-weight:600}
+.curall select{margin-left:6px}
+.curall .sub{display:block; font-weight:400}
 /* Figures that light up the timeline: a faint underline that firms up on
    hover and focus, so prose stays easy to read. */
 .sp{text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; text-decoration-color:color-mix(in srgb,var(--ink-3) 35%,transparent); cursor:default; transition:background .15s, text-decoration-color .15s; border-radius:2px}
