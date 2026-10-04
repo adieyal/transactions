@@ -13,6 +13,7 @@ import { createTags } from "./ui/tags.js";
 import { createInspector } from "./ui/inspector.js";
 import { createPeriods } from "./ui/periods.js";
 import { createQuestions } from "./ui/questions.js";
+import { createMonth } from "./ui/month.js";
 import { createReports } from "./ui/reports.js";
 import { createThreads } from "./ui/threads.js";
 import { createLenses } from "./ui/lenses.js";
@@ -38,6 +39,7 @@ Object.assign(actions, createTags(runtime, actions));
 Object.assign(actions, createInspector(runtime, actions));
 Object.assign(actions, createPeriods(runtime, actions));
 Object.assign(actions, createQuestions(runtime, actions));
+Object.assign(actions, createMonth(runtime, actions));
 Object.assign(actions, createReports(runtime, actions));
 Object.assign(actions, createThreads(runtime, actions));
 Object.assign(actions, createLenses(runtime, actions));
@@ -60,6 +62,7 @@ function renderAll() {
   actions.renderFilterBar();
   actions.renderParkbar();
   actions.renderQuestions();
+  actions.renderMonth();
   if ($("#pane-reports").classList.contains("on")) actions.renderReports();
   actions.renderTimeline();
   actions.renderEditor();
@@ -89,6 +92,7 @@ async function boot() {
   actions.wireFilter();
   actions.wireParkbar();
   actions.wireQuestions();
+  actions.wireMonth();
   actions.wirePrivacy();
   actions.wireInspector();
   actions.wireReports();
@@ -190,6 +194,7 @@ async function boot() {
 const refreshSoon = debounce(() => {
   actions.derive();
   actions.renderQuestions();
+  actions.renderMonth();
   actions.renderFilterBar();
   actions.renderTimeline();
   actions.renderEditor();

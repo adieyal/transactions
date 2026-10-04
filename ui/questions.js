@@ -15,7 +15,8 @@ import {
 export function createQuestions(runtime, actions) {
   const { state } = runtime;
   let open = [];
-  // The card with a text field open: { id, action }.
+  // The card with a text field open: { id, action, where }, where is the
+  // list it was opened in (the Questions tab or Your month).
   let writing = null;
 
   function openMoments() {
@@ -24,19 +25,19 @@ export function createQuestions(runtime, actions) {
     return findMoments(derived, state, detectMoments(derived, state));
   }
 
-  function cardHTML(m) {
+  function cardHTML(m, where = "questions") {
     const options = answerOptions(m, state.merchantAnswers).filter(
       (o) => o.action !== "skip",
     );
     const form =
-      writing?.id === m.id
+      writing?.id === m.id && writing.where === where
         ? `<form class="qwrite" data-qform>
-            <label class="sub" for="qText">${writing.action === "period" ? "Name this period" : "Your note"}</label>
+            <label class="sub">${writing.action === "period" ? "Name this period" : "Your note"}
             ${
               writing.action === "period"
-                ? `<input id="qText" dir="auto" autocomplete="off" required>`
-                : `<textarea id="qText" class="note" dir="auto" required></textarea>`
-            }
+                ? `<input data-qtext dir="auto" autocomplete="off" required>`
+                : `<textarea data-qtext class="note" dir="auto" required></textarea>`
+            }</label>
             <div class="row-actions"><button class="btn small" type="submit">Save</button><button class="btn small quiet" type="button" data-qcancel>Cancel</button></div>
           </form>`
         : `<div class="qanswers">${options
@@ -70,16 +71,28 @@ export function createQuestions(runtime, actions) {
       body = `<p class="sub">No statements yet. Questions appear here once you add some.</p>`;
     else if (!open.length)
       body = `<p class="sub">No more questions for now. New ones may appear when you add statements.</p>`;
-    else body = `<ul class="qlist">${open.map(cardHTML).join("")}</ul>`;
+    else
+      body = `<ul class="qlist">${open.map((m) => cardHTML(m, "questions")).join("")}</ul>`;
     pane.innerHTML = `<p class="lead">Your statements show where money went. Here are a few things a short note would explain. Answer any you like, or none at all.</p>
       <div class="qprivacy" id="qPrivacy">${esc(privacy.banner)}</div>
       ${body}${tally}`;
-    pane
+    markCards();
+    if (writing?.where === "questions")
+      pane.querySelector("[data-qtext]")?.focus();
+  }
+
+  function rerender() {
+    renderQuestions();
+    actions.renderMonth?.();
+  }
+
+  // Cards whose transactions are lit up on the timeline.
+  function markCards() {
+    document
       .querySelectorAll(".qcard")
       .forEach((c) =>
         c.classList.toggle("on", sameIds(c.dataset.ids.split(","))),
       );
-    if (writing) pane.querySelector("#qText")?.focus();
   }
 
   const sameIds = (ids) =>
@@ -131,7 +144,11 @@ export function createQuestions(runtime, actions) {
   }
 
   function wireQuestions() {
-    const pane = $("#questions");
+    wireCards($("#questions"), "questions");
+  }
+
+  // Cards work the same in any list: the Questions tab or inline in Your month.
+  function wireCards(pane, where) {
     pane.addEventListener("click", (e) => {
       const card = e.target.closest(".qcard");
       if (!card) return;
@@ -139,7 +156,7 @@ export function createQuestions(runtime, actions) {
       if (!m) return;
       if (e.target.closest("[data-qcancel]")) {
         writing = null;
-        renderQuestions();
+        rerender();
         return;
       }
       if (e.target.closest("[data-qskip]")) {
@@ -153,8 +170,9 @@ export function createQuestions(runtime, actions) {
         );
         const o = options[+opt.dataset.qopt];
         if (o.source === "generic") {
-          writing = { id: m.id, action: o.action };
-          renderQuestions();
+          writing = { id: m.id, action: o.action, where };
+          rerender();
+          pane.querySelector("[data-qtext]")?.focus();
         } else answer(m, { action: o.action, label: o.label });
         return;
       }
@@ -164,17 +182,13 @@ export function createQuestions(runtime, actions) {
       state.highlight = sameIds(ids) ? new Set() : new Set(ids);
       state.selection.clear();
       actions.renderTimeline();
-      pane
-        .querySelectorAll(".qcard")
-        .forEach((c) =>
-          c.classList.toggle("on", sameIds(c.dataset.ids.split(","))),
-        );
+      markCards();
     });
     pane.addEventListener("submit", (e) => {
       e.preventDefault();
       const card = e.target.closest(".qcard");
       const m = open.find((x) => x.id === card?.dataset.qid);
-      const text = $("#qText")?.value.trim();
+      const text = e.target.querySelector("[data-qtext]")?.value.trim();
       if (!m || !writing || !text) return;
       answer(m, { action: writing.action, text });
     });
@@ -182,7 +196,7 @@ export function createQuestions(runtime, actions) {
       if (e.key === "Escape" && writing) {
         e.stopPropagation();
         writing = null;
-        renderQuestions();
+        rerender();
       }
     });
   }
@@ -204,5 +218,13 @@ export function createQuestions(runtime, actions) {
     $("#privacyClose").onclick = () => $("#privacyDlg").close();
   }
 
-  return { renderPrivacy, renderQuestions, wirePrivacy, wireQuestions };
+  return {
+    openQuestions: () => open,
+    questionCard: cardHTML,
+    renderPrivacy,
+    renderQuestions,
+    wireCards,
+    wirePrivacy,
+    wireQuestions,
+  };
 }

@@ -49,14 +49,18 @@
     </section>
     <aside class="right">
       <div class="tabs" role="tablist">
-        <button class="tab" role="tab" id="tab-lenses" aria-selected="true" aria-controls="pane-lenses">Lenses</button>
+        <button class="tab" role="tab" id="tab-month" aria-selected="true" aria-controls="pane-month">Your month</button>
+        <button class="tab" role="tab" id="tab-lenses" aria-selected="false" aria-controls="pane-lenses">Lenses</button>
         <button class="tab" role="tab" id="tab-questions" aria-selected="false" aria-controls="pane-questions">Questions <span class="qcount" id="qCount"></span></button>
         <button class="tab" role="tab" id="tab-threads" aria-selected="false" aria-controls="pane-threads">Threads</button>
         <button class="tab" role="tab" id="tab-ask" aria-selected="false" aria-controls="pane-ask">Ask</button>
         <button class="tab" role="tab" id="tab-reports" aria-selected="false" aria-controls="pane-reports">Reports</button>
         <button class="hidepanel" id="hidePanel" title="Hide the panel" aria-label="Hide the panel"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
-      <div class="pane on" id="pane-lenses" role="tabpanel" aria-labelledby="tab-lenses">
+      <div class="pane on" id="pane-month" role="tabpanel" aria-labelledby="tab-month">
+        <div id="month"></div>
+      </div>
+      <div class="pane" id="pane-lenses" role="tabpanel" aria-labelledby="tab-lenses">
         <div id="lenses"></div>
       </div>
       <div class="pane" id="pane-questions" role="tabpanel" aria-labelledby="tab-questions">

@@ -37,7 +37,7 @@ header{display:flex; align-items:center; gap:18px; padding:14px 22px 12px; flex-
 .btn.small{padding:3px 9px; font-size:13px}
 .btn:disabled{opacity:.45; cursor:default}
 .linkish{border:0; background:none; padding:0; color:var(--focus); text-decoration:underline; text-underline-offset:2px}
-main{display:grid; grid-template-columns:minmax(0,1fr) 400px; min-height:0}
+main{display:grid; grid-template-columns:minmax(0,1fr) 470px; min-height:0}
 .tabs .hidepanel{margin-left:auto; align-self:center; display:grid; place-items:center; width:28px; height:28px; border:0; border-radius:6px; background:none; color:var(--ink-2); padding:0}
 .tabs .hidepanel:hover{color:var(--ink); background:var(--grid)}
 .tabs .hidepanel svg{transition:transform .15s}
@@ -200,8 +200,8 @@ dl.kv dd{margin:0}
 .newlens{border:1.5px dashed var(--wire); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; background:transparent}
 .newlens textarea{border:1px solid var(--wire); border-radius:6px; background:var(--raised); padding:7px 9px; min-height:64px; resize:vertical}
 /* right panel */
-.tabs{display:flex; gap:0; border-bottom:1px solid var(--grid); padding:0 12px; overflow-x:auto; scrollbar-width:none; position:sticky; top:0; background:var(--panel); z-index:2}
-.tab{border:0; background:none; white-space:nowrap; padding:12px 9px 10px; font-weight:500; color:var(--ink-2); border-bottom:2px solid transparent; margin-bottom:-1px}
+.tabs{display:flex; gap:0; border-bottom:1px solid var(--grid); padding:0 8px; overflow-x:auto; scrollbar-width:none; position:sticky; top:0; background:var(--panel); z-index:2}
+.tab{border:0; background:none; white-space:nowrap; padding:12px 7px 10px; font-size:14px; font-weight:500; color:var(--ink-2); border-bottom:2px solid transparent; margin-bottom:-1px}
 .tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--ink)}
 .pane{padding:14px 18px 24px; display:none; flex:1; min-height:0}
 .pane.on{display:flex; flex-direction:column}
@@ -356,3 +356,19 @@ dialog::backdrop{background:rgba(10,14,16,.35)}
 .qwrite input{border:1px solid var(--wire); background:var(--raised); border-radius:6px; padding:7px 9px; font-size:14px; color:var(--ink)}
 .qfoot{margin:10px 0 0; font-size:12px; color:var(--ink-3)}
 body.nopanel .qcount{min-width:0; width:16px; padding:4px 0; margin:4px 0 0}
+/* your month */
+.mnav{display:flex; align-items:center; gap:10px}
+.mstep{border:1px solid var(--wire); background:var(--raised); color:var(--ink); border-radius:999px; width:30px; height:30px; font-size:17px; line-height:1; padding:0}
+.mstep:disabled{opacity:.35; cursor:default}
+.mkick{font-size:12px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2)}
+.mtitle{font:500 30px/1.15 var(--display); margin:8px 0 12px}
+.msum .mp{font:400 17px/1.6 var(--display); margin:0 0 12px}
+.msum .mp-overview{font-size:19.5px; line-height:1.5}
+.sp{border-bottom:1.5px dotted var(--ink-3); cursor:default; transition:background .15s}
+.sp.on,.sp:focus-visible{background:color-mix(in srgb,#E9C46A 45%,transparent); border-bottom-color:var(--ink); outline:0}
+.yours{margin:0 0 14px; padding:10px 14px; border-left:3px solid var(--wire); background:var(--raised); border-radius:0 8px 8px 0}
+.yours figcaption{font:600 11.5px var(--ui); letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2); margin-bottom:4px}
+.yourtext{font:400 16px/1.55 var(--display)}
+.yourtext p{margin:0 0 6px}
+.mqhead{font:600 11.5px var(--ui); letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2); margin:16px 0 8px}
+.msum .qlist{margin:0 0 10px}

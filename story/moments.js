@@ -22,7 +22,7 @@ const daysBetween = (a, b) => (ms(b) - ms(a)) / DAY;
 const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
 const sum = (ts) => ts.reduce((s, t) => s + t.amount, 0);
 const round = (n) => Math.round(n * 100) / 100;
-const spending = (t) => t.amount > 0 && !t.transfer;
+export const spending = (t) => t.amount > 0 && !t.transfer;
 
 function median(values) {
   const s = [...values].sort((a, b) => a - b);
@@ -479,7 +479,7 @@ function budgets(ctx) {
 }
 
 // The calendar months each merchant appears in. Three or more makes it routine.
-function monthsSeen(spend) {
+export function monthsSeen(spend) {
   const out = new Map();
   for (const t of spend) {
     if (!out.has(t.key)) out.set(t.key, new Set());

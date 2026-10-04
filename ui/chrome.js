@@ -47,10 +47,12 @@ export function createChrome(runtime, actions) {
       actions.saveView();
       applyPanel();
     }
-    ["lenses", "questions", "threads", "ask", "reports"].forEach((w) => {
-      $("#tab-" + w).setAttribute("aria-selected", w === which);
-      $("#pane-" + w).classList.toggle("on", w === which);
-    });
+    ["month", "lenses", "questions", "threads", "ask", "reports"].forEach(
+      (w) => {
+        $("#tab-" + w).setAttribute("aria-selected", w === which);
+        $("#pane-" + w).classList.toggle("on", w === which);
+      },
+    );
     if (which === "ask") {
       actions.renderAskCtx();
       actions.renderLog();
@@ -95,6 +97,7 @@ export function createChrome(runtime, actions) {
       actions.saveView();
       applyPanel();
     };
+    $("#tab-month").onclick = () => openTab("month");
     $("#tab-lenses").onclick = () => openTab("lenses");
     $("#tab-questions").onclick = () => openTab("questions");
     $("#tab-threads").onclick = () => openTab("threads");

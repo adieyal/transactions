@@ -16,6 +16,7 @@ export function createRuntime() {
     dismissed: {},
     periods: [],
     periodSel: null,
+    monthView: null,
     storyEdit: null,
     reports: [],
     answers: {},
