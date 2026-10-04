@@ -1,4 +1,5 @@
 import { $, esc, fmt, fmtDate, monthName } from "../helpers.js";
+import { toast } from "./dom.js";
 
 export function createChanges(runtime, actions) {
   const { state } = runtime;
@@ -18,7 +19,7 @@ export function createChanges(runtime, actions) {
       return;
     }
     el.innerHTML =
-      `<div class="sec-h"><h2>Worth a look</h2><span class="sub">Changes in things you pay for regularly</span></div><ul class="changes">` +
+      `<div class="sec-h"><h2>Worth a look</h2><span class="sub">Changes in things you pay for regularly</span>${runtime.derived.flags.length > 1 ? `<button class="linkish" data-flagdismissall>Dismiss all</button>` : ""}</div><ul class="changes">` +
       runtime.derived.flags
         .map((f) => {
           const who = `<b dir="auto">${esc(f.t.merchant)}</b>`;
@@ -45,6 +46,27 @@ export function createChanges(runtime, actions) {
         state.periodSel = null;
         actions.refresh();
         $("#tlwrap").scrollIntoView({ block: "nearest", behavior: "smooth" });
+        return;
+      }
+      if (e.target.closest("[data-flagdismissall]")) {
+        const ids = runtime.derived.flags.map((f) => f.id);
+        const save = () =>
+          actions.saveSoon("dismissed", () => ({ map: state.dismissed }), 200);
+        ids.forEach((id) => (state.dismissed[id] = true));
+        save();
+        actions.refresh();
+        toast(
+          `Dismissed ${ids.length} changes. New ones will still show up.`,
+          9000,
+          {
+            label: "Undo",
+            fn: () => {
+              ids.forEach((id) => delete state.dismissed[id]);
+              save();
+              actions.refresh();
+            },
+          },
+        );
         return;
       }
       const d = e.target.closest("[data-flagdismiss]");

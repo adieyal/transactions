@@ -23,11 +23,13 @@
     <div class="menu" id="moreMenu">
       <button class="btn quiet" id="moreBtn" aria-haspopup="true" aria-expanded="false">More</button>
       <div role="menu">
+        <button role="menuitem" data-act="tour">Take the tour</button>
         <button role="menuitem" data-act="ai">AI assistant settings</button>
         <button role="menuitem" data-act="dl-rules">Download threads as text</button>
         <button role="menuitem" data-act="dl-all">Download everything (JSON)</button>
         <button role="menuitem" data-act="import-backup">Import backup (JSON)</button>
         <button role="menuitem" data-act="reset-lenses">Restore starter lenses</button>
+        <button role="menuitem" data-act="restart-demo">Restart the demo</button>
       </div>
     </div>
     <input type="file" id="backupFile" class="vh" accept=".json,application/json">
@@ -77,9 +79,10 @@
           <div class="row-actions"><span class="sub"></span><button class="btn small" id="repSave">Save and run</button></div></div>
       </div>
       <div class="pane" id="pane-ask" role="tabpanel" aria-labelledby="tab-ask">
+        <div id="askoff"></div>
         <div id="askmem"></div>
         <div id="log" aria-live="polite"></div>
-        <div class="askbox">
+        <div class="askbox" id="askbox">
           <div class="ctx" id="askctx"></div>
           <textarea id="askInput" placeholder="Ask, or ask for changes: “translate the descriptions into English”" aria-label="Question"></textarea>
           <div class="row-actions"><span class="sub" id="askNote"></span><span><button class="btn small quiet" id="stopBtn" hidden>Stop</button> <button class="btn small" id="sendBtn">Ask</button></span></div>
@@ -127,7 +130,7 @@
   <div class="dlg">
   <h2 id="backupTitle">Import backup</h2>
   <p id="backupSummary"></p>
-  <p>This replaces the current statements, threads, notes, merchant names, periods, reports and lenses. Download the current workspace first if you want to keep it.</p>
+  <p>This replaces the current statements, threads, notes, merchant names, periods, reports and lenses. Use More → Download everything first if you want to keep them.</p>
   <p class="sub">AI settings and API keys stay in this browser.</p>
   <p id="backupError" role="alert" class="sub"></p>
   <div class="row-actions"><button class="btn quiet" id="backupCancel">Cancel</button><button class="btn" id="backupRestore">Replace and import</button></div>

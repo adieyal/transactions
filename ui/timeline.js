@@ -11,7 +11,7 @@ import {
   monthOf,
   ms,
 } from "../helpers.js";
-import { LOOSE, PALETTE, TRANSFERS } from "../transactions/constants.js";
+import { LOOSE, TRANSFERS } from "../transactions/constants.js";
 import { toast } from "./dom.js";
 import { parseRules } from "../transactions/rules.js";
 
@@ -151,12 +151,22 @@ export function createTimeline(runtime, actions) {
     let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Transactions on a timeline, one row per thread">`;
     const xToday = X(ms(TODAY));
     s += `<rect class="futurebg" x="${xToday}" y="${covTop}" width="${Math.max(0, W - padR - xToday)}" height="${H - covTop}"/>`;
-    // the selected period shades everything beneath it
+    if (W - padR - xToday > 90)
+      s += `<text class="futurelabel" x="${W - padR - 6}" y="${covTop + 11}" text-anchor="end"><title>Dates still to come. Dashed marks and ≈ amounts are charges expected from recurring payments and instalments.</title>The future</text>`;
+    // every period shades the dates beneath it; the selected one is stronger
+    // and can be dragged to move it, or by its sides to resize it
     const selP = pers.find((p) => p.id === state.periodSel);
+    for (const p of pers) {
+      if (p === selP) continue;
+      const a = Math.max(labelW, X(ms(p.start))),
+        b = Math.min(W - padR, X(ms(p.end) + 864e5));
+      if (b > a)
+        s += `<rect class="pfill" x="${a}" y="${perTop}" width="${Math.max(2, b - a)}" height="${H - perTop}" style="--pc:${p.color}"/>`;
+    }
     if (selP) {
       const a = Math.max(labelW, X(ms(selP.start))),
         b = Math.min(W - padR, X(ms(selP.end) + 864e5));
-      s += `<rect x="${a}" y="${perTop}" width="${Math.max(2, b - a)}" height="${H - perTop}" fill="${selP.color}" opacity=".08" pointer-events="none"/>`;
+      s += `<g class="period pband" data-pid="${selP.id}" style="--pc:${selP.color}"><rect class="pshade" x="${a}" y="${perTop}" width="${Math.max(2, b - a)}" height="${H - perTop}"/><rect class="pedge" data-edge="start" x="${a - 4}" y="${perTop}" width="8" height="${H - perTop}"/><rect class="pedge" data-edge="end" x="${b - 4}" y="${perTop}" width="8" height="${H - perTop}"/></g>`;
     }
     // months
     let m = monthOf(new Date(t0).toISOString().slice(0, 10)) + "-01";
@@ -222,7 +232,10 @@ export function createTimeline(runtime, actions) {
       s +=
         `<g class="period${p.id === state.periodSel ? " on" : ""}" data-pid="${p.id}"><title>${esc(p.name)}: ${fmtDate(p.start)} to ${fmtDate(p.end)}</title><rect class="pbody" x="${x0}" y="${y}" width="${w}" height="16" rx="4" fill="${p.color}" fill-opacity="${p.id === state.periodSel ? 0.4 : 0.22}" stroke="${p.color}"/>` +
         `<text class="plabel" x="${x0 + 6}" y="${y + 12}" dir="auto">${esc(label)}</text>` +
-        `<rect class="pedge" data-edge="start" x="${x0 - 3}" y="${y}" width="7" height="16"/><rect class="pedge" data-edge="end" x="${x0 + w - 4}" y="${y}" width="7" height="16"/></g>`;
+        `<rect class="pedge" data-edge="start" x="${x0 - 3}" y="${y}" width="7" height="16"/><rect class="pedge" data-edge="end" x="${x0 + w - 4}" y="${y}" width="7" height="16"/></g>` +
+        (p.id === state.periodSel
+          ? `<g class="xbtn" data-pdel="${p.id}" role="button" aria-label="Remove ${esc(p.name)}"><title>Remove this period (Delete)</title><circle cx="${x0 + w + 10}" cy="${y + 8}" r="7"/><path d="M${x0 + w + 7},${y + 5}l6,6m0,-6l-6,6"/></g>`
+          : "");
     }
     s += `<rect id="pDraft" x="0" y="${perTop + 2}" width="0" height="16" rx="4" class="pdraft" style="display:none"/>`;
     if (xToday > labelW && xToday < W)
@@ -284,7 +297,10 @@ export function createTimeline(runtime, actions) {
           }
           const yb = yv(budget);
           s += `<line class="bline" x1="${labelW}" x2="${W - padR - 8}" y1="${yb}" y2="${yb}" stroke="${row.color}"/>`;
-          s += `<text class="blabel" x="${labelW + 4}" y="${yb - 4}">${fmt(budget, 0)} a month</text>`;
+          const blabel = `${fmt(budget, 0)} a month`,
+            bx = labelW + 4 + blabel.length * 6 + 8;
+          s += `<text class="blabel" x="${labelW + 4}" y="${yb - 4}">${blabel}</text>`;
+          s += `<g class="xbtn" data-bdel="${esc(row.name)}" role="button" aria-label="Remove the budget for ${esc(row.name)}"><title>Remove this budget</title><circle cx="${bx}" cy="${yb - 8}" r="6"/><path d="M${bx - 2.5},${yb - 10.5}l5,5m0,-5l-5,5"/></g>`;
           s += `<g class="bhandle" data-bthread="${esc(row.name)}" tabindex="0" role="slider" aria-label="Budget for ${esc(row.name)}" aria-valuenow="${budget}"><title>Drag up or down to set the monthly budget</title><circle cx="${W - padR - 6}" cy="${yb}" r="6" stroke="${row.color}"/></g>`;
         }
         s += `<line class="wire" x1="${labelW}" x2="${W - padR}" y1="${cy}" y2="${cy}"/>`;
@@ -367,6 +383,13 @@ export function createTimeline(runtime, actions) {
         s += `<text class="flagmark" x="${it.x}" y="${it.y - it.r - 3}" text-anchor="middle" pointer-events="none">${runtime.derived.flagged[t.id]}</text>`;
       POS.push({ id: t.id, x: it.x, y: it.y, r: it.r });
     }
+    // period names that follow the view down once the period lane scrolls away
+    for (const p of pers) {
+      const a = Math.max(labelW, X(ms(p.start))),
+        b = Math.min(W - padR, X(ms(p.end) + 864e5));
+      if (b > a)
+        s += `<text class="pstick" x="${Math.max(a, labelW) + 4}" y="0" style="--pc:${p.color}" dir="auto">${esc(p.name)}</text>`;
+    }
     s += `<rect id="lassoRect" class="lasso" x="0" y="0" width="0" height="0" style="display:none"/></svg>`;
     host.innerHTML = s;
     TL = {
@@ -379,8 +402,23 @@ export function createTimeline(runtime, actions) {
       perBottom,
       top,
       budgetMeta,
+      // the selected period first, then the narrowest, so the most
+      // specific band wins where periods overlap
+      bands: pers
+        .map((p) => ({
+          id: p.id,
+          a: Math.max(labelW, X(ms(p.start))),
+          b: Math.min(W - padR, X(ms(p.end) + 864e5)),
+        }))
+        .filter((p) => p.b > p.a)
+        .sort(
+          (p, q) =>
+            (q.id === state.periodSel) - (p.id === state.periodSel) ||
+            p.b - p.a - (q.b - q.a),
+        ),
       inv: (x) => t0 + ((x - labelW) / (W - labelW - padR)) * (t1 - t0),
     };
+    placeStickyNames();
   }
 
   function describe(t) {
@@ -426,6 +464,17 @@ export function createTimeline(runtime, actions) {
     tip.style.top = y + "px";
   }
 
+  function removeBudget(name) {
+    const th = runtime.derived.R.threads.find((t) => t.name === name);
+    if (!th?.budget || state.previewRules != null) return setBudget(name, 0);
+    const was = th.budget;
+    setBudget(name, 0);
+    toast(`Removed the budget for ${name}.`, 9000, {
+      label: "Undo",
+      fn: () => setBudget(name, was),
+    });
+  }
+
   function setBudget(name, value) {
     if (state.previewRules != null) {
       toast(
@@ -444,7 +493,36 @@ export function createTimeline(runtime, actions) {
     actions.refresh();
   }
 
+  // Keeps period names in view: hidden while the period lane shows, then
+  // pinned just below the top of the scrolled timeline.
+  function placeStickyNames() {
+    const svg = $("#tl svg");
+    if (!svg || !TL) return;
+    const top =
+      $(".left").getBoundingClientRect().top - svg.getBoundingClientRect().top;
+    const show = top > TL.perBottom;
+    svg.querySelectorAll(".pstick").forEach((t) => {
+      t.style.display = show ? "" : "none";
+      if (show) t.setAttribute("y", top + 16);
+    });
+  }
+
+  // The period band under a point, and which side if it is on an edge.
+  function bandAt({ x, y }) {
+    if (y < TL.perTop) return null;
+    const band = TL.bands.find((b) => x >= b.a - 4 && x <= b.b + 4);
+    if (!band) return null;
+    const edge =
+      Math.abs(x - band.a) <= 4
+        ? "start"
+        : Math.abs(x - band.b) <= 4
+          ? "end"
+          : undefined;
+    return { id: band.id, edge };
+  }
+
   function wireTimeline() {
+    $(".left").addEventListener("scroll", placeStickyNames, { passive: true });
     const host = $("#tl");
     let mode = null;
     const pt = (ev) => {
@@ -505,6 +583,8 @@ export function createTimeline(runtime, actions) {
       const c = ev.target.closest("circle[data-id]");
       if (c) showTip(runtime.derived.byId.get(c.dataset.id), ev);
       else $("#tip").style.display = "none";
+      const hit = !c && !ev.shiftKey && TL && bandAt(pt(ev));
+      host.style.cursor = !hit ? "" : hit.edge ? "ew-resize" : "grab";
     });
     host.addEventListener(
       "pointerleave",
@@ -513,8 +593,16 @@ export function createTimeline(runtime, actions) {
     host.addEventListener("pointerdown", (ev) => {
       if (ev.button !== 0 || !host.querySelector("svg") || !TL) return;
       const { x, y } = pt(ev);
+      const del = ev.target.closest("[data-pdel],[data-bdel]");
+      if (del) {
+        ev.preventDefault();
+        if (del.dataset.pdel) actions.removePeriod(del.dataset.pdel);
+        else removeBudget(del.dataset.bdel);
+        return;
+      }
       const bh = ev.target.closest(".bhandle");
       if (bh) {
+        bh.focus();
         const meta = TL.budgetMeta[bh.dataset.bthread];
         const th = runtime.derived.R.threads.find(
           (t) => t.name === bh.dataset.bthread,
@@ -525,16 +613,28 @@ export function createTimeline(runtime, actions) {
           value: th.budget,
           bandMax: meta.bandMax,
         };
-        mode = { kind: "budget", ...meta };
+        mode = { kind: "budget", ...meta, was: th.budget };
         host.setPointerCapture(ev.pointerId);
         ev.preventDefault();
         return;
       }
-      const g = ev.target.closest(".period");
-      if (g) {
-        const p = state.periods.find((q) => q.id === g.dataset.pid);
+      const g = ev.target.closest(
+        ev.shiftKey ? ".period:not(.pband)" : ".period",
+      );
+      // Anywhere in a period's column moves it, and its sides resize it,
+      // unless the press lands on a bead or a control. Shift-drag still
+      // draws a selection box.
+      const hit =
+        !g &&
+        !ev.shiftKey &&
+        !ev.target.closest("circle[data-id],.rowlabel,.parkbtn,#parkedLabel") &&
+        bandAt({ x, y });
+      if (g || hit) {
+        const p = state.periods.find(
+          (q) => q.id === (g ? g.dataset.pid : hit.id),
+        );
         if (!p) return;
-        const edge = ev.target.closest(".pedge")?.dataset.edge;
+        const edge = g ? ev.target.closest(".pedge")?.dataset.edge : hit.edge;
         mode = {
           kind: edge ? "resize" : "move",
           edge,
@@ -570,6 +670,13 @@ export function createTimeline(runtime, actions) {
         const v = state.budgetDrag.value;
         const name = state.budgetDrag.thread;
         state.budgetDrag = null;
+        if (v === md0.was) {
+          renderTimeline();
+          host
+            .querySelector(`.bhandle[data-bthread="${CSS.escape(name)}"]`)
+            ?.focus();
+          return;
+        }
         setBudget(name, v);
         if (v > 0)
           toast(
@@ -580,6 +687,7 @@ export function createTimeline(runtime, actions) {
       }
       if (md0.kind === "move" || md0.kind === "resize") {
         if (md0.moved) {
+          state.periodSel = md0.id;
           actions.savePeriods();
           actions.refresh();
         } else {
@@ -597,25 +705,7 @@ export function createTimeline(runtime, actions) {
         if (!md0.a || md0.b - md0.a < 6) return;
         const start = isoFromMs(TL.inv(md0.a)),
           end = isoFromMs(Math.max(TL.inv(md0.a), TL.inv(md0.b) - 864e5));
-        const p = {
-          id: "p" + Date.now().toString(36),
-          name: "New period",
-          start,
-          end,
-          story: "",
-          color: PALETTE[(state.periods.length + 3) % PALETTE.length],
-        };
-        state.periods.push(p);
-        state.periodSel = p.id;
-        state.selection.clear();
-        state.statement = null;
-        actions.savePeriods();
-        actions.refresh();
-        const n = $("#pName");
-        if (n) {
-          n.focus();
-          n.select();
-        }
+        actions.addPeriod(start, end);
         return;
       }
       const L = $("#lassoRect");
@@ -709,6 +799,12 @@ export function createTimeline(runtime, actions) {
     });
     host.addEventListener("keydown", (e) => {
       const bh = e.target.closest?.(".bhandle");
+      if (bh && (e.key === "Delete" || e.key === "Backspace")) {
+        e.preventDefault();
+        e.stopPropagation();
+        removeBudget(bh.dataset.bthread);
+        return;
+      }
       if (!bh || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
       e.preventDefault();
       const th = runtime.derived.R.threads.find(

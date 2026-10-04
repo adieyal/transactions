@@ -485,6 +485,14 @@ export function createChat(runtime, actions) {
   function renderLog() {
     renderAskMem();
     const log = $("#log");
+    $("#askoff").innerHTML = caps.sample
+      ? ""
+      : actions.noAssistant("Ask needs an assistant.");
+    $("#askbox").hidden = !caps.sample;
+    if (!state.turns.length && !caps.sample) {
+      log.innerHTML = "";
+      return;
+    }
     if (!state.turns.length) {
       const sug = runtime.derived?.allTxns?.length
         ? [

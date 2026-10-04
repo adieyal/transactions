@@ -12,9 +12,10 @@ export function createChrome(runtime, actions) {
   }
 
   function renderChrome() {
-    $("#demoNotice").textContent = state.isDemo
-      ? "Demo · all example data is fictional"
+    $("#demoNotice").innerHTML = state.isDemo
+      ? `Demo · a fictional year · <button class="linkish" id="tourBtn">Take the tour</button>`
       : "Imported data";
+    $("#tourBtn")?.addEventListener("click", actions.startTour);
     $("#accts").innerHTML = (runtime.derived?.accounts || [])
       .map(
         (a) =>
@@ -174,6 +175,14 @@ export function createChrome(runtime, actions) {
         $("#backupFile").click();
         return;
       }
+      if (act === "tour") {
+        actions.startTour();
+        return;
+      }
+      if (act === "restart-demo") {
+        actions.restartDemo();
+        return;
+      }
       if (act === "ai") {
         actions.openAISettings();
         return;
@@ -206,6 +215,17 @@ export function createChrome(runtime, actions) {
       }
     };
     addEventListener("keydown", (e) => {
+      // Delete or Backspace removes the selected period, unless typing.
+      if (
+        (e.key === "Delete" || e.key === "Backspace") &&
+        state.periodSel &&
+        !e.target.closest?.("input, textarea, select, [contenteditable]") &&
+        !document.querySelector("dialog[open]")
+      ) {
+        e.preventDefault();
+        actions.removePeriod(state.periodSel);
+        return;
+      }
       if (e.key === "Escape" && !$("#mapDlg").open) {
         state.selection.clear();
         state.highlight.clear();

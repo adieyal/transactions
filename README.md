@@ -16,7 +16,7 @@ Transactions is a single HTML file. Open it in a browser or serve it from any st
 
 ## Try the demo
 
-Open [transactions.html](transactions.html). A new workspace starts with three completed months of fictional transactions across Demo Card, Demo Everyday, and Demo Savings. Changes are saved in your browser.
+Open [transactions.html](transactions.html). A new workspace starts with a fictional year across Demo Card, Demo Everyday, and Demo Savings: the car breaks down and the holiday savings pause, a move to a new flat brings a run of appliances, and the year ends with the holiday the savings were for. Changes are saved in your browser.
 
 The screenshots below use fictional merchants, accounts, notes, and a trip to Lantern Bay. They were captured with the date fixed to 30 September 2026, so the statements cover June–August 2026. Your fresh demo dates follow the current month.
 
@@ -92,9 +92,9 @@ The demo includes price increases for an energy bill, a subscription, café visi
 
 ### 10. Periods
 
-Drag across the period lane to mark a date range, then name it and add context. Click a period to inspect its spending breakdown, edit its dates, or filter to it. Move or resize the period on the timeline as your plans change.
+Drag across the period lane to mark a date range, or select the transactions that belong together and choose **Mark as a period** to cover their first to last date. Then name it and add context. Click a period to inspect its spending breakdown, edit its dates, or filter to it. Move or resize the period on the timeline as your plans change.
 
-The demo's **Weekend in Lantern Bay** includes all charges in those dates, including routine spending that happened during the trip. Its notes explain that distinction.
+The demo's **Holiday in Lantern Bay** includes all charges in those dates, including routine spending that happened during the trip. Its notes explain that distinction.
 
 ![Named trip period with dates, notes, and spending breakdown](docs/screenshots/10-periods.png)
 
@@ -207,7 +207,7 @@ Open `http://localhost:8000/transactions.html`. Rebuild after source changes. `i
 - `scripts/build.mjs` generates the single-file output.
 - `tests/` covers import and calculation semantics, storage behavior, and assistant requests.
 
-`demo.js` generates three completed months of fictional statements, including recurring bills, a subscription price change, a refund, account transfers, an instalment plan, tagged notes, and a fictional trip. A new demo workspace loads these automatically; edits persist and deleted statements stay deleted.
+`demo.js` generates twelve completed months of fictional statements, including recurring bills, a subscription price change, a refund, account transfers, an instalment plan, tagged notes, and three periods: a car repair, a house move and a holiday. A new demo workspace loads these automatically; edits persist and deleted statements stay deleted.
 
 The provided `.d.ts` files describe Claude runtime capabilities and are retained unchanged.
 

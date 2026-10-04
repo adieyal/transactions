@@ -86,7 +86,7 @@ test("legacy Abacus exports and an empty backup are accepted", () => {
   ])
     delete legacy[key];
   const imported = parseBackup(JSON.stringify(legacy));
-  assert.equal(Object.keys(imported.batches).length, 9);
+  assert.equal(Object.keys(imported.batches).length, 36);
   assert.equal(imported.isDemo, false);
   assert.deepEqual(imported.names, {});
   const empty = parseBackup(JSON.stringify({ rules: "", batches: [] }));

@@ -205,7 +205,7 @@ export function createInspector(runtime, actions) {
       el.innerHTML = `<div class="ins-m">${ids.length} beads</div><div class="sub">${fmt(sum)} on statements${ts.length > real.length ? `, plus ${ts.length - real.length} expected` : ""}, ${fmtDate(dates[0])} to ${fmtDate(dates.at(-1))}</div>
       <p class="sub" dir="auto" style="margin:6px 0 0">${merch.slice(0, 8).map(esc).join(" · ")}${merch.length > 8 ? ` and ${merch.length - 8} more` : ""}</p>
       <div class="row-actions"><input id="threadName" placeholder="Thread name" aria-label="Thread name" list="threadNames"><datalist id="threadNames">${runtime.derived.R.threads.map((t) => `<option value="${esc(t.name)}">`).join("")}</datalist>
-      <button class="btn small" id="makeThread">Thread these</button>${caps.sample ? `<button class="btn small quiet" id="askThese">Ask about these</button>` : ""}<button class="btn small quiet" id="clearSel">Clear</button></div>
+      <button class="btn small" id="makeThread">Thread these</button><button class="btn small quiet" id="makePeriod" title="A period from ${fmtDate(dates[0])} to ${fmtDate(dates.at(-1))}">Mark as a period</button>${caps.sample ? `<button class="btn small quiet" id="askThese">Ask about these</button>` : ""}<button class="btn small quiet" id="clearSel">Clear</button></div>
       ${
         real.length
           ? actions.tagToolsHTML(
@@ -226,6 +226,8 @@ export function createInspector(runtime, actions) {
       $("#threadName").addEventListener("keydown", (e) => {
         if (e.key === "Enter") $("#makeThread").click();
       });
+      $("#makePeriod").onclick = () =>
+        actions.addPeriod(dates[0], dates.at(-1));
       $("#clearSel").onclick = () => {
         state.selection.clear();
         actions.refresh();

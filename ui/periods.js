@@ -1,5 +1,6 @@
 import { $, TODAY, esc, fmt, ms } from "../helpers.js";
 import { toast } from "./dom.js";
+import { PALETTE } from "../transactions/constants.js";
 
 export function createPeriods(runtime, actions) {
   const { state, caps } = runtime;
@@ -106,22 +107,7 @@ export function createPeriods(runtime, actions) {
       state.query = q;
       actions.refresh();
     };
-    $("#pRemove").onclick = () => {
-      const i = state.periods.indexOf(p);
-      state.periods.splice(i, 1);
-      state.periodSel = null;
-      actions.savePeriods();
-      actions.refresh();
-      toast(`Removed “${p.name}”.`, 9000, {
-        label: "Undo",
-        fn: () => {
-          state.periods.splice(i, 0, p);
-          state.periodSel = p.id;
-          actions.savePeriods();
-          actions.refresh();
-        },
-      });
-    };
+    $("#pRemove").onclick = () => removePeriod(p.id);
     $("#pDraftStory")?.addEventListener("click", () => draftStory(p));
   }
 
@@ -195,5 +181,47 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
     }
   }
 
-  return { renderPeriodInspector };
+  function removePeriod(id) {
+    const i = state.periods.findIndex((q) => q.id === id);
+    if (i < 0) return;
+    const [p] = state.periods.splice(i, 1);
+    if (state.periodSel === id) state.periodSel = null;
+    actions.savePeriods();
+    actions.refresh();
+    toast(`Removed “${p.name}”.`, 9000, {
+      label: "Undo",
+      fn: () => {
+        state.periods.splice(i, 0, p);
+        state.periodSel = p.id;
+        actions.savePeriods();
+        actions.refresh();
+      },
+    });
+  }
+
+  // Adds a period and opens it with the name selected, ready to type over.
+  function addPeriod(start, end) {
+    const p = {
+      id: "p" + Date.now().toString(36),
+      name: "New period",
+      start,
+      end,
+      story: "",
+      color: PALETTE[(state.periods.length + 3) % PALETTE.length],
+    };
+    state.periods.push(p);
+    state.periodSel = p.id;
+    state.selection.clear();
+    state.statement = null;
+    actions.savePeriods();
+    actions.refresh();
+    const n = $("#pName");
+    if (n) {
+      n.focus();
+      n.select();
+    }
+    return p;
+  }
+
+  return { addPeriod, removePeriod, renderPeriodInspector };
 }

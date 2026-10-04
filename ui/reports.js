@@ -12,9 +12,15 @@ export function createReports(runtime, actions) {
     const el = $("#reports");
     if (!el) return;
     const stale = staleReports().length;
-    let h = "";
+    let h = caps.sample
+      ? ""
+      : actions.noAssistant(
+          "Reports need an assistant to run.",
+          "You can save questions now, and they'll run once one is connected.",
+        );
+    $("#repSave").textContent = caps.sample ? "Save and run" : "Save";
     if (!state.reports.length)
-      h = `<p class="sub">Nothing saved yet. Save a question below, or use “Save as a report” under any answer in Ask.</p><div class="suggestions">${["Anything new or unusual since the last statement?", "How did this month compare with a typical month, thread by thread?", "Which subscriptions changed price or appeared for the first time?"].map((s) => `<button data-repsug="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
+      h += `<p class="sub">Nothing saved yet. Save a question below, or use “Save as a report” under any answer in Ask.</p><div class="suggestions">${["Anything new or unusual since the last statement?", "How did this month compare with a typical month, thread by thread?", "Which subscriptions changed price or appeared for the first time?"].map((s) => `<button data-repsug="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
     else if (stale && caps.sample)
       h = `<div class="row-actions" style="margin:0 0 10px"><span class="sub">${stale} report${stale > 1 ? "s have" : " has"} new statements since the last run.</span><button class="btn small" id="runStale">Run ${stale > 1 ? "them" : "it"}</button></div>`;
     h += state.reports

@@ -2,10 +2,37 @@ import { $ } from "../helpers.js";
 import { toast } from "./dom.js";
 import { parseBackup } from "../backup.js";
 import { createRuntime } from "../state.js";
+import { createDemoData } from "../demo.js";
 
 export function createBackupImport(runtime, actions) {
   let pending = null;
   let busy = false;
+  let doneMessage = "";
+
+  // Asks before replacing the whole workspace with `workspace`.
+  function confirmReplace(workspace, { title, summary, button, done }) {
+    pending = workspace;
+    doneMessage = done;
+    $("#backupTitle").textContent = title;
+    $("#backupSummary").textContent = summary;
+    $("#backupRestore").textContent = button;
+    $("#backupError").textContent = "";
+    $("#backupDlg").showModal();
+  }
+
+  function restartDemo() {
+    if (busy) return;
+    confirmReplace(
+      { ...createRuntime().state, ...createDemoData(), isDemo: true },
+      {
+        title: "Restart the demo",
+        summary: "This loads a fresh copy of the fictional demo year.",
+        button: "Replace and restart",
+        done: "The demo is back to its starting point.",
+      },
+    );
+  }
+
   function wireBackupImport() {
     const fileInput = $("#backupFile"),
       dialog = $("#backupDlg");
@@ -14,14 +41,16 @@ export function createBackupImport(runtime, actions) {
       fileInput.value = "";
       if (!file || busy) return;
       try {
-        pending = parseBackup(await file.text());
-        const batches = Object.values(pending.batches);
+        const backup = parseBackup(await file.text());
+        const batches = Object.values(backup.batches);
         const count = new Set(batches.flatMap((b) => b.rows.map((r) => r.id)))
           .size;
-        $("#backupSummary").textContent =
-          `${file.name}: ${count} transactions in ${batches.length} statements, ${pending.periods.length} periods and ${pending.lenses.length} lenses.`;
-        $("#backupError").textContent = "";
-        dialog.showModal();
+        confirmReplace(backup, {
+          title: "Import backup",
+          summary: `${file.name}: ${count} transactions in ${batches.length} statements, ${backup.periods.length} periods and ${backup.lenses.length} lenses.`,
+          button: "Replace and import",
+          done: "Backup imported. Your statements, threads and notes are restored.",
+        });
       } catch (error) {
         pending = null;
         toast(error.message, 8000);
@@ -42,7 +71,7 @@ export function createBackupImport(runtime, actions) {
         runtime.state.reports.some((r) => r.running)
       ) {
         $("#backupError").textContent =
-          "Wait for the current assistant request to finish before importing.";
+          "Wait for the current assistant request to finish first.";
         return;
       }
       busy = true;
@@ -58,9 +87,7 @@ export function createBackupImport(runtime, actions) {
         actions.refresh();
         pending = null;
         dialog.close();
-        toast(
-          "Backup imported. Your statements, threads and notes are restored.",
-        );
+        toast(doneMessage);
       } catch (error) {
         $("#backupError").textContent = error.message;
       } finally {
@@ -70,5 +97,5 @@ export function createBackupImport(runtime, actions) {
       }
     };
   }
-  return { wireBackupImport };
+  return { restartDemo, wireBackupImport };
 }

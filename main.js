@@ -21,6 +21,7 @@ import { createAssistantSettings } from "./ui/assistant-settings.js";
 import { createSuggestions } from "./suggestions.js";
 import { createChat } from "./ui/chat.js";
 import { createImport } from "./ui/import.js";
+import { createTour } from "./ui/tour.js";
 
 const runtime = createRuntime();
 const actions = {
@@ -45,6 +46,7 @@ Object.assign(actions, createSuggestions(runtime, actions));
 Object.assign(actions, createChat(runtime, actions));
 Object.assign(actions, createImport(runtime, actions));
 Object.assign(actions, createBackupImport(runtime, actions));
+Object.assign(actions, createTour(runtime, actions));
 
 function renderAll() {
   if (!runtime.state.loaded) {
@@ -63,6 +65,7 @@ function renderAll() {
   actions.renderLenses();
   actions.renderAskCtx();
   if ($("#pane-ask").classList.contains("on")) actions.renderLog();
+  if ($("#pane-reports").classList.contains("on")) actions.renderReports();
 }
 
 async function useCap(name) {
@@ -79,6 +82,7 @@ async function boot() {
   actions.wireTimeline();
   actions.wireLenses();
   actions.wireAsk();
+  actions.wireConnect();
   actions.wireFilter();
   actions.wireParkbar();
   actions.wireChanges();
@@ -173,6 +177,7 @@ async function boot() {
   }
   runtime.state.loaded = true;
   renderAll();
+  actions.maybeStartTour();
 }
 
 const refreshSoon = debounce(() => {

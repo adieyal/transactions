@@ -25,9 +25,17 @@ Pets [budget 120/month]
   meadow paws
   #pets
 
+Car
+  cobble lane garage
+  #car
+
 Home
   oak & loom
+  kettle & coil
+  northgate hardware
+  linen lane
   #home
+  #move
 
 Trips
   lantern bay

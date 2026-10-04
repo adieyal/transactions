@@ -37,6 +37,20 @@ export function createAssistantSettings(runtime, actions) {
     }
   }
 
+  // Shown in place of the AI features when no assistant is connected.
+  function noAssistant(headline, extra = "") {
+    const why = window.claude?.use
+      ? "Claude isn't allowed in this view. You can allow it, or pick another assistant."
+      : "Connect ChatGPT, a local model through Ollama or LM Studio, or any OpenAI-compatible service. Your statements stay in this browser until you ask something. Then the question and the transactions it needs go to the service you pick.";
+    return `<div class="nudge"><p><b>${headline}</b> ${extra} ${why}</p><div class="row-actions"><span class="sub">Threads, periods, notes and lenses all work without one.</span><button class="btn small" data-connect>Connect an assistant</button></div></div>`;
+  }
+
+  function wireConnect() {
+    document.addEventListener("click", (e) => {
+      if (e.target.closest("[data-connect]")) openAISettings();
+    });
+  }
+
   function openAISettings() {
     const dlg = $("#aiDlg");
     const cfg = loadAI();
@@ -148,5 +162,12 @@ export function createAssistantSettings(runtime, actions) {
     }
   }
 
-  return { AI, applyProvider, openAISettings, sampleErr };
+  return {
+    AI,
+    applyProvider,
+    noAssistant,
+    openAISettings,
+    sampleErr,
+    wireConnect,
+  };
 }

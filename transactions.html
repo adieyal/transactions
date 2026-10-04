@@ -85,7 +85,17 @@ body.nopanel .right{display:none}
 .axis{font-size:11.5px; fill:var(--ink-2)!important}
 .gridline{stroke:var(--grid); stroke-width:1}
 .wire{stroke:var(--wire); stroke-width:1.2}
+.tour-spot{position:fixed; z-index:40; border-radius:10px; box-shadow:0 0 0 9999px rgba(10,14,16,.38); pointer-events:none; transition:all .25s ease}
+.tour-card{position:fixed; z-index:41; width:min(340px, calc(100vw - 32px)); background:var(--raised); color:var(--ink); border:1px solid var(--wire); border-radius:12px; padding:14px 16px 12px; box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.tour-card h3{margin:2px 0 6px; font-size:16px}
+.tour-card p{margin:0 0 12px; font-size:14px; line-height:1.45; color:var(--ink-2)}
+.tour-card .row-actions{margin:0; justify-content:space-between; align-items:center}
+.tour-count{font-size:12px; color:var(--ink-3)}
+.tour-close{position:absolute; top:8px; right:8px; width:28px; height:28px; border:0; border-radius:6px; background:transparent; color:var(--ink-3); font-size:20px; line-height:1; cursor:pointer}
+.tour-close:hover{background:var(--paper); color:var(--ink)}
+.tour-card .row-actions{flex-wrap:nowrap; gap:12px}
 .futurebg{fill:var(--future)}
+.futurelabel{font-size:11.5px; fill:var(--ink-2); font-style:italic}
 .todayline{stroke:var(--ink-2); stroke-width:1; stroke-dasharray:2 3}
 .rowlabel{font-size:14px; font-weight:500; cursor:pointer}
 .rowlabel:hover{text-decoration:underline}
@@ -191,6 +201,10 @@ dl.kv dd{margin:0}
 .askbox{border:1px solid var(--wire); border-radius:10px; background:var(--raised); padding:8px; display:flex; flex-direction:column; gap:6px}
 .askbox textarea{border:0; outline:0; resize:none; background:transparent; min-height:52px; padding:2px 4px}
 .askbox .row-actions{margin:0; justify-content:space-between}
+.askbox[hidden]{display:none}
+.nudge{border:1px solid var(--wire); border-radius:10px; background:var(--raised); padding:10px 12px; margin-bottom:12px; font-size:13.5px}
+.nudge p{margin:0 0 8px}
+.nudge .row-actions{margin:0; justify-content:space-between; gap:8px; flex-wrap:wrap}
 .ctx{font-size:12.5px; color:var(--ink-2)}
 .suggestions{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
 .suggestions button{text-align:start; border:1px solid var(--grid); background:var(--raised); border-radius:8px; padding:6px 10px; font-size:13.5px}
@@ -247,6 +261,12 @@ dialog::backdrop{background:rgba(10,14,16,.35)}
 .period .pbody{cursor:grab}
 .period .pedge{fill:transparent; cursor:ew-resize}
 .period.on .pbody{stroke-width:1.6}
+.pfill{fill:var(--pc); opacity:.05; pointer-events:none}
+.pstick{font-size:12px; font-weight:600; fill:var(--pc); paint-order:stroke; stroke:var(--paper); stroke-width:3px; pointer-events:none}
+.pband .pshade{fill:var(--pc); opacity:.1; cursor:grab}
+.pband .pshade:hover{opacity:.14}
+.pband .pedge{fill:var(--pc); opacity:0}
+.pband .pedge:hover{opacity:.35}
 .plabel{font-size:11.5px; pointer-events:none; fill:var(--ink)!important}
 .phint{font-size:11.5px; fill:var(--ink-3)!important; font-style:italic; pointer-events:none}
 .pdraft{fill:var(--focus); fill-opacity:.15; stroke:var(--focus); stroke-dasharray:3 2; pointer-events:none}
@@ -257,6 +277,11 @@ dialog::backdrop{background:rgba(10,14,16,.35)}
 .bover{font-size:10.5px; fill:var(--warn)!important; font-weight:600}
 .bline{stroke-width:1.4; stroke-dasharray:6 3; pointer-events:none}
 .blabel{font-size:11px; fill:var(--ink-2)!important}
+.xbtn{cursor:pointer}
+.xbtn circle{fill:var(--raised); stroke:var(--wire); stroke-width:1}
+.xbtn path{stroke:var(--ink-3); stroke-width:1.5; stroke-linecap:round}
+.xbtn:hover circle{fill:var(--warn); stroke:var(--warn)}
+.xbtn:hover path{stroke:#fff}
 .bhandle{cursor:ns-resize}
 .bhandle circle{fill:var(--paper); stroke-width:2}
 .bhandle:hover circle,.bhandle:focus circle{fill:var(--raised); stroke-width:3}
@@ -295,11 +320,13 @@ ul.changes li{background:var(--raised); border:1px solid var(--grid); border-rad
     <div class="menu" id="moreMenu">
       <button class="btn quiet" id="moreBtn" aria-haspopup="true" aria-expanded="false">More</button>
       <div role="menu">
+        <button role="menuitem" data-act="tour">Take the tour</button>
         <button role="menuitem" data-act="ai">AI assistant settings</button>
         <button role="menuitem" data-act="dl-rules">Download threads as text</button>
         <button role="menuitem" data-act="dl-all">Download everything (JSON)</button>
         <button role="menuitem" data-act="import-backup">Import backup (JSON)</button>
         <button role="menuitem" data-act="reset-lenses">Restore starter lenses</button>
+        <button role="menuitem" data-act="restart-demo">Restart the demo</button>
       </div>
     </div>
     <input type="file" id="backupFile" class="vh" accept=".json,application/json">
@@ -349,9 +376,10 @@ ul.changes li{background:var(--raised); border:1px solid var(--grid); border-rad
           <div class="row-actions"><span class="sub"></span><button class="btn small" id="repSave">Save and run</button></div></div>
       </div>
       <div class="pane" id="pane-ask" role="tabpanel" aria-labelledby="tab-ask">
+        <div id="askoff"></div>
         <div id="askmem"></div>
         <div id="log" aria-live="polite"></div>
-        <div class="askbox">
+        <div class="askbox" id="askbox">
           <div class="ctx" id="askctx"></div>
           <textarea id="askInput" placeholder="Ask, or ask for changes: “translate the descriptions into English”" aria-label="Question"></textarea>
           <div class="row-actions"><span class="sub" id="askNote"></span><span><button class="btn small quiet" id="stopBtn" hidden>Stop</button> <button class="btn small" id="sendBtn">Ask</button></span></div>
@@ -399,7 +427,7 @@ ul.changes li{background:var(--raised); border:1px solid var(--grid); border-rad
   <div class="dlg">
   <h2 id="backupTitle">Import backup</h2>
   <p id="backupSummary"></p>
-  <p>This replaces the current statements, threads, notes, merchant names, periods, reports and lenses. Download the current workspace first if you want to keep it.</p>
+  <p>This replaces the current statements, threads, notes, merchant names, periods, reports and lenses. Use More → Download everything first if you want to keep them.</p>
   <p class="sub">AI settings and API keys stay in this browser.</p>
   <p id="backupError" role="alert" class="sub"></p>
   <div class="row-actions"><button class="btn quiet" id="backupCancel">Cancel</button><button class="btn" id="backupRestore">Replace and import</button></div>
@@ -535,9 +563,17 @@ Pets [budget 120/month]
   meadow paws
   #pets
 
+Car
+  cobble lane garage
+  #car
+
 Home
   oak & loom
+  kettle & coil
+  northgate hardware
+  linen lane
   #home
+  #move
 
 Trips
   lantern bay
@@ -908,97 +944,20 @@ return {
     return { state, caps, derived: null };
   }
 
-  // ui/backup.js
-  function createBackupImport(runtime2, actions2) {
-    let pending = null;
-    let busy = false;
-    function wireBackupImport() {
-      const fileInput = $("#backupFile"), dialog = $("#backupDlg");
-      fileInput.onchange = async () => {
-        const file = fileInput.files[0];
-        fileInput.value = "";
-        if (!file || busy) return;
-        try {
-          pending = parseBackup(await file.text());
-          const batches = Object.values(pending.batches);
-          const count = new Set(batches.flatMap((b) => b.rows.map((r) => r.id))).size;
-          $("#backupSummary").textContent = `${file.name}: ${count} transactions in ${batches.length} statements, ${pending.periods.length} periods and ${pending.lenses.length} lenses.`;
-          $("#backupError").textContent = "";
-          dialog.showModal();
-        } catch (error) {
-          pending = null;
-          toast(error.message, 8e3);
-        }
-      };
-      $("#backupCancel").onclick = () => {
-        pending = null;
-        dialog.close();
-      };
-      dialog.oncancel = (event) => {
-        if (busy) event.preventDefault();
-        else pending = null;
-      };
-      $("#backupRestore").onclick = async () => {
-        if (!pending || busy) return;
-        if (runtime2.state.turns.some((t) => t.pending) || runtime2.state.reports.some((r) => r.running)) {
-          $("#backupError").textContent = "Wait for the current assistant request to finish before importing.";
-          return;
-        }
-        busy = true;
-        $("#backupRestore").disabled = true;
-        $("#backupCancel").disabled = true;
-        try {
-          await actions2.restoreBackup(pending);
-          Object.assign(runtime2.state, createRuntime().state, pending, {
-            loaded: true
-          });
-          $("#q").value = "";
-          actions2.applyPanel();
-          actions2.refresh();
-          pending = null;
-          dialog.close();
-          toast(
-            "Backup imported. Your statements, threads and notes are restored."
-          );
-        } catch (error) {
-          $("#backupError").textContent = error.message;
-        } finally {
-          busy = false;
-          $("#backupRestore").disabled = false;
-          $("#backupCancel").disabled = false;
-        }
-      };
-    }
-    return { wireBackupImport };
-  }
-
-  // downloads.js
-  async function saveBrowserDownload({ filename, data }) {
-    const type = filename.endsWith(".json") ? "application/json;charset=utf-8" : "text/plain;charset=utf-8";
-    const url = URL.createObjectURL(new Blob([data], { type }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.hidden = true;
-    try {
-      document.body.append(link);
-      link.click();
-    } finally {
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 3e4);
-    }
-  }
-
   // demo.js
+  var CAR = 3;
+  var MOVE = 6;
   function createDemoData(today = TODAY) {
     const batches = {}, notes = {};
-    const months = [-3, -2, -1].map(
-      (offset) => addMonths(today.slice(0, 7) + "-01", offset).slice(0, 7)
+    const months = Array.from(
+      { length: 12 },
+      (_, i) => addMonths(today.slice(0, 7) + "-01", i - 12).slice(0, 7)
     );
-    const latest = months.at(-1);
+    const latest = months.length - 1;
+    const day = (index, d) => `${months[index]}-${String(d).padStart(2, "0")}`;
     for (const [index, month] of months.entries()) {
-      let add = function(rows, account, merchant, day, amount, extra = {}) {
-        const date2 = `${month}-${String(day).padStart(2, "0")}`;
+      let add = function(rows, account, merchant, d, amount, extra = {}) {
+        const date2 = day(index, d);
         const transaction = {
           id: `demo-${month}-${account.replaceAll(" ", "-").toLowerCase()}-${rows.length + 1}`,
           account,
@@ -1019,36 +978,80 @@ return {
         return transaction;
       };
       const bank = [], card = [], savings = [];
-      add(bank, "Demo Everyday", "Brightwell Energy", 3, 145 + index * 10);
+      const note = (t, text2) => notes[t.id] = text2;
+      const wobble = (n) => (index * 37 + n) % 23 - 11;
+      add(bank, "Demo Everyday", "Brightwell Energy", 3, 140 + wobble(5) * 2);
       add(bank, "Demo Everyday", "Willow Water", 5, 42);
       add(bank, "Demo Everyday", "Cloudfern Internet", 7, 65);
-      add(card, "Demo Card", "Harbor Pantry", 4, 125 + index * 8);
-      add(card, "Demo Card", "Harbor Pantry", 20, 92 + index * 5);
-      add(card, "Demo Card", "Paper Kite Cafe", 9, 24 + index * 3);
+      add(card, "Demo Card", "Harbor Pantry", 4, 125 + wobble(1));
+      add(card, "Demo Card", "Harbor Pantry", 20, 95 + wobble(7));
+      add(card, "Demo Card", "Paper Kite Cafe", 9, 26 + wobble(3));
       add(card, "Demo Card", "Loopway Transit", 12, 38);
-      add(card, "Demo Card", "Lantern Stream", 15, index === 2 ? 35 : 29);
+      add(card, "Demo Card", "Lantern Stream", 15, index === latest ? 35 : 29);
       const pet = add(
         bank,
         "Demo Everyday",
         "Meadow Paws",
         18,
-        index === 2 ? 95 : 55
+        index === latest ? 95 : 55
       );
-      notes[pet.id] = "Supplies for Pixel, our fictional demo cat. #pets";
-      if (index === 2) {
-        const furniture = add(card, "Demo Card", "Oak & Loom", 14, 60, {
-          date: `${months[0]}-14`,
+      note(pet, "Supplies for Pixel, our fictional demo cat. #pets");
+      if (index === CAR) {
+        const tow = add(card, "Demo Card", "Cobble Lane Garage", 10, 120);
+        note(tow, "Tow home after the clutch went on the ring road. #car");
+        const repair = add(card, "Demo Card", "Cobble Lane Garage", 13, 1480);
+        note(
+          repair,
+          "New clutch. Paid from the holiday money, so the savings transfers stop for a while. #car"
+        );
+      }
+      if (index === MOVE) {
+        const van = add(bank, "Demo Everyday", "Bluebell Removals", 9, 640);
+        note(van, "Van and two movers for the day. #move");
+        add(bank, "Demo Everyday", "Cloudfern Internet", 10, 40, {
+          details: "Connection at new address"
+        });
+        const fridge = add(card, "Demo Card", "Kettle & Coil", 11, 890);
+        note(fridge, "Fridge. The new flat came without one. #move");
+        const washer = add(card, "Demo Card", "Kettle & Coil", 12, 540);
+        note(washer, "Washing machine. #move");
+        const small = add(card, "Demo Card", "Kettle & Coil", 14, 75);
+        note(
+          small,
+          "Kettle and toaster, ours are still in a box somewhere. #move"
+        );
+        add(card, "Demo Card", "Northgate Hardware", 15, 48);
+        add(card, "Demo Card", "Linen Lane", 16, 120, {
+          details: "Curtains"
+        });
+        add(card, "Demo Card", "Paper Kite Cafe", 11, 31);
+        add(card, "Demo Card", "Paper Kite Cafe", 13, 27);
+        add(card, "Demo Card", "Northgate Hardware", 22, 32);
+        const shelves = add(card, "Demo Card", "Northgate Hardware", 27, 64);
+        note(shelves, "Shelf brackets and wall plugs. #move");
+      }
+      if (index === latest) {
+        const desk = add(card, "Demo Card", "Oak & Loom", 14, 60, {
+          date: day(latest - 2, 14),
           inst: { n: 2, of: 6 },
           orig: { amount: 360, currency: "ILS" },
           details: "Demo desk, payment 2 of 6"
         });
-        notes[furniture.id] = "A made-up desk for the reading corner. #home";
-        const hotel = add(card, "Demo Card", "Lantern Bay Guesthouse", 16, 230);
-        add(card, "Demo Card", "Lantern Bay Ferry", 17, 48);
-        notes[hotel.id] = "Fictional weekend away. #trip";
+        note(desk, "A desk for the reading corner in the new flat. #home");
+        const hotel = add(card, "Demo Card", "Lantern Bay Guesthouse", 20, 620);
+        note(hotel, "Five nights by the harbour. #trip");
+        add(card, "Demo Card", "Lantern Bay Ferry", 15, 48);
+        add(card, "Demo Card", "Lantern Bay Ferry", 20, 48);
+        add(card, "Demo Card", "Lantern Bay Fish Bar", 17, 54);
         add(card, "Demo Card", "Harbor Pantry", 23, -18, {
           type: "Demo refund",
           details: "Returned an unopened item"
+        });
+        add(savings, "Demo Savings", "Holiday fund to Everyday", 12, 1200, {
+          type: "Demo transfer"
+        });
+        add(bank, "Demo Everyday", "From Demo Savings", 12, -1200, {
+          type: "Demo transfer"
         });
       }
       add(
@@ -1059,12 +1062,14 @@ return {
         card.reduce((sum, row) => sum + row.amount, 0),
         { type: "Demo transfer" }
       );
-      add(bank, "Demo Everyday", "Demo savings transfer", 24, 350, {
-        type: "Demo transfer"
-      });
-      add(savings, "Demo Savings", "Demo savings received", 25, -350, {
-        type: "Demo transfer"
-      });
+      if (index !== CAR && index !== CAR + 1) {
+        add(bank, "Demo Everyday", "Demo savings transfer", 24, 150, {
+          type: "Demo transfer"
+        });
+        add(savings, "Demo Savings", "Demo savings received", 25, -150, {
+          type: "Demo transfer"
+        });
+      }
       for (const [account, rows, isCard] of [
         ["Demo Everyday", bank, false],
         ["Demo Card", card, true],
@@ -1090,15 +1095,135 @@ return {
       notes,
       periods: [
         {
+          id: "demo-car",
+          name: "The car broke down",
+          start: day(CAR, 10),
+          end: day(CAR, 13),
+          color: "#9A5B2E",
+          story: "The clutch went on the ring road. The tow and the repair came out of the holiday fund, and we skipped the next two savings transfers to get back on our feet."
+        },
+        {
+          id: "demo-move",
+          name: "Moving to Elm Street",
+          start: day(MOVE, 8),
+          end: day(MOVE, 28),
+          color: "#5B7F3A",
+          story: "We moved into the flat on Elm Street. It came without a fridge or a washing machine, so most of the dots on the Home wire this month are appliances. We ate out a lot while the kitchen was in boxes."
+        },
+        {
           id: "demo-trip",
-          name: "Weekend in Lantern Bay",
-          start: `${latest}-15`,
-          end: `${latest}-18`,
+          name: "Holiday in Lantern Bay",
+          start: day(latest, 15),
+          end: day(latest, 20),
           color: "#2F6B8F",
-          story: "This is a fictional weekend in Lantern Bay. We stayed at the guesthouse and took the ferry. Routine bills and pet supplies happened during the same dates but were not part of the trip."
+          story: "The holiday we had been saving for all year. The car set the fund back two months, but we got there. Routine bills and pet supplies happened during the same dates but were not part of the trip."
         }
       ]
     };
+  }
+
+  // ui/backup.js
+  function createBackupImport(runtime2, actions2) {
+    let pending = null;
+    let busy = false;
+    let doneMessage = "";
+    function confirmReplace(workspace, { title, summary, button, done }) {
+      pending = workspace;
+      doneMessage = done;
+      $("#backupTitle").textContent = title;
+      $("#backupSummary").textContent = summary;
+      $("#backupRestore").textContent = button;
+      $("#backupError").textContent = "";
+      $("#backupDlg").showModal();
+    }
+    function restartDemo() {
+      if (busy) return;
+      confirmReplace(
+        { ...createRuntime().state, ...createDemoData(), isDemo: true },
+        {
+          title: "Restart the demo",
+          summary: "This loads a fresh copy of the fictional demo year.",
+          button: "Replace and restart",
+          done: "The demo is back to its starting point."
+        }
+      );
+    }
+    function wireBackupImport() {
+      const fileInput = $("#backupFile"), dialog = $("#backupDlg");
+      fileInput.onchange = async () => {
+        const file = fileInput.files[0];
+        fileInput.value = "";
+        if (!file || busy) return;
+        try {
+          const backup = parseBackup(await file.text());
+          const batches = Object.values(backup.batches);
+          const count = new Set(batches.flatMap((b) => b.rows.map((r) => r.id))).size;
+          confirmReplace(backup, {
+            title: "Import backup",
+            summary: `${file.name}: ${count} transactions in ${batches.length} statements, ${backup.periods.length} periods and ${backup.lenses.length} lenses.`,
+            button: "Replace and import",
+            done: "Backup imported. Your statements, threads and notes are restored."
+          });
+        } catch (error) {
+          pending = null;
+          toast(error.message, 8e3);
+        }
+      };
+      $("#backupCancel").onclick = () => {
+        pending = null;
+        dialog.close();
+      };
+      dialog.oncancel = (event) => {
+        if (busy) event.preventDefault();
+        else pending = null;
+      };
+      $("#backupRestore").onclick = async () => {
+        if (!pending || busy) return;
+        if (runtime2.state.turns.some((t) => t.pending) || runtime2.state.reports.some((r) => r.running)) {
+          $("#backupError").textContent = "Wait for the current assistant request to finish first.";
+          return;
+        }
+        busy = true;
+        $("#backupRestore").disabled = true;
+        $("#backupCancel").disabled = true;
+        try {
+          await actions2.restoreBackup(pending);
+          Object.assign(runtime2.state, createRuntime().state, pending, {
+            loaded: true
+          });
+          $("#q").value = "";
+          actions2.applyPanel();
+          actions2.refresh();
+          pending = null;
+          dialog.close();
+          toast(doneMessage);
+        } catch (error) {
+          $("#backupError").textContent = error.message;
+        } finally {
+          busy = false;
+          $("#backupRestore").disabled = false;
+          $("#backupCancel").disabled = false;
+        }
+      };
+    }
+    return { restartDemo, wireBackupImport };
+  }
+
+  // downloads.js
+  async function saveBrowserDownload({ filename, data }) {
+    const type = filename.endsWith(".json") ? "application/json;charset=utf-8" : "text/plain;charset=utf-8";
+    const url = URL.createObjectURL(new Blob([data], { type }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.hidden = true;
+    try {
+      document.body.append(link);
+      link.click();
+    } finally {
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 3e4);
+    }
   }
 
   // storage.js
@@ -1884,10 +2009,18 @@ return {
       let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Transactions on a timeline, one row per thread">`;
       const xToday = X(ms(TODAY));
       s += `<rect class="futurebg" x="${xToday}" y="${covTop}" width="${Math.max(0, W - padR - xToday)}" height="${H - covTop}"/>`;
+      if (W - padR - xToday > 90)
+        s += `<text class="futurelabel" x="${W - padR - 6}" y="${covTop + 11}" text-anchor="end"><title>Dates still to come. Dashed marks and \u2248 amounts are charges expected from recurring payments and instalments.</title>The future</text>`;
       const selP = pers.find((p) => p.id === state.periodSel);
+      for (const p of pers) {
+        if (p === selP) continue;
+        const a = Math.max(labelW, X(ms(p.start))), b = Math.min(W - padR, X(ms(p.end) + 864e5));
+        if (b > a)
+          s += `<rect class="pfill" x="${a}" y="${perTop}" width="${Math.max(2, b - a)}" height="${H - perTop}" style="--pc:${p.color}"/>`;
+      }
       if (selP) {
         const a = Math.max(labelW, X(ms(selP.start))), b = Math.min(W - padR, X(ms(selP.end) + 864e5));
-        s += `<rect x="${a}" y="${perTop}" width="${Math.max(2, b - a)}" height="${H - perTop}" fill="${selP.color}" opacity=".08" pointer-events="none"/>`;
+        s += `<g class="period pband" data-pid="${selP.id}" style="--pc:${selP.color}"><rect class="pshade" x="${a}" y="${perTop}" width="${Math.max(2, b - a)}" height="${H - perTop}"/><rect class="pedge" data-edge="start" x="${a - 4}" y="${perTop}" width="8" height="${H - perTop}"/><rect class="pedge" data-edge="end" x="${b - 4}" y="${perTop}" width="8" height="${H - perTop}"/></g>`;
       }
       let m = monthOf(new Date(t0).toISOString().slice(0, 10)) + "-01";
       const expByMonth = {};
@@ -1935,7 +2068,7 @@ return {
         const w = Math.max(6, x1 - x0);
         const chars = Math.floor((w - 12) / 6.4);
         const label = chars < 2 ? "" : p.name.length > chars ? p.name.slice(0, Math.max(1, chars - 1)) + "\u2026" : p.name;
-        s += `<g class="period${p.id === state.periodSel ? " on" : ""}" data-pid="${p.id}"><title>${esc(p.name)}: ${fmtDate(p.start)} to ${fmtDate(p.end)}</title><rect class="pbody" x="${x0}" y="${y}" width="${w}" height="16" rx="4" fill="${p.color}" fill-opacity="${p.id === state.periodSel ? 0.4 : 0.22}" stroke="${p.color}"/><text class="plabel" x="${x0 + 6}" y="${y + 12}" dir="auto">${esc(label)}</text><rect class="pedge" data-edge="start" x="${x0 - 3}" y="${y}" width="7" height="16"/><rect class="pedge" data-edge="end" x="${x0 + w - 4}" y="${y}" width="7" height="16"/></g>`;
+        s += `<g class="period${p.id === state.periodSel ? " on" : ""}" data-pid="${p.id}"><title>${esc(p.name)}: ${fmtDate(p.start)} to ${fmtDate(p.end)}</title><rect class="pbody" x="${x0}" y="${y}" width="${w}" height="16" rx="4" fill="${p.color}" fill-opacity="${p.id === state.periodSel ? 0.4 : 0.22}" stroke="${p.color}"/><text class="plabel" x="${x0 + 6}" y="${y + 12}" dir="auto">${esc(label)}</text><rect class="pedge" data-edge="start" x="${x0 - 3}" y="${y}" width="7" height="16"/><rect class="pedge" data-edge="end" x="${x0 + w - 4}" y="${y}" width="7" height="16"/></g>` + (p.id === state.periodSel ? `<g class="xbtn" data-pdel="${p.id}" role="button" aria-label="Remove ${esc(p.name)}"><title>Remove this period (Delete)</title><circle cx="${x0 + w + 10}" cy="${y + 8}" r="7"/><path d="M${x0 + w + 7},${y + 5}l6,6m0,-6l-6,6"/></g>` : "");
       }
       s += `<rect id="pDraft" x="0" y="${perTop + 2}" width="0" height="16" rx="4" class="pdraft" style="display:none"/>`;
       if (xToday > labelW && xToday < W)
@@ -1985,7 +2118,9 @@ return {
             }
             const yb = yv(budget);
             s += `<line class="bline" x1="${labelW}" x2="${W - padR - 8}" y1="${yb}" y2="${yb}" stroke="${row.color}"/>`;
-            s += `<text class="blabel" x="${labelW + 4}" y="${yb - 4}">${fmt(budget, 0)} a month</text>`;
+            const blabel = `${fmt(budget, 0)} a month`, bx = labelW + 4 + blabel.length * 6 + 8;
+            s += `<text class="blabel" x="${labelW + 4}" y="${yb - 4}">${blabel}</text>`;
+            s += `<g class="xbtn" data-bdel="${esc(row.name)}" role="button" aria-label="Remove the budget for ${esc(row.name)}"><title>Remove this budget</title><circle cx="${bx}" cy="${yb - 8}" r="6"/><path d="M${bx - 2.5},${yb - 10.5}l5,5m0,-5l-5,5"/></g>`;
             s += `<g class="bhandle" data-bthread="${esc(row.name)}" tabindex="0" role="slider" aria-label="Budget for ${esc(row.name)}" aria-valuenow="${budget}"><title>Drag up or down to set the monthly budget</title><circle cx="${W - padR - 6}" cy="${yb}" r="6" stroke="${row.color}"/></g>`;
           }
           s += `<line class="wire" x1="${labelW}" x2="${W - padR}" y1="${cy}" y2="${cy}"/>`;
@@ -2056,6 +2191,11 @@ return {
           s += `<text class="flagmark" x="${it.x}" y="${it.y - it.r - 3}" text-anchor="middle" pointer-events="none">${runtime2.derived.flagged[t.id]}</text>`;
         POS.push({ id: t.id, x: it.x, y: it.y, r: it.r });
       }
+      for (const p of pers) {
+        const a = Math.max(labelW, X(ms(p.start))), b = Math.min(W - padR, X(ms(p.end) + 864e5));
+        if (b > a)
+          s += `<text class="pstick" x="${Math.max(a, labelW) + 4}" y="0" style="--pc:${p.color}" dir="auto">${esc(p.name)}</text>`;
+      }
       s += `<rect id="lassoRect" class="lasso" x="0" y="0" width="0" height="0" style="display:none"/></svg>`;
       host.innerHTML = s;
       TL = {
@@ -2068,8 +2208,18 @@ return {
         perBottom,
         top,
         budgetMeta,
+        // the selected period first, then the narrowest, so the most
+        // specific band wins where periods overlap
+        bands: pers.map((p) => ({
+          id: p.id,
+          a: Math.max(labelW, X(ms(p.start))),
+          b: Math.min(W - padR, X(ms(p.end) + 864e5))
+        })).filter((p) => p.b > p.a).sort(
+          (p, q) => (q.id === state.periodSel) - (p.id === state.periodSel) || p.b - p.a - (q.b - q.a)
+        ),
         inv: (x) => t0 + (x - labelW) / (W - labelW - padR) * (t1 - t0)
       };
+      placeStickyNames();
     }
     function describe(t) {
       if (t.kind === "purchase") return `${t.why} \xB7 ${fmt(t.amount)}`;
@@ -2105,6 +2255,16 @@ return {
       tip.style.left = x + "px";
       tip.style.top = y + "px";
     }
+    function removeBudget(name) {
+      const th = runtime2.derived.R.threads.find((t) => t.name === name);
+      if (!th?.budget || state.previewRules != null) return setBudget(name, 0);
+      const was = th.budget;
+      setBudget(name, 0);
+      toast(`Removed the budget for ${name}.`, 9e3, {
+        label: "Undo",
+        fn: () => setBudget(name, was)
+      });
+    }
     function setBudget(name, value) {
       if (state.previewRules != null) {
         toast(
@@ -2122,7 +2282,25 @@ return {
       actions2.saveSoon("rules", () => ({ text: state.rules }), 300);
       actions2.refresh();
     }
+    function placeStickyNames() {
+      const svg = $("#tl svg");
+      if (!svg || !TL) return;
+      const top = $(".left").getBoundingClientRect().top - svg.getBoundingClientRect().top;
+      const show = top > TL.perBottom;
+      svg.querySelectorAll(".pstick").forEach((t) => {
+        t.style.display = show ? "" : "none";
+        if (show) t.setAttribute("y", top + 16);
+      });
+    }
+    function bandAt({ x, y }) {
+      if (y < TL.perTop) return null;
+      const band = TL.bands.find((b) => x >= b.a - 4 && x <= b.b + 4);
+      if (!band) return null;
+      const edge = Math.abs(x - band.a) <= 4 ? "start" : Math.abs(x - band.b) <= 4 ? "end" : void 0;
+      return { id: band.id, edge };
+    }
     function wireTimeline() {
+      $(".left").addEventListener("scroll", placeStickyNames, { passive: true });
       const host = $("#tl");
       let mode = null;
       const pt = (ev) => {
@@ -2179,6 +2357,8 @@ return {
         const c = ev.target.closest("circle[data-id]");
         if (c) showTip(runtime2.derived.byId.get(c.dataset.id), ev);
         else $("#tip").style.display = "none";
+        const hit = !c && !ev.shiftKey && TL && bandAt(pt(ev));
+        host.style.cursor = !hit ? "" : hit.edge ? "ew-resize" : "grab";
       });
       host.addEventListener(
         "pointerleave",
@@ -2187,8 +2367,16 @@ return {
       host.addEventListener("pointerdown", (ev) => {
         if (ev.button !== 0 || !host.querySelector("svg") || !TL) return;
         const { x, y } = pt(ev);
+        const del = ev.target.closest("[data-pdel],[data-bdel]");
+        if (del) {
+          ev.preventDefault();
+          if (del.dataset.pdel) actions2.removePeriod(del.dataset.pdel);
+          else removeBudget(del.dataset.bdel);
+          return;
+        }
         const bh = ev.target.closest(".bhandle");
         if (bh) {
+          bh.focus();
           const meta = TL.budgetMeta[bh.dataset.bthread];
           const th = runtime2.derived.R.threads.find(
             (t) => t.name === bh.dataset.bthread
@@ -2199,16 +2387,21 @@ return {
             value: th.budget,
             bandMax: meta.bandMax
           };
-          mode = { kind: "budget", ...meta };
+          mode = { kind: "budget", ...meta, was: th.budget };
           host.setPointerCapture(ev.pointerId);
           ev.preventDefault();
           return;
         }
-        const g = ev.target.closest(".period");
-        if (g) {
-          const p = state.periods.find((q) => q.id === g.dataset.pid);
+        const g = ev.target.closest(
+          ev.shiftKey ? ".period:not(.pband)" : ".period"
+        );
+        const hit = !g && !ev.shiftKey && !ev.target.closest("circle[data-id],.rowlabel,.parkbtn,#parkedLabel") && bandAt({ x, y });
+        if (g || hit) {
+          const p = state.periods.find(
+            (q) => q.id === (g ? g.dataset.pid : hit.id)
+          );
           if (!p) return;
-          const edge = ev.target.closest(".pedge")?.dataset.edge;
+          const edge = g ? ev.target.closest(".pedge")?.dataset.edge : hit.edge;
           mode = {
             kind: edge ? "resize" : "move",
             edge,
@@ -2242,6 +2435,11 @@ return {
           const v = state.budgetDrag.value;
           const name = state.budgetDrag.thread;
           state.budgetDrag = null;
+          if (v === md0.was) {
+            renderTimeline();
+            host.querySelector(`.bhandle[data-bthread="${CSS.escape(name)}"]`)?.focus();
+            return;
+          }
           setBudget(name, v);
           if (v > 0)
             toast(
@@ -2252,6 +2450,7 @@ return {
         }
         if (md0.kind === "move" || md0.kind === "resize") {
           if (md0.moved) {
+            state.periodSel = md0.id;
             actions2.savePeriods();
             actions2.refresh();
           } else {
@@ -2268,25 +2467,7 @@ return {
           $("#pDraft").style.display = "none";
           if (!md0.a || md0.b - md0.a < 6) return;
           const start = isoFromMs(TL.inv(md0.a)), end = isoFromMs(Math.max(TL.inv(md0.a), TL.inv(md0.b) - 864e5));
-          const p = {
-            id: "p" + Date.now().toString(36),
-            name: "New period",
-            start,
-            end,
-            story: "",
-            color: PALETTE[(state.periods.length + 3) % PALETTE.length]
-          };
-          state.periods.push(p);
-          state.periodSel = p.id;
-          state.selection.clear();
-          state.statement = null;
-          actions2.savePeriods();
-          actions2.refresh();
-          const n = $("#pName");
-          if (n) {
-            n.focus();
-            n.select();
-          }
+          actions2.addPeriod(start, end);
           return;
         }
         const L = $("#lassoRect");
@@ -2375,6 +2556,12 @@ return {
       });
       host.addEventListener("keydown", (e) => {
         const bh = e.target.closest?.(".bhandle");
+        if (bh && (e.key === "Delete" || e.key === "Backspace")) {
+          e.preventDefault();
+          e.stopPropagation();
+          removeBudget(bh.dataset.bthread);
+          return;
+        }
         if (!bh || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
         e.preventDefault();
         const th = runtime2.derived.R.threads.find(
@@ -2732,7 +2919,7 @@ return {
         el.innerHTML = `<div class="ins-m">${ids.length} beads</div><div class="sub">${fmt(sum)} on statements${ts.length > real.length ? `, plus ${ts.length - real.length} expected` : ""}, ${fmtDate(dates[0])} to ${fmtDate(dates.at(-1))}</div>
       <p class="sub" dir="auto" style="margin:6px 0 0">${merch.slice(0, 8).map(esc).join(" \xB7 ")}${merch.length > 8 ? ` and ${merch.length - 8} more` : ""}</p>
       <div class="row-actions"><input id="threadName" placeholder="Thread name" aria-label="Thread name" list="threadNames"><datalist id="threadNames">${runtime2.derived.R.threads.map((t) => `<option value="${esc(t.name)}">`).join("")}</datalist>
-      <button class="btn small" id="makeThread">Thread these</button>${caps.sample ? `<button class="btn small quiet" id="askThese">Ask about these</button>` : ""}<button class="btn small quiet" id="clearSel">Clear</button></div>
+      <button class="btn small" id="makeThread">Thread these</button><button class="btn small quiet" id="makePeriod" title="A period from ${fmtDate(dates[0])} to ${fmtDate(dates.at(-1))}">Mark as a period</button>${caps.sample ? `<button class="btn small quiet" id="askThese">Ask about these</button>` : ""}<button class="btn small quiet" id="clearSel">Clear</button></div>
       ${real.length ? actions2.tagToolsHTML(
           real.map((t) => t.id),
           "sel"
@@ -2749,6 +2936,7 @@ return {
         $("#threadName").addEventListener("keydown", (e) => {
           if (e.key === "Enter") $("#makeThread").click();
         });
+        $("#makePeriod").onclick = () => actions2.addPeriod(dates[0], dates.at(-1));
         $("#clearSel").onclick = () => {
           state.selection.clear();
           actions2.refresh();
@@ -2818,7 +3006,7 @@ return {
         el.innerHTML = "";
         return;
       }
-      el.innerHTML = `<div class="sec-h"><h2>Worth a look</h2><span class="sub">Changes in things you pay for regularly</span></div><ul class="changes">` + runtime2.derived.flags.map((f) => {
+      el.innerHTML = `<div class="sec-h"><h2>Worth a look</h2><span class="sub">Changes in things you pay for regularly</span>${runtime2.derived.flags.length > 1 ? `<button class="linkish" data-flagdismissall>Dismiss all</button>` : ""}</div><ul class="changes">` + runtime2.derived.flags.map((f) => {
         const who = `<b dir="auto">${esc(f.t.merchant)}</b>`;
         const line = f.type === "price" ? `<span class="chg ${f.b > f.a ? "up" : "down"}">${f.b > f.a ? "\u25B2" : "\u25BC"}</span> ${who} went from ${money(f.a, f.cur)} to ${money(f.b, f.cur)} (${f.b > f.a ? "+" : "\u2212"}${Math.round(Math.abs(f.b - f.a) / Math.abs(f.a) * 100)}%) in the ${monthName(f.t.period)} statement.` : `<span class="chg gone">\u25CC</span> ${who} isn't in your ${monthName(f.since)} statement. It was last charged on ${fmtDate(f.t.date)} (${fmt(f.t.amount)}).`;
         return `<li>${line} <button class="linkish" data-flagshow="${esc(f.id)}">Show</button> <button class="linkish" data-flagdismiss="${esc(f.id)}">Dismiss</button></li>`;
@@ -2837,6 +3025,26 @@ return {
           state.periodSel = null;
           actions2.refresh();
           $("#tlwrap").scrollIntoView({ block: "nearest", behavior: "smooth" });
+          return;
+        }
+        if (e.target.closest("[data-flagdismissall]")) {
+          const ids = runtime2.derived.flags.map((f) => f.id);
+          const save = () => actions2.saveSoon("dismissed", () => ({ map: state.dismissed }), 200);
+          ids.forEach((id2) => state.dismissed[id2] = true);
+          save();
+          actions2.refresh();
+          toast(
+            `Dismissed ${ids.length} changes. New ones will still show up.`,
+            9e3,
+            {
+              label: "Undo",
+              fn: () => {
+                ids.forEach((id2) => delete state.dismissed[id2]);
+                save();
+                actions2.refresh();
+              }
+            }
+          );
           return;
         }
         const d = e.target.closest("[data-flagdismiss]");
@@ -2940,22 +3148,7 @@ return {
         state.query = q;
         actions2.refresh();
       };
-      $("#pRemove").onclick = () => {
-        const i = state.periods.indexOf(p);
-        state.periods.splice(i, 1);
-        state.periodSel = null;
-        actions2.savePeriods();
-        actions2.refresh();
-        toast(`Removed \u201C${p.name}\u201D.`, 9e3, {
-          label: "Undo",
-          fn: () => {
-            state.periods.splice(i, 0, p);
-            state.periodSel = p.id;
-            actions2.savePeriods();
-            actions2.refresh();
-          }
-        });
-      };
+      $("#pRemove").onclick = () => removePeriod(p.id);
       $("#pDraftStory")?.addEventListener("click", () => draftStory(p));
     }
     async function draftStory(p) {
@@ -3018,7 +3211,46 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
         if ($("#pDraftStory")) $("#pDraftStory").disabled = false;
       }
     }
-    return { renderPeriodInspector };
+    function removePeriod(id2) {
+      const i = state.periods.findIndex((q) => q.id === id2);
+      if (i < 0) return;
+      const [p] = state.periods.splice(i, 1);
+      if (state.periodSel === id2) state.periodSel = null;
+      actions2.savePeriods();
+      actions2.refresh();
+      toast(`Removed \u201C${p.name}\u201D.`, 9e3, {
+        label: "Undo",
+        fn: () => {
+          state.periods.splice(i, 0, p);
+          state.periodSel = p.id;
+          actions2.savePeriods();
+          actions2.refresh();
+        }
+      });
+    }
+    function addPeriod(start, end) {
+      const p = {
+        id: "p" + Date.now().toString(36),
+        name: "New period",
+        start,
+        end,
+        story: "",
+        color: PALETTE[(state.periods.length + 3) % PALETTE.length]
+      };
+      state.periods.push(p);
+      state.periodSel = p.id;
+      state.selection.clear();
+      state.statement = null;
+      actions2.savePeriods();
+      actions2.refresh();
+      const n = $("#pName");
+      if (n) {
+        n.focus();
+        n.select();
+      }
+      return p;
+    }
+    return { addPeriod, removePeriod, renderPeriodInspector };
   }
 
   // ui/reports.js
@@ -3030,9 +3262,13 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
       const el = $("#reports");
       if (!el) return;
       const stale = staleReports().length;
-      let h = "";
+      let h = caps.sample ? "" : actions2.noAssistant(
+        "Reports need an assistant to run.",
+        "You can save questions now, and they'll run once one is connected."
+      );
+      $("#repSave").textContent = caps.sample ? "Save and run" : "Save";
       if (!state.reports.length)
-        h = `<p class="sub">Nothing saved yet. Save a question below, or use \u201CSave as a report\u201D under any answer in Ask.</p><div class="suggestions">${["Anything new or unusual since the last statement?", "How did this month compare with a typical month, thread by thread?", "Which subscriptions changed price or appeared for the first time?"].map((s) => `<button data-repsug="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
+        h += `<p class="sub">Nothing saved yet. Save a question below, or use \u201CSave as a report\u201D under any answer in Ask.</p><div class="suggestions">${["Anything new or unusual since the last statement?", "How did this month compare with a typical month, thread by thread?", "Which subscriptions changed price or appeared for the first time?"].map((s) => `<button data-repsug="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
       else if (stale && caps.sample)
         h = `<div class="row-actions" style="margin:0 0 10px"><span class="sub">${stale} report${stale > 1 ? "s have" : " has"} new statements since the last run.</span><button class="btn small" id="runStale">Run ${stale > 1 ? "them" : "it"}</button></div>`;
       h += state.reports.map(
@@ -3522,7 +3758,8 @@ return { kind: "number", value: lib.sum(txns, t => t.amount), label: "Everything
       state.loaded && actions2.renderTimeline();
     }
     function renderChrome() {
-      $("#demoNotice").textContent = state.isDemo ? "Demo \xB7 all example data is fictional" : "Imported data";
+      $("#demoNotice").innerHTML = state.isDemo ? `Demo \xB7 a fictional year \xB7 <button class="linkish" id="tourBtn">Take the tour</button>` : "Imported data";
+      $("#tourBtn")?.addEventListener("click", actions2.startTour);
       $("#accts").innerHTML = (runtime2.derived?.accounts || []).map(
         (a) => `<button class="chip acct" aria-pressed="${!state.hiddenAccounts.has(a)}" data-acct="${esc(a)}" dir="auto">${esc(a)}</button>`
       ).join("");
@@ -3671,6 +3908,14 @@ return { kind: "number", value: lib.sum(txns, t => t.amount), label: "Everything
           $("#backupFile").click();
           return;
         }
+        if (act === "tour") {
+          actions2.startTour();
+          return;
+        }
+        if (act === "restart-demo") {
+          actions2.restartDemo();
+          return;
+        }
         if (act === "ai") {
           actions2.openAISettings();
           return;
@@ -3700,6 +3945,11 @@ return { kind: "number", value: lib.sum(txns, t => t.amount), label: "Everything
         }
       };
       addEventListener("keydown", (e) => {
+        if ((e.key === "Delete" || e.key === "Backspace") && state.periodSel && !e.target.closest?.("input, textarea, select, [contenteditable]") && !document.querySelector("dialog[open]")) {
+          e.preventDefault();
+          actions2.removePeriod(state.periodSel);
+          return;
+        }
         if (e.key === "Escape" && !$("#mapDlg").open) {
           state.selection.clear();
           state.highlight.clear();
@@ -3884,6 +4134,15 @@ return { kind: "number", value: lib.sum(txns, t => t.amount), label: "Everything
         caps.tools = caps.claudeTools;
       }
     }
+    function noAssistant(headline, extra = "") {
+      const why = window.claude?.use ? "Claude isn't allowed in this view. You can allow it, or pick another assistant." : "Connect ChatGPT, a local model through Ollama or LM Studio, or any OpenAI-compatible service. Your statements stay in this browser until you ask something. Then the question and the transactions it needs go to the service you pick.";
+      return `<div class="nudge"><p><b>${headline}</b> ${extra} ${why}</p><div class="row-actions"><span class="sub">Threads, periods, notes and lenses all work without one.</span><button class="btn small" data-connect>Connect an assistant</button></div></div>`;
+    }
+    function wireConnect() {
+      document.addEventListener("click", (e) => {
+        if (e.target.closest("[data-connect]")) openAISettings();
+      });
+    }
     function openAISettings() {
       const dlg = $("#aiDlg");
       const cfg = loadAI();
@@ -3984,7 +4243,14 @@ return { kind: "number", value: lib.sum(txns, t => t.amount), label: "Everything
           return e?.message ? "Something went wrong: " + e.message : `Something went wrong reaching ${AI()}. Try again.`;
       }
     }
-    return { AI, applyProvider, openAISettings, sampleErr };
+    return {
+      AI,
+      applyProvider,
+      noAssistant,
+      openAISettings,
+      sampleErr,
+      wireConnect
+    };
   }
 
   // suggestions.js
@@ -4499,6 +4765,12 @@ Reply with only JSON: {"title": "short title in sentence case", "code": "the fun
     function renderLog() {
       renderAskMem();
       const log = $("#log");
+      $("#askoff").innerHTML = caps.sample ? "" : actions2.noAssistant("Ask needs an assistant.");
+      $("#askbox").hidden = !caps.sample;
+      if (!state.turns.length && !caps.sample) {
+        log.innerHTML = "";
+        return;
+      }
       if (!state.turns.length) {
         const sug = runtime2.derived?.allTxns?.length ? [
           "What's quietly costing me every month?",
@@ -5230,6 +5502,214 @@ ${JSON.stringify(matrix.slice(0, 18).map((r2) => r2.map((c) => String(c ?? "").s
     return { importFiles };
   }
 
+  // ui/tour.js
+  var SEEN_KEY = "transactions-tour-seen";
+  function createTour(runtime2, actions2) {
+    const { state } = runtime2;
+    let at = -1, steps = [], spot = null, card = null;
+    const txn = (merchant, amount) => runtime2.derived?.allTxns.find(
+      (t) => t.merchant === merchant && (amount == null || t.amount === amount)
+    );
+    const dot = (t) => t && $(`#tl [data-id="${t.id}"]`);
+    const periodOn = (id2, thread) => {
+      const p = state.periods.find((x) => x.id === id2);
+      return (runtime2.derived?.allTxns || []).filter((t) => t.thread === thread && t.periods.includes(p?.name)).map(dot);
+    };
+    const select = (t) => {
+      state.selection = /* @__PURE__ */ new Set([t.id]);
+      state.highlight = /* @__PURE__ */ new Set([t.id]);
+      state.periodSel = null;
+      actions2.refresh();
+    };
+    const openPeriod = (id2) => {
+      state.periodSel = id2;
+      state.selection.clear();
+      state.highlight = /* @__PURE__ */ new Set();
+      actions2.refresh();
+    };
+    const clear = () => {
+      state.selection.clear();
+      state.highlight = /* @__PURE__ */ new Set();
+      state.periodSel = null;
+      actions2.refresh();
+    };
+    function buildSteps() {
+      const repair = txn("Cobble Lane Garage", 1480);
+      const fridge = txn("Kettle & Coil", 890);
+      return [
+        {
+          title: "This isn't a bank statement",
+          body: "It's a year of someone's life. Each wire is part of it: food, bills, the cat, getting around. Each dot is a moment money changed hands, and bigger dots mean bigger amounts.",
+          target: () => $("#tlwrap"),
+          before: clear
+        },
+        repair && {
+          title: "Life gets in the way",
+          body: "A few months in, the clutch went. The repair came out of the holiday fund, and on the Transfers wire you can see two months without a savings transfer. The note on the charge says why. A statement never would.",
+          target: () => dot(repair),
+          before: () => select(repair)
+        },
+        state.periods.some((p) => p.id === "demo-move") && {
+          title: "Remember moving house?",
+          body: "Mark the stretches of time that mattered: a move, a trip, a renovation. The cluster on the Home wire is the fridge, the washing machine and the kettle from the week of the move. Drag across the dots that belong together and choose Mark as a period.",
+          target: () => periodOn("demo-move", "Home"),
+          before: () => openPeriod("demo-move")
+        },
+        state.periods.some((p) => p.id === "demo-move") && {
+          title: "Write down what was going on",
+          body: "A period keeps its story next to what it cost. Months later, this is what you'll want to remember.",
+          target: () => $("#insp")
+        },
+        fridge && {
+          title: "Notes and #tags",
+          body: "Add a note to any charge. Tags in notes become filters: click #move to see everything the move cost, wherever it was spent.",
+          target: () => $("#qTags"),
+          before: () => select(fridge)
+        },
+        {
+          title: "Your categories, your words",
+          body: "Threads are a short list you can edit. Rename a wire, split one up, or add a budget. Put the cursor on a line to see which charges it catches.",
+          target: () => $("#editor"),
+          before: () => {
+            clear();
+            actions2.openTab("threads");
+          }
+        },
+        state.periods.some((p) => p.id === "demo-trip") && {
+          title: "And the holiday you saved for",
+          body: "The car set the fund back two months, but they got there. The money moved out of savings, and the trip is all there on the Trips wire.",
+          target: () => periodOn("demo-trip", "Trips"),
+          before: () => openPeriod("demo-trip")
+        },
+        {
+          title: "Now make it yours",
+          body: "Add your own statements and shape the view around your own life. Everything stays in this browser. You can replay this tour from More.",
+          final: true,
+          before: clear
+        }
+      ].filter(Boolean);
+    }
+    function bounds(target) {
+      const rs = [target].flat().filter(Boolean).map((el) => el.getBoundingClientRect());
+      if (!rs.length) return null;
+      const left = Math.min(...rs.map((r) => r.left)), top = Math.min(...rs.map((r) => r.top)), right = Math.max(...rs.map((r) => r.right)), bottom = Math.max(...rs.map((r) => r.bottom));
+      return {
+        left,
+        top,
+        right,
+        bottom,
+        width: right - left,
+        height: bottom - top
+      };
+    }
+    function place() {
+      const step = steps[at];
+      if (!step) return;
+      const r = bounds(step.target?.());
+      if (r && r.width) {
+        Object.assign(spot.style, {
+          display: "block",
+          left: r.left - 6 + "px",
+          top: r.top - 6 + "px",
+          width: r.width + 12 + "px",
+          height: r.height + 12 + "px"
+        });
+      } else spot.style.display = "none";
+      const cw = card.offsetWidth, ch = card.offsetHeight, vw = innerWidth, vh = innerHeight, m = 12;
+      let x, y;
+      if (!r || !r.width) {
+        x = (vw - cw) / 2;
+        y = (vh - ch) / 2;
+      } else if (r.bottom + m + ch < vh) {
+        x = r.left;
+        y = r.bottom + m;
+      } else if (r.top - m - ch > 0) {
+        x = r.left;
+        y = r.top - m - ch;
+      } else if (r.right + m + cw < vw) {
+        x = r.right + m;
+        y = r.top;
+      } else {
+        x = r.left - m - cw;
+        y = r.top;
+      }
+      card.style.left = Math.max(m, Math.min(x, vw - cw - m)) + "px";
+      card.style.top = Math.max(m, Math.min(y, vh - ch - m)) + "px";
+    }
+    function show(i) {
+      at = i;
+      const step = steps[at];
+      step.before?.();
+      card.innerHTML = `<button class="tour-close" data-tour="end" aria-label="Close the tour" title="Close (Esc)">\xD7</button>
+      <div class="tour-count">${at + 1} of ${steps.length}</div>
+      <h3>${esc(step.title)}</h3><p>${esc(step.body)}</p>
+      <div class="row-actions">${step.final ? `<button class="linkish" data-tour="end">Keep exploring</button><button class="btn small" data-tour="add">Add your statements</button>` : `<button class="linkish" data-tour="end">Skip the tour</button><span>${at ? `<button class="btn small quiet" data-tour="back">Back</button> ` : ""}<button class="btn small" data-tour="next">Next</button></span>`}</div>`;
+      [step.target?.()].flat().filter(Boolean).at(-1)?.scrollIntoView({ block: "center", inline: "nearest" });
+      requestAnimationFrame(place);
+      card.querySelector('[data-tour="next"], [data-tour="add"]')?.focus();
+    }
+    function end() {
+      if (at < 0) return;
+      at = -1;
+      spot.remove();
+      card.remove();
+      removeEventListener("resize", place);
+      removeEventListener("scroll", place, true);
+      removeEventListener("keydown", onKey, true);
+      try {
+        localStorage.setItem(SEEN_KEY, "1");
+      } catch {
+      }
+      clear();
+    }
+    function onKey(e) {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        end();
+        return;
+      }
+      if (e.target.closest?.("input, textarea, select, [contenteditable]"))
+        return;
+      if (e.key === "ArrowRight" && at < steps.length - 1) show(at + 1);
+      else if (e.key === "ArrowLeft" && at > 0) show(at - 1);
+    }
+    function startTour() {
+      if (at >= 0 || !runtime2.derived?.allTxns.length) return;
+      steps = buildSteps();
+      spot = document.createElement("div");
+      spot.className = "tour-spot";
+      card = document.createElement("div");
+      card.className = "tour-card";
+      card.setAttribute("role", "dialog");
+      card.setAttribute("aria-label", "Tour of the demo");
+      card.onclick = (e) => {
+        const act = e.target.closest("[data-tour]")?.dataset.tour;
+        if (act === "next") show(at + 1);
+        else if (act === "back") show(at - 1);
+        else if (act === "end") end();
+        else if (act === "add") {
+          end();
+          $("#addBtn").click();
+        }
+      };
+      document.body.append(spot, card);
+      addEventListener("resize", place);
+      addEventListener("scroll", place, true);
+      addEventListener("keydown", onKey, true);
+      show(0);
+    }
+    function maybeStartTour() {
+      if (!state.isDemo) return;
+      let seen = false;
+      try {
+        seen = !!localStorage.getItem(SEEN_KEY);
+      } catch {
+      }
+      if (!seen) startTour();
+    }
+    return { maybeStartTour, startTour };
+  }
+
   // main.js
   var runtime = createRuntime();
   var actions = {
@@ -5253,6 +5733,7 @@ ${JSON.stringify(matrix.slice(0, 18).map((r2) => r2.map((c) => String(c ?? "").s
   Object.assign(actions, createChat(runtime, actions));
   Object.assign(actions, createImport(runtime, actions));
   Object.assign(actions, createBackupImport(runtime, actions));
+  Object.assign(actions, createTour(runtime, actions));
   function renderAll() {
     if (!runtime.state.loaded) {
       actions.renderTimeline();
@@ -5270,6 +5751,7 @@ ${JSON.stringify(matrix.slice(0, 18).map((r2) => r2.map((c) => String(c ?? "").s
     actions.renderLenses();
     actions.renderAskCtx();
     if ($("#pane-ask").classList.contains("on")) actions.renderLog();
+    if ($("#pane-reports").classList.contains("on")) actions.renderReports();
   }
   async function useCap(name) {
     try {
@@ -5284,6 +5766,7 @@ ${JSON.stringify(matrix.slice(0, 18).map((r2) => r2.map((c) => String(c ?? "").s
     actions.wireTimeline();
     actions.wireLenses();
     actions.wireAsk();
+    actions.wireConnect();
     actions.wireFilter();
     actions.wireParkbar();
     actions.wireChanges();
@@ -5373,6 +5856,7 @@ ${JSON.stringify(matrix.slice(0, 18).map((r2) => r2.map((c) => String(c ?? "").s
     }
     runtime.state.loaded = true;
     renderAll();
+    actions.maybeStartTour();
   }
   var refreshSoon = debounce(() => {
     actions.derive();
