@@ -173,14 +173,17 @@ export function layoutTimeline({ derived, state, today, width }) {
     row.drag = state.budgetDrag?.thread === row.name ? state.budgetDrag : null;
     const budget = row.drag ? row.drag.value : row.thread?.budget;
     // A budget band compares one currency; a thread with charges in several
-    // has its budget told per currency in the summaries instead.
-    const oneCurrency = new Set(row.items?.map((t) => t.currency)).size <= 1;
+    // has its budget told per currency in the summaries instead. While the
+    // search is filtering, only the matching beads are drawn: a band would
+    // compare part of a month with the whole budget.
+    const currencies = new Set(row.items?.map((t) => t.currency));
     if (
       row.name !== "__parked" &&
       row.thread &&
       budget != null &&
       !narrow &&
-      oneCurrency
+      currencies.size === 1 &&
+      !state.query?.trim()
     ) {
       row.band = budgetBand(row, budget, row.drag, row.cy, monthsShown, colX);
       const { base, bandH, bandMax } = row.band;

@@ -116,3 +116,18 @@ test("budgets round to numbers a person would type", () => {
     [0, 0, 50, 250, 1200],
   );
 });
+
+test("while searching, only matching beads are drawn, with no budget bands", () => {
+  const d = demo((s) => (s.query = "#car"));
+  const L = layout(d);
+  const drawn = L.visibleRows.flatMap((r) =>
+    r.items.filter((t) => t.kind === "actual"),
+  );
+  assert.ok(drawn.length > 0);
+  assert.ok(drawn.every((t) => d.derived.txns.includes(t)));
+  for (const r of L.visibleRows)
+    assert.equal(r.band, undefined, `${r.name} has a band`);
+  // Bills has a budget and nothing matching: its row must not need a currency.
+  const bills = L.visibleRows.find((r) => r.name === "Bills");
+  assert.ok(!bills || !bills.items.some((t) => t.kind === "actual"));
+});
