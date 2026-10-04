@@ -12,6 +12,25 @@ import {
 import { readMatrix } from "../files.js";
 import { answerCurrencies, needsCurrency } from "../documents.js";
 
+// The mapping dialog's fields, in order: what every file needs first, so the
+// currency is in view on a phone, then the optional columns.
+export const MAP_FIELDS = [
+  "date",
+  "dateFormat",
+  "merchant",
+  "amount",
+  "expenseSign",
+  "currency",
+  "debit",
+  "credit",
+  "currencyColumn",
+  "orig",
+  "type",
+  "details",
+  "account",
+  "headerRow",
+];
+
 export function createImport(runtime, actions) {
   const { state, caps } = runtime;
   // Asked once per import, before anything changes. The demo is cleared only
@@ -238,26 +257,36 @@ export function createImport(runtime, actions) {
             .join("");
         const f = (k, label) =>
           `<label>${label}<select data-k="${k}">${colOpts(map[k])}</select></label>`;
-        $("#mapGrid").innerHTML =
-          `<label>Heading row<input type="number" min="0" data-k="headerRow" value="${map.headerRow}"></label>${f("date", "Date")}${f("merchant", "Merchant or description")}${f("amount", "Amount (one signed column)")}
-        <label>In that column, spending is<select data-k="expenseSign">${pick(
-          "expenseSign",
-          [
-            ["positive", "positive"],
-            ["negative", "negative"],
-          ],
-        )}</select><span class="sub">${esc(signNote)}</span></label>
-        ${f("debit", "…or money out column")}${f("credit", "…and money in column")}${f("currencyColumn", "Currency column (optional)")}${f("orig", "Original amount (optional)")}${f("type", "Type (optional)")}${f("details", "Details (optional)")}
-        <label>Dates are written<select data-k="dateFormat">${pick(
-          "dateFormat",
-          [
-            ["DMY", "day/month/year"],
-            ["MDY", "month/day/year"],
-            ["YMD", "year-month-day"],
-          ],
-        )}</select><span class="sub">${esc(dateNote)}</span></label>
-        <label>Account name<input data-k="account" value="${esc(map.account)}"></label>
-        <label>Currency<select data-k="currency"><option value=""${map.currency ? "" : " selected"}>Choose…</option>${CURRENCIES.map((c) => `<option value="${esc(c)}"${map.currency === c ? " selected" : ""}>${esc(c)}</option>`).join("")}</select><span class="sub" id="mapCurNote">${esc(currencyNote)}</span></label>`;
+        const fields = {
+          headerRow: `<label>Heading row<input type="number" min="0" data-k="headerRow" value="${map.headerRow}"></label>`,
+          date: f("date", "Date"),
+          dateFormat: `<label>Dates are written<select data-k="dateFormat">${pick(
+            "dateFormat",
+            [
+              ["DMY", "day/month/year"],
+              ["MDY", "month/day/year"],
+              ["YMD", "year-month-day"],
+            ],
+          )}</select><span class="sub">${esc(dateNote)}</span></label>`,
+          merchant: f("merchant", "Merchant or description"),
+          amount: f("amount", "Amount (one signed column)"),
+          expenseSign: `<label>In that column, spending is<select data-k="expenseSign">${pick(
+            "expenseSign",
+            [
+              ["positive", "positive"],
+              ["negative", "negative"],
+            ],
+          )}</select><span class="sub">${esc(signNote)}</span></label>`,
+          currency: `<label>Currency<select data-k="currency"><option value=""${map.currency ? "" : " selected"}>Choose…</option>${CURRENCIES.map((c) => `<option value="${esc(c)}"${map.currency === c ? " selected" : ""}>${esc(c)}</option>`).join("")}</select><span class="sub" id="mapCurNote">${esc(currencyNote)}</span></label>`,
+          debit: f("debit", "…or money out column"),
+          credit: f("credit", "…and money in column"),
+          currencyColumn: f("currencyColumn", "Currency column (optional)"),
+          orig: f("orig", "Original amount (optional)"),
+          type: f("type", "Type (optional)"),
+          details: f("details", "Details (optional)"),
+          account: `<label>Account name<input data-k="account" value="${esc(map.account)}"></label>`,
+        };
+        $("#mapGrid").innerHTML = MAP_FIELDS.map((k) => fields[k]).join("");
         const { batch: b, unread } = readMapping(matrix, map, fileName);
         const unpriced = !map.currency && b.rows.length === 0;
         const waiting =

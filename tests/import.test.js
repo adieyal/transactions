@@ -140,3 +140,11 @@ test("columns are found from what the cells hold, in any language", async () => 
     [0, 1, 2, 3, null],
   );
 });
+
+test("the mapping dialog asks for the currency among the first fields", async () => {
+  const { MAP_FIELDS } = await import("../ui/import.js");
+  assert.ok(MAP_FIELDS.indexOf("currency") <= 5, MAP_FIELDS.join());
+  assert.ok(
+    MAP_FIELDS.indexOf("currency") < MAP_FIELDS.indexOf("currencyColumn"),
+  );
+});
