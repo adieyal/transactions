@@ -806,7 +806,7 @@ test("modules stay within their size budget", (t) => {
 test("every allowlist entry names a step that exists", () => {
   const plan = readFileSync(path.join(root, "docs/architecture.md"), "utf8");
   const steps = new Set(
-    [...plan.matchAll(/^\| (R\d+) +\|/gm)].map((m) => m[1]),
+    [...plan.matchAll(/^\| ((?:R|C)\d+) +\|/gm)].map((m) => m[1]),
   );
   const unknown = [
     ...LAYER_ALLOW,
@@ -816,6 +816,8 @@ test("every allowlist entry names a step that exists", () => {
     ...SIZE_ALLOW,
     ...HTML_ALLOW,
     ...REACH_ALLOW,
+    ...SAVED_WRITE_ALLOW,
+    ...UI_LOGIC_ALLOW,
   ]
     .filter((a) => a.fix !== "story-first" && !steps.has(a.fix))
     .map((a) => `${a.v} -> ${a.fix}`);

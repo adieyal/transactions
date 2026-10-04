@@ -18,6 +18,7 @@ Transactions is a single-file browser app (no backend). esbuild bundles `main.js
   - **Domain:** `transactions/`, `story/`, `defaults.js`, `demo.js`, `lens-api.js`.
   - **Persistence:** `documents.js`, `backup.js`, `persistence.js`, `storage.js`.
   - **Platform:** `assistant.js`, `downloads.js`.
+  - **Model:** `model/`, beside persistence and pure like the domain. Every change to saved state is a command there that returns a change record; the UI calls `actions.commit(command(state, input))` and Undo calls `actions.undo(record)` ([ADR 0013](docs/adr/0013-ui-business-logic-and-model.md)).
 - **The pure layers stay pure.** `transactions/`, `story/` and `helpers.js` use no `document`, `window`, `$(`, `innerHTML`, storage, `fetch`, `DOMParser`, `new Date()` or `Date.now()`. Take `today` as an argument.
 - **No import cycles.** No `ui/` factory imports another; UI modules reach each other only through `actions`.
 - **Every `actions.X` must have exactly one provider** (a key in some factory's returned object, or `main.js`).
