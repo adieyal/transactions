@@ -1,4 +1,10 @@
-import { kindLabel, momentWhen, monthLong, questionText } from "./copy.js";
+import {
+  kindLabel,
+  momentWhen,
+  monthLong,
+  plain,
+  questionText,
+} from "./copy.js";
 
 // Optional help from an assistant, only ever run from a button press. The
 // templates stay the source of truth: a reply is used only if it parses,
@@ -40,7 +46,7 @@ export function answerSuggestionPrompt(m) {
   const merchants = m.facts.merchants || [m.facts.merchant || m.facts.thread];
   return `You're helping one person label something in their own bank and card statements, in a personal tool called Transactions. The app noticed this and is asking them an optional question.
 
-What the app noticed (${kindLabel(m)}, ${momentWhen(m)}): ${questionText(m)}
+What the app noticed (${kindLabel(m)}, ${momentWhen(m)}): ${plain(questionText(m))}
 Merchants involved: ${merchants.filter(Boolean).join(", ")}
 
 Suggest up to 3 short answers they might pick, each 1 to 4 words, describing what it might have been (for example "Moving house" or "Car repair"). No amounts, no dates, no judgement. Reply with only JSON: {"answers": ["...", "..."]}`;
@@ -94,7 +100,9 @@ export function polishFacts(sections) {
         "- " +
         s.parts
           .map((p) =>
-            p.txnIds?.length ? `${p.text} [[${p.txnIds.join(",")}]]` : p.text,
+            plain(
+              p.txnIds?.length ? `${p.text} [[${p.txnIds.join(",")}]]` : p.text,
+            ),
           )
           .join(""),
     )

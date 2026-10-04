@@ -59,7 +59,9 @@ main{display:grid; grid-template-columns:minmax(0,1fr) 470px; min-height:0}
 .parkbtn:hover rect,.parkbtn:focus rect{fill:var(--grid)}
 .parkbtn path{fill:none; stroke:var(--ink-2); stroke-width:1.4; stroke-linecap:round}
 .parkbtn circle{fill:var(--ink-2)}
-.budgetbtn{cursor:pointer; opacity:.7}
+/* "+ Budget" appears on the row under the pointer, or when tabbed to. */
+.budgetbtn{cursor:pointer; opacity:0; transition:opacity .12s}
+.budgetbtn.show{opacity:.75}
 .budgetbtn:hover,.budgetbtn:focus{opacity:1; outline:none}
 .budgetbtn rect{fill:var(--raised); stroke:var(--wire)}
 .budgetbtn:hover rect,.budgetbtn:focus rect{stroke:var(--ink-3)}
@@ -74,6 +76,22 @@ main{display:grid; grid-template-columns:minmax(0,1fr) 470px; min-height:0}
 #askmem{font-size:12.5px; color:var(--ink-2); margin:0 0 8px}
 .left{overflow:auto; min-height:0; padding:0 0 40px}
 .right{border-left:1px solid var(--grid); background:var(--panel); overflow:auto; min-height:0; display:flex; flex-direction:column}
+/* Mid widths: the header stays on one line and the panel narrows a little,
+   so the timeline keeps its room and the six tabs still fit. */
+@media (min-width:981px) and (max-width:1240px){
+  header{gap:10px; padding:12px 16px 10px}
+  .mark{font-size:22px; gap:8px}
+  .chip{padding:3px 8px}
+  .wide-only{display:none}
+  main{grid-template-columns:minmax(0,1fr) 440px}
+  .right .tabs{padding:0 4px}
+  .tabs .tab{padding:12px 4px 10px; font-size:13px}
+}
+/* Phones: the six tabs fit without scrolling sideways. */
+@media (max-width:520px){
+  .right .tabs{padding:0 2px}
+  .tabs .tab{padding:12px 3px 10px; font-size:12.5px}
+}
 @media (max-width:980px){
   body{height:auto}
   .app{display:block; height:auto}
@@ -345,19 +363,19 @@ dialog::backdrop{background:rgba(10,14,16,.35)}
 .qmore{margin-top:12px}
 .qmore summary{cursor:pointer; padding:6px 0; font-weight:500; color:var(--ink-2)}
 .qmore[open] summary{margin-bottom:8px}
-.qcard{background:var(--raised); border:1px solid var(--grid); border-radius:12px; padding:12px 14px; cursor:pointer}
+.qcard{background:var(--raised); border:1px solid var(--grid); border-radius:12px; padding:10px 11px; cursor:pointer}
 .qcard.on{border-color:var(--ink-3); box-shadow:0 0 0 1px var(--ink-3)}
 .qmeta{display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px; font-size:12px; color:var(--ink-2)}
 .qkind{font-weight:600; letter-spacing:.04em; text-transform:uppercase}
-.qtext{margin:8px 0 10px; font:400 17px/1.5 var(--display)}
-.qanswers{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
-.qchip{min-height:36px; padding:0 14px; border-radius:18px; border:1px solid var(--wire); background:var(--raised); color:var(--ink); font-weight:500; font-size:14px}
+.qtext{margin:4px 0 7px; font:400 15.5px/1.4 var(--display)}
+.qanswers{display:flex; flex-wrap:wrap; gap:4px; align-items:center}
+.qchip{min-height:30px; padding:0 9px; border-radius:15px; border:1px solid var(--wire); background:var(--raised); color:var(--ink); font-weight:500; font-size:13px; white-space:nowrap}
 .qchip:hover{border-color:var(--ink-3)}
-.qskip{min-height:36px; padding:0 10px; border:0; background:none; color:var(--ink-2); font-weight:500; font-size:14px}
+.qskip{min-height:30px; padding:0 6px; border:0; background:none; color:var(--ink-2); font-weight:500; font-size:14px}
 .qskip:hover{color:var(--ink)}
 .qwrite{display:flex; flex-direction:column; gap:6px}
 .qwrite input{border:1px solid var(--wire); background:var(--raised); border-radius:6px; padding:7px 9px; font-size:14px; color:var(--ink)}
-.qfoot{margin:10px 0 0; font-size:12px; color:var(--ink-3)}
+.qfoot{margin:5px 0 0; font-size:11.5px; line-height:1.3; color:var(--ink-3)}
 body.nopanel .qcount{min-width:0; width:16px; padding:4px 0; margin:4px 0 0}
 /* your month */
 .mnav{display:flex; align-items:center; gap:10px}
@@ -367,8 +385,11 @@ body.nopanel .qcount{min-width:0; width:16px; padding:4px 0; margin:4px 0 0}
 .mtitle{font:500 30px/1.15 var(--display); margin:8px 0 12px}
 .msum .mp{font:400 17px/1.6 var(--display); margin:0 0 12px}
 .msum .mp-overview{font-size:19.5px; line-height:1.5}
-.sp{border-bottom:1.5px dotted var(--ink-3); cursor:default; transition:background .15s}
-.sp.on,.sp:focus-visible{background:color-mix(in srgb,#E9C46A 45%,transparent); border-bottom-color:var(--ink); outline:0}
+/* Figures that light up the timeline: a faint underline that firms up on
+   hover and focus, so prose stays easy to read. */
+.sp{text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; text-decoration-color:color-mix(in srgb,var(--ink-3) 35%,transparent); cursor:default; transition:background .15s, text-decoration-color .15s; border-radius:2px}
+.sp:hover,.sp.on,.sp:focus-visible{text-decoration-color:var(--ink-2); outline:0}
+.sp.on,.sp:focus-visible{background:color-mix(in srgb,#E9C46A 45%,transparent)}
 .yours{margin:0 0 14px; padding:10px 14px; border-left:3px solid var(--wire); background:var(--raised); border-radius:0 8px 8px 0}
 .yours figcaption{font:600 11.5px var(--ui); letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2); margin-bottom:4px}
 .yourtext{font:400 16px/1.55 var(--display)}

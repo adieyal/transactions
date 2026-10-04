@@ -30,8 +30,15 @@ const WORDS = [
   "nine",
 ];
 
-// ₪2,313 for whole amounts, ₪26.50 otherwise.
+// Sentences round to whole shekels: ₪2,313, ₪27. Under ₪1 keeps agorot, so
+// a small amount never reads as ₪0.
 export function money(n) {
+  const v = Number(n) || 0;
+  return Math.abs(v) < 1 ? exactMoney(v) : exactMoney(Math.round(v));
+}
+
+// The exact amount, for prices and anywhere a few agorot matter: ₪26.50.
+export function exactMoney(n) {
   const v = Math.round((Number(n) || 0) * 100) / 100;
   const whole = Number.isInteger(v);
   return (
@@ -43,6 +50,13 @@ export function money(n) {
     })
   );
 }
+
+// A name from the data or the person (a merchant, thread, period or account),
+// isolated so a Hebrew name keeps its own direction inside an English
+// sentence. FSI … PDI works in HTML, in SVG and in plain text alike.
+export const name = (s) => `\u2068${s}\u2069`;
+// Text without the isolates, for comparing and for an assistant.
+export const plain = (s) => String(s).replace(/[\u2068\u2069]/g, "");
 
 export const count = (n) => (n >= 0 && n < WORDS.length ? WORDS[n] : String(n));
 
@@ -101,8 +115,11 @@ export function monthList(months, joiner = "and") {
 
 const placesText = (names, max = 4) =>
   names.length <= max
-    ? list(names)
-    : `${names.slice(0, max - 1).join(", ")} and ${plural(names.length - max + 1, "other place")}`;
+    ? list(names.map(name))
+    : `${names
+        .slice(0, max - 1)
+        .map(name)
+        .join(", ")} and ${plural(names.length - max + 1, "other place")}`;
 
 export const KIND_LABELS = {
   cluster: "Several purchases close together",
@@ -132,29 +149,31 @@ export function momentWhen(m) {
 // The fact the question is about, in one or two sentences.
 export function momentFact(m) {
   const f = m.facts;
+  const who = name(f.merchant),
+    thread = name(f.thread);
   switch (m.kind) {
     case "cluster":
       return `${money(f.total)} went to ${placesText(f.merchants)} within a week.`;
     case "large":
       if (f.count > 1)
-        return `You made ${plural(f.count, "payment")} to ${f.merchant}, ${money(f.total)} in all.`;
+        return `You made ${plural(f.count, "payment")} to ${who}, ${money(f.total)} in all.`;
       return f.largestOfYear
-        ? `You paid ${f.merchant} ${money(f.total)}, your largest single payment of the year.`
-        : `You paid ${f.merchant} ${money(f.total)}, more than three times the usual ${money(f.usual)} for ${f.usualFor}.`;
+        ? `You paid ${who} ${money(f.total)}, your largest single payment of the year.`
+        : `You paid ${who} ${money(f.total)}, more than three times the usual ${money(f.usual)} for ${name(f.usualFor)}.`;
     case "gap":
       if (f.stopped)
-        return `${f.merchant} last appeared on ${dayLong(f.last)}, and not in ${monthLong(f.months[0])}.`;
-      return `No ${f.merchant} in ${monthList(f.months, "or")}, though there was one in each of the other ${plural(f.seen, "month")}.`;
+        return `${who} last appeared on ${dayLong(f.last)}, and not in ${monthLong(f.months[0])}.`;
+      return `No ${who} in ${monthList(f.months, "or")}, though there was one in each of the other ${plural(f.seen, "month")}.`;
     case "price":
-      return `${f.merchant} went ${f.after > f.before ? "up" : "down"} from ${money(f.before)} to ${money(f.after)} a month.`;
+      return `${who} went ${f.after > f.before ? "up" : "down"} from ${exactMoney(f.before)} to ${exactMoney(f.after)} a month.`;
     case "spike":
-      return `${f.merchant} came to ${money(f.amount)} in ${monthLong(m.month)}, compared with the usual ${money(f.usual)}.`;
+      return `${who} came to ${money(f.amount)} in ${monthLong(m.month)}, compared with the usual ${money(f.usual)}.`;
     case "rhythm":
-      return `You've paid ${f.merchant} on the ${ordinal(f.day)} of the month for ${plural(f.months, "month")} running.`;
+      return `You've paid ${who} on the ${ordinal(f.day)} of the month for ${plural(f.months, "month")} running.`;
     case "new":
-      return `${money(f.total)} went to ${f.merchant} in ${monthLong(m.month)}, the first time it appears in your statements.`;
+      return `${money(f.total)} went to ${who} in ${monthLong(m.month)}, the first time it appears in your statements.`;
     case "budget":
-      return `${f.thread} came to ${money(f.spent)} of ${money(f.budget)} in ${monthLong(m.month)}${f.first ? ", the first month above the budget" : ""}.`;
+      return `${thread} came to ${money(f.spent)} of ${money(f.budget)} in ${monthLong(m.month)}${f.first ? ", the first month above the budget" : ""}.`;
     case "loose":
       return `${cap(plural(f.count, "charge"))} at ${plural(f.places, "place")}, ${money(f.total)} in all, aren't in any thread yet.`;
   }

@@ -12,6 +12,7 @@ import {
   summarizePeriod,
   summarizeThread,
 } from "../story/summary.js";
+import { plain } from "../story/copy.js";
 
 const TODAY = "2026-09-30";
 function demo() {
@@ -89,7 +90,8 @@ test("the demo's April is the move, with its question inline", () => {
     ],
     [
       "regular",
-      "Regular spending came to ₪727: ₪305 on Bills, ₪218 on Groceries, ₪82 on Dining out, ₪55 on Pets and ₪67 on other regular things. Bills came to ₪305, against a usual ₪245. Dining out came to ₪82, against a usual ₪28.",
+      "Regular spending came to ₪727: ₪305 on Bills, ₪218 on Groceries, ₪82 on Dining out, ₪55 on Pets and ₪67 on other regular things.",
+      // Bills and Dining out have budgets, compared in the budget line.
     ],
     [
       "question",
@@ -110,10 +112,10 @@ test("the demo's April is the move, with its question inline", () => {
       "Budgets: Bills ₪305 of ₪300, Groceries ₪218 of ₪300, Dining out ₪82 of ₪100, Getting around ₪38 of ₪100, Subscriptions ₪29 of ₪50 and Pets ₪55 of ₪120.",
     ],
   ]);
-  assert.equal(checkIds(april, derived), 17);
+  assert.equal(checkIds(april, derived), 15);
   const bills = april
     .find((s) => s.kind === "budget")
-    .parts.find((p) => p.text.startsWith("Bills"));
+    .parts.find((p) => plain(p.text).startsWith("Bills"));
   assert.deepEqual(
     bills.txnIds.map((id) => derived.byId.get(id).merchant).sort(),
     [
@@ -136,7 +138,7 @@ test("a month with a period tells it apart from your own words", () => {
     ],
     [
       "regular",
-      "Regular spending came to ₪607: ₪227 on Bills, ₪221 on Groceries, ₪55 on Pets, ₪38 on Getting around and ₪66 on other regular things. Dining out came to ₪37, against a usual ₪28.",
+      "Regular spending came to ₪607: ₪227 on Bills, ₪221 on Groceries, ₪55 on Pets, ₪38 on Getting around and ₪66 on other regular things.",
     ],
     [
       "period",
@@ -159,7 +161,7 @@ test("a month with a period tells it apart from your own words", () => {
       "Budgets: Bills ₪227 of ₪300, Groceries ₪221 of ₪300, Dining out ₪37 of ₪100, Getting around ₪38 of ₪100, Subscriptions ₪29 of ₪50 and Pets ₪55 of ₪120.",
     ],
   ]);
-  assert.equal(checkIds(december, derived), 15);
+  assert.equal(checkIds(december, derived), 14);
   const yours = december.find((s) => s.kind === "yours");
   assert.equal(yours.label, "Your description");
   assert.equal(yours.periodId, "demo-car");
@@ -261,7 +263,7 @@ test("a period is told apart from the regular spending in its dates", () => {
     ],
     [
       "regular",
-      "Eight regular charges (₪359) also fell in these dates and aren't counted above.",
+      "Eight regular charges (₪359) also fell in these dates, making ₪2,768 in all.",
     ],
     [
       "compare",

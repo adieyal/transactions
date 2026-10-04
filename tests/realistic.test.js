@@ -103,7 +103,8 @@ test("money coming in is told as money in, not as refunds or price changes", () 
   );
   for (const p of about(salary)) assert.doesNotMatch(p.text, /refund/);
   const refund = derived.allTxns.find(
-    (t) => t.merchant === M.grocer && t.amount < 0,
+    (t) =>
+      t.merchant === M.grocer && t.amount < 0 && t.date.startsWith("2026-09"),
   );
   assert.ok(about(refund.id).some((p) => /refund/.test(p.text)));
 
@@ -190,4 +191,23 @@ test("each merchant is asked about once, and naming a period is offered only for
   assert.ok(!labels(stream).includes("Name this period"));
   const [furniture] = of(moments, "large", M.furniture);
   assert.ok(!labels(furniture).includes("Name this period"));
+});
+
+test("sentences use whole shekels, skip trivial refunds and keep names in their own direction", () => {
+  const { state, derived, moments } = setup();
+  const july = summarizeMonth(derived, state, "2026-07");
+  const overview = sectionText(july[0]);
+  assert.doesNotMatch(overview, /refund/, "₪4.50 back isn't worth a sentence");
+  for (const s of july) assert.doesNotMatch(sectionText(s), /₪[\d,]+\.\d\d/);
+
+  // A name with Hebrew in it is isolated, so the amount after it stays put.
+  const [furniture] = of(moments, "large", M.furniture);
+  assert.match(
+    questionText(furniture),
+    new RegExp(`You paid ⁨${M.furniture}⁩ ₪2,450,`),
+  );
+  const september = summarizeMonth(derived, state, "2026-09");
+  const cameIn = september[0].parts.find((p) => /came in/.test(p.text));
+  assert.ok(cameIn.text.includes(`⁨${M.payer}⁩`));
+  assert.ok(sectionText(september[0]).includes(`came in from ${M.payer}.`));
 });

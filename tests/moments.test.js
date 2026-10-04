@@ -19,9 +19,12 @@ import {
   answerOptions,
   dateRange,
   kindLabel,
+  exactMoney,
   momentWhen,
   money,
   monthList,
+  name,
+  plain,
   privacyLabel,
   questionText,
 } from "../story/copy.js";
@@ -288,7 +291,7 @@ test("question copy states the facts and offers options without an assistant", (
   const state = unexplained();
   const derived = derive(state);
   const all = detectMoments(derived, state);
-  const text = (kind, name) => questionText(find(all, kind, name));
+  const text = (kind, name) => plain(questionText(find(all, kind, name)));
   assert.equal(
     text("cluster", "Bluebell Removals"),
     "₪2,313 went to Bluebell Removals, Kettle & Coil, Northgate Hardware and Linen Lane within a week. Want to name this period?",
@@ -357,7 +360,12 @@ test("question copy states the facts and offers options without an assistant", (
 
 test("copy helpers and a typical month", () => {
   assert.equal(money(2313), "₪2,313");
-  assert.equal(money(26.5), "₪26.50");
+  // Sentences use whole shekels; exact amounts keep agorot.
+  assert.equal(money(26.5), "₪27");
+  assert.equal(money(0.4), "₪0.40");
+  assert.equal(exactMoney(26.5), "₪26.50");
+  assert.equal(plain(name("מאפייה 2")), "מאפייה 2");
+  assert.equal(name("מאפייה 2"), "\u2068מאפייה 2\u2069");
   assert.equal(money(-18), "−₪18");
   assert.equal(
     dateRange("2026-03-28", "2026-04-02"),
@@ -405,7 +413,7 @@ test("a regular charge that stops becomes a question, as Worth a look's flags di
   assert.equal(stopped.facts.merchant, "Lantern Stream");
   assert.equal(kindLabel(stopped), "Stopped");
   assert.equal(
-    questionText(stopped),
+    plain(questionText(stopped)),
     "Lantern Stream last appeared on 15 July 2026, and not in August 2026. Want to add a note?",
   );
 });

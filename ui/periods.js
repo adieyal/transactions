@@ -52,7 +52,7 @@ export function createPeriods(runtime, actions) {
     el.innerHTML = `<div class="ins-grid"><div>
       <input id="pName" class="pname" dir="auto" value="${esc(p.name)}" aria-label="Period name" style="border-bottom-color:${p.color}">
       <div class="row-actions" style="margin-top:6px"><label class="sub">From <input type="date" id="pStart" value="${p.start}"></label><label class="sub">to <input type="date" id="pEnd" value="${p.end}"></label></div>
-      <p class="sub" style="margin:8px 0 4px">${st.days} day${st.days > 1 ? "s" : ""} · ${st.out.length} charges · ${fmt(st.sum, 0)} out${overl.length ? ` · overlaps <span dir="auto">${overl.map((q) => esc(q.name)).join(", ")}</span>` : ""}. Not everything in these dates has to belong; this is context.</p>
+      <p class="sub" style="margin:8px 0 4px">${st.days} day${st.days > 1 ? "s" : ""} · ${st.out.length} charges · ${fmt(st.sum, 0)} out in all${overl.length ? ` · overlaps <span dir="auto">${overl.map((q) => esc(q.name)).join(", ")}</span>` : ""}. Not everything in these dates has to belong; this is context.</p>
       ${
         st.byThread.length
           ? `<div class="bars" style="margin:6px 0">${st.byThread

@@ -516,7 +516,7 @@ export function createChat(runtime, actions) {
                     .map((id) => {
                       const p = state.periods.find((x) => x.id === id);
                       return p
-                        ? `<button class="linkish" data-openperiod="${id}">Open “${esc(p.name)}”</button>`
+                        ? `<button class="linkish" data-openperiod="${id}">Open “<bdi>${esc(p.name)}</bdi>”</button>`
                         : "";
                     })
                     .join(" · ")}</p>`

@@ -110,6 +110,7 @@ export function createMonth(runtime, actions) {
     if (i < 0 || i >= ms.length) return;
     state.monthView = ms[i];
     renderMonth();
+    actions.resetPanelScroll();
   }
 
   function wireMonth() {

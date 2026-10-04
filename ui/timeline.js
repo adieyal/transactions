@@ -14,6 +14,11 @@ import {
 import { LOOSE, TRANSFERS } from "../transactions/constants.js";
 import { toast } from "./dom.js";
 import { parseRules } from "../transactions/rules.js";
+import { name as bidi } from "../story/copy.js";
+import { anchorEnd, fitLabels } from "./timeline-labels.js";
+
+// Half a plain row's height (rowH below), for finding the row under the pointer.
+const ROW_HALF = 30;
 
 export function createTimeline(runtime, actions) {
   const { state } = runtime;
@@ -72,8 +77,7 @@ export function createTimeline(runtime, actions) {
     }
     const narrow = W < 640;
     const labelW = narrow ? 100 : 158,
-      padR = 10,
-      maxName = narrow ? 11 : 18;
+      padR = 10;
     const [t0, t1] = domain();
     const X = (v) => labelW + ((v - t0) / (t1 - t0)) * (W - labelW - padR);
     const inRange = (t) => {
@@ -174,8 +178,9 @@ export function createTimeline(runtime, actions) {
     // months
     let m = monthOf(new Date(t0).toISOString().slice(0, 10)) + "-01";
     const expByMonth = {};
+    // Expected charges only: money that usually comes in isn't one.
     runtime.derived.expected.forEach((e) => {
-      if (inRange(e))
+      if (inRange(e) && !e.inflow)
         expByMonth[monthOf(e.date)] =
           (expByMonth[monthOf(e.date)] || 0) + e.amount;
     });
@@ -196,7 +201,7 @@ export function createTimeline(runtime, actions) {
         s += `<line class="gridline" x1="${x0}" x2="${x0}" y1="${axisY + 4}" y2="${H}"/>`;
       const [yy, mo] = mm.split("-").map(Number);
       if (i % every === 0 && x1 - x0 > (X(ms(mm)) < labelW ? 64 : 20))
-        s += `<text class="axis" x="${x0 + 4}" y="${axisY}">${MONTHS[mo - 1]}${mo === 1 || i === 0 ? " " + yy : ""}</text>`;
+        s += `<text class="axis" data-thin x="${x0 + 4}" y="${axisY}">${MONTHS[mo - 1]}${mo === 1 || i === 0 ? " " + yy : ""}</text>`;
       accts.forEach((a, ai) => {
         const y = covTop + ai * 13;
         const has = runtime.derived.coverage[a]?.has(monthOf(mm));
@@ -204,16 +209,16 @@ export function createTimeline(runtime, actions) {
           s += has
             ? `<rect class="cov-on${state.hiddenAccounts.has(a) ? " hidden-acct" : ""}" data-acct="${esc(a)}" data-period="${monthOf(mm)}" x="${x0 + 1}" y="${y}" width="${x1 - x0 - 2}" height="8" rx="2"><title>${esc(a)}: statement for ${monthName(monthOf(mm))}</title></rect>`
             : mm < TODAY
-              ? `<rect class="cov-off" x="${x0 + 1.5}" y="${y + 0.5}" width="${x1 - x0 - 3}" height="7" rx="2"><title>No ${monthName(monthOf(mm))} statement for ${esc(a)}</title></rect>`
+              ? `<rect class="cov-off" x="${x0 + 1.5}" y="${y + 0.5}" width="${x1 - x0 - 3}" height="7" rx="2"><title>No ${monthName(monthOf(mm))} statement for ${esc(bidi(a))}</title></rect>`
               : "";
       });
       const ex = expByMonth[monthOf(mm)];
       if (ex && x1 - x0 > 40)
-        s += `<text class="exp" x="${(x0 + x1) / 2}" y="${expY}" text-anchor="middle"><title>Expected charges this month</title>≈ ${fmtShort(ex)}</text>`;
+        s += `<text class="exp" data-thin x="${(x0 + x1) / 2}" y="${expY}" text-anchor="middle"><title>Expected charges this month</title>≈ ${fmtShort(ex)}</text>`;
     });
     accts.forEach((a, ai) => {
       const off = state.hiddenAccounts.has(a);
-      s += `<text class="covlabel acctlabel${off ? " off" : ""}" data-togacct="${esc(a)}" role="switch" aria-checked="${!off}" tabindex="0" x="${labelW - 8}" y="${covTop + ai * 13 + 8}" text-anchor="end"><title>${off ? `Show ${esc(a)}` : `Hide ${esc(a)}`}</title>${esc(a.length > (narrow ? 13 : 22) ? a.slice(0, narrow ? 12 : 21) + "…" : a)}</text>`;
+      s += `<text class="covlabel acctlabel${off ? " off" : ""}" data-togacct="${esc(a)}" data-fit="${labelW - 12}" role="switch" aria-checked="${!off}" tabindex="0" x="${labelW - 8}" y="${covTop + ai * 13 + 8}" ${anchorEnd(a)}><title>${off ? `Show ${esc(bidi(a))}` : `Hide ${esc(bidi(a))}`}</title><tspan>${esc(a)}</tspan></text>`;
     });
     // periods strip
     s += `<rect class="pstrip" x="${labelW}" y="${perTop}" width="${W - padR - labelW}" height="${perBottom - perTop}"><title>Drag along this strip to mark a period</title></rect>`;
@@ -233,7 +238,7 @@ export function createTimeline(runtime, actions) {
             ? p.name.slice(0, Math.max(1, chars - 1)) + "…"
             : p.name;
       s +=
-        `<g class="period${p.id === state.periodSel ? " on" : ""}" data-pid="${p.id}"><title>${esc(p.name)}: ${fmtDate(p.start)} to ${fmtDate(p.end)}</title><rect class="pbody" x="${x0}" y="${y}" width="${w}" height="16" rx="4" fill="${p.color}" fill-opacity="${p.id === state.periodSel ? 0.4 : 0.22}" stroke="${p.color}"/>` +
+        `<g class="period${p.id === state.periodSel ? " on" : ""}" data-pid="${p.id}"><title>${esc(bidi(p.name))}: ${fmtDate(p.start)} to ${fmtDate(p.end)}</title><rect class="pbody" x="${x0}" y="${y}" width="${w}" height="16" rx="4" fill="${p.color}" fill-opacity="${p.id === state.periodSel ? 0.4 : 0.22}" stroke="${p.color}"/>` +
         `<text class="plabel" x="${x0 + 6}" y="${y + 12}" dir="auto">${esc(label)}</text>` +
         `<rect class="pedge" data-edge="start" x="${x0 - 3}" y="${y}" width="7" height="16"/><rect class="pedge" data-edge="end" x="${x0 + w - 4}" y="${y}" width="7" height="16"/></g>` +
         (p.id === state.periodSel
@@ -314,9 +319,9 @@ export function createTimeline(runtime, actions) {
           s += `<g class="parkbtn${parked ? " parked" : ""}" data-park="${esc(row.name)}" data-for-y="${cy - 2}" transform="translate(${labelW - 12 - row.name.length * 7 - 14},${cy - 6})" tabindex="0" role="button" aria-label="${parked ? "Unpark" : "Park"} ${esc(row.name)}"><title>${parked ? "Unpark this thread" : "Park this thread: fold it into one quiet wire at the bottom"}</title><rect x="-9" y="-8" width="18" height="16" rx="4"/><path d="M-6,0 Q0,-6 6,0 Q0,6 -6,0Z"/><circle r="1.8"/>${parked ? `<path d="M-6,5 L6,-5"/>` : ""}</g>`;
           // Adding a budget sits at the right end, where its drag handle will be.
           if (thr && thr.budget == null && !drag)
-            s += `<g class="budgetbtn" data-budget="${esc(row.name)}" transform="translate(${W - padR - 4},${cy - 16})" tabindex="0" role="button" aria-label="Set a budget for ${esc(row.name)}"><title>Give this thread a monthly budget line you can drag</title><rect x="-62" y="-9" width="62" height="17" rx="8.5"/><text x="-31" y="3.5" text-anchor="middle">+ Budget</text></g>`;
+            s += `<g class="budgetbtn" data-budget="${esc(row.name)}" data-cy="${cy}" transform="translate(${W - padR - 4},${cy - 16})" tabindex="0" role="button" aria-label="Set a budget for ${esc(row.name)}"><title>Give this thread a monthly budget line you can drag</title><rect x="-62" y="-9" width="62" height="17" rx="8.5"/><text x="-31" y="3.5" text-anchor="middle">+ Budget</text></g>`;
         }
-        s += `<text class="rowlabel" data-thread="${esc(row.name)}" data-line="${thr ? thr.line : ""}" x="${labelW - 12}" y="${cy - 2}" text-anchor="end" style="fill:${row.color}">${esc(row.name.length > maxName ? row.name.slice(0, maxName - 1) + "…" : row.name)}</text>`;
+        s += `<text class="rowlabel" data-thread="${esc(row.name)}" data-line="${thr ? thr.line : ""}" data-fit="${labelW - 16 - (narrow ? 0 : 22)}" x="${labelW - 12}" y="${cy - 2}" ${anchorEnd(row.name)} style="fill:${row.color}"><title>${esc(bidi(row.name))}</title><tspan>${esc(row.name)}</tspan></text>`;
         s += `<text class="rowtotal" x="${labelW - 12}" y="${cy + 14}" text-anchor="end">${row.items.some((t) => t.kind === "actual") ? (row.name === TRANSFERS ? "moved " : "") + fmt(total, 0) : ""}</text>`;
       }
       const items = row.items
@@ -364,7 +369,7 @@ export function createTimeline(runtime, actions) {
       if (ai < 0) continue;
       const xm = X(ms(tr.stmt.period + "-01") + 15 * 864e5),
         ys = covTop + ai * 13 + 8;
-      s += `<path class="transferlink${dimming && !hl.has(it.t.id) ? " dim" : ""}" d="M${it.x},${it.y - it.r} C${it.x},${(it.y + ys) / 2} ${xm},${(it.y + ys) / 2} ${xm},${ys}"><title>Pays the ${esc(tr.stmt.account)} statement for ${monthName(tr.stmt.period)}</title></path>`;
+      s += `<path class="transferlink${dimming && !hl.has(it.t.id) ? " dim" : ""}" d="M${it.x},${it.y - it.r} C${it.x},${(it.y + ys) / 2} ${xm},${(it.y + ys) / 2} ${xm},${ys}"><title>Pays the ${esc(bidi(tr.stmt.account))} statement for ${monthName(tr.stmt.period)}</title></path>`;
     }
     // beads
     for (const it of Object.values(P)) {
@@ -399,6 +404,7 @@ export function createTimeline(runtime, actions) {
     }
     s += `<rect id="lassoRect" class="lasso" x="0" y="0" width="0" height="0" style="display:none"/></svg>`;
     host.innerHTML = s;
+    fitLabels(host);
     placeParkButtons(labelW);
     TL = {
       t0,
@@ -550,11 +556,20 @@ export function createTimeline(runtime, actions) {
     $(".left").addEventListener("scroll", placeStickyNames, { passive: true });
     const host = $("#tl");
     let mode = null;
+    // "+ Budget" shows only on the row under the pointer, or when focused.
+    const showBudgetButton = (y) =>
+      host
+        .querySelectorAll(".budgetbtn[data-cy]")
+        .forEach((b) =>
+          b.classList.toggle("show", Math.abs(+b.dataset.cy - y) < ROW_HALF),
+        );
+    host.addEventListener("pointerleave", () => showBudgetButton(-1e9));
     const pt = (ev) => {
       const r = host.getBoundingClientRect();
       return { x: ev.clientX - r.left, y: ev.clientY - r.top };
     };
     host.addEventListener("pointermove", (ev) => {
+      showBudgetButton(pt(ev).y);
       if (mode) {
         const { x, y } = pt(ev);
         if (mode.kind === "lasso") {

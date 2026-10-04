@@ -85,6 +85,7 @@ export function createBackupImport(runtime, actions) {
         $("#q").value = "";
         actions.applyPanel();
         actions.refresh();
+        actions.resetPanelScroll();
         pending = null;
         dialog.close();
         toast(doneMessage);

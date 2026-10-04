@@ -4,7 +4,7 @@ import { createDemoData } from "../demo.js";
 import { createRuntime } from "../state.js";
 import { deriveTransactions } from "../transactions/derive.js";
 import { findMoments } from "../story/moments.js";
-import { questionText } from "../story/copy.js";
+import { plain, questionText } from "../story/copy.js";
 
 test("fictional demo covers forecasts, price changes, refunds, transfers and instalments", () => {
   const demo = createDemoData("2026-09-30");
@@ -84,7 +84,7 @@ test("a fresh demo explains the car and the holiday and leaves the move open", (
     (m) => m.kind === "cluster" && m.month === "2026-04",
   );
   assert.equal(
-    questionText(question),
+    plain(questionText(question)),
     "₪2,313 went to Bluebell Removals, Kettle & Coil, Northgate Hardware and Linen Lane within a week. Want to name this period?",
   );
 });

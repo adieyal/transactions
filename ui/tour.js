@@ -46,7 +46,7 @@ export function createTour(runtime, actions) {
     state.monthView = month;
     actions.openTab("month");
     actions.renderMonth();
-    $("#pane-month").scrollTop = 0;
+    actions.resetPanelScroll();
   };
   const movePeriod = (move) =>
     state.periods.find(
@@ -223,7 +223,7 @@ export function createTour(runtime, actions) {
       .flat()
       .filter(Boolean)
       .at(-1)
-      ?.scrollIntoView({ block: "center", inline: "nearest" });
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
     requestAnimationFrame(place);
     card.querySelector('[data-tour="next"], [data-tour="add"]')?.focus();
   }
@@ -236,6 +236,8 @@ export function createTour(runtime, actions) {
     removeEventListener("resize", place);
     removeEventListener("scroll", place, true);
     removeEventListener("keydown", onKey, true);
+    // Steps scroll their targets into view; the panel starts at its top again.
+    actions.resetPanelScroll();
     try {
       localStorage.setItem(SEEN_KEY, "1");
     } catch {}

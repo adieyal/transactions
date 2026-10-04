@@ -15,7 +15,9 @@ import {
   money,
   monthList,
   monthLong,
+  name as bidi,
   ordinal,
+  plain,
   plural,
   questionText,
 } from "./copy.js";
@@ -102,19 +104,22 @@ function overview(month, ctx) {
               : `${M} was a quiet month: ${s} went out, less than half a typical month (${typ}).`;
     parts.push({ text, txnIds: ids(out) });
   }
-  const cameIn = ctx.month.filter((t) => t.inflow);
+  // Money in and refunds too small to matter beside the month are left out.
+  const trivial = Math.max(10, 0.005 * sum);
+  const big = (t) => -t.amount >= trivial;
+  const cameIn = ctx.month.filter((t) => t.inflow && big(t));
   if (cameIn.length) {
     const from = [...new Set(cameIn.map((t) => t.merchant))];
     parts.push(
       { text: " " },
       {
-        text: `${money(-total(cameIn))} came in from ${list(from)}.`,
+        text: `${money(-total(cameIn))} came in from ${list(from.map(bidi))}.`,
         txnIds: ids(cameIn),
       },
     );
   }
   const refunds = ctx.month.filter(
-    (t) => t.amount < 0 && !t.transfer && !t.inflow,
+    (t) => t.amount < 0 && !t.transfer && !t.inflow && big(t),
   );
   if (refunds.length)
     parts.push(
@@ -122,7 +127,7 @@ function overview(month, ctx) {
       {
         text:
           refunds.length === 1
-            ? `${money(-refunds[0].amount)} came back as a refund from ${refunds[0].merchant}.`
+            ? `${money(-refunds[0].amount)} came back as a refund from ${bidi(refunds[0].merchant)}.`
             : `${money(-total(refunds))} came back in ${plural(refunds.length, "refund")}.`,
         txnIds: ids(refunds),
       },
@@ -131,7 +136,9 @@ function overview(month, ctx) {
 }
 
 // Merchants seen in three or more months, grouped by thread, against each
-// thread's usual monthly amount.
+// thread's usual monthly amount. A thread with a budget is compared in the
+// budget line, and one with a question this month in the question, so
+// neither is compared again here.
 function regular(month, ctx) {
   const routine = ctx.spend.filter((t) => ctx.seen.get(t.key)?.size >= 3);
   if (!routine.length) return null;
@@ -172,7 +179,7 @@ function regular(month, ctx) {
   const shown = threads.slice(0, 4);
   const rest = threads.slice(4).flatMap((th) => th.ts);
   const items = shown.map((th) => ({
-    text: `${money(th.sum)} on ${th.name}`,
+    text: `${money(th.sum)} on ${bidi(th.name)}`,
     txnIds: ids(th.ts),
   }));
   if (rest.length)
@@ -181,11 +188,17 @@ function regular(month, ctx) {
       txnIds: ids(rest),
     });
   parts.push(...listParts(items), { text: "." });
-  for (const th of off.slice(0, 2))
+  const told = new Set([
+    ...ctx.derived.R.threads
+      .filter((th) => th.budget != null)
+      .map((th) => th.name),
+    ...ctx.asked,
+  ]);
+  for (const th of off.filter((th) => !told.has(th.name)).slice(0, 2))
     parts.push(
       { text: " " },
       {
-        text: `${th.name} came to ${money(th.sum)}, against a usual ${money(Math.round(th.usual))}.`,
+        text: `${bidi(th.name)} came to ${money(th.sum)}, against a usual ${money(Math.round(th.usual))}.`,
         txnIds: ids(th.ts),
       },
     );
@@ -198,9 +211,10 @@ function merchantParts(ts) {
   const merchants = [...groupBy(ts, (t) => t.merchant)]
     .map(([name, group]) => ({ name, ts: group, sum: total(group) }))
     .sort((a, b) => b.sum - a.sum || a.name.localeCompare(b.name));
-  if (merchants.length === 1) return [{ text: ` at ${merchants[0].name}` }];
+  if (merchants.length === 1)
+    return [{ text: ` at ${bidi(merchants[0].name)}` }];
   const items = merchants.slice(0, 4).map((m) => ({
-    text: `${money(m.sum)} at ${m.name}${m.ts.length > 1 ? ` (${plural(m.ts.length, "purchase")})` : ""}`,
+    text: `${money(m.sum)} at ${bidi(m.name)}${m.ts.length > 1 ? ` (${plural(m.ts.length, "purchase")})` : ""}`,
     txnIds: ids(m.ts),
   }));
   const rest = merchants.slice(4).flatMap((m) => m.ts);
@@ -228,7 +242,7 @@ function periodSections(month, ctx) {
           !(ctx.seen.get(t.key)?.size >= 3),
       )
       .sort(byDate);
-    const head = { text: `“${p.name}”, ${dateRange(p.start, p.end)}: ` };
+    const head = { text: `“${bidi(p.name)}”, ${dateRange(p.start, p.end)}: ` };
     let parts;
     if (!inside.length)
       parts = [head, { text: "only regular spending in those dates." }];
@@ -269,8 +283,8 @@ function savings(month, ctx) {
     const [from, to] = key.split("\n");
     const sum = money(total(ts));
     const lead = pick(month, "save", [
-      `You moved ${sum} from ${from} to ${to}`,
-      `${sum} went from ${from} to ${to}`,
+      `You moved ${sum} from ${bidi(from)} to ${bidi(to)}`,
+      `${sum} went from ${bidi(from)} to ${bidi(to)}`,
     ]);
     const sofar = moved.filter(
       (t) => route(t) === key && monthOf(t.date) <= month,
@@ -298,7 +312,7 @@ function budgets(month, ctx) {
   const items = threads.map((th) => {
     const ts = ctx.month.filter((t) => t.thread === th.name && !t.transfer);
     return {
-      text: `${th.name} ${money(total(ts))} of ${money(th.budget)}`,
+      text: `${bidi(th.name)} ${money(total(ts))} of ${money(th.budget)}`,
       txnIds: ids(ts),
     };
   });
@@ -340,6 +354,17 @@ export function summarizeMonth(
     allSpend,
     seen: monthsSeen(allSpend),
     typical: typicalMonth(derived),
+    // Threads a question this month already compares: a budget, or one
+    // merchant's charges against its usual.
+    asked: moments
+      .filter((m) => m.month === month)
+      .flatMap((m) =>
+        m.kind === "budget"
+          ? [m.facts.thread]
+          : ["large", "spike", "price"].includes(m.kind)
+            ? m.txnIds.map((id) => derived.byId.get(id)?.thread)
+            : [],
+      ),
   };
   const questions = moments
     .filter((m) => m.month === month)
@@ -360,7 +385,7 @@ export function summarizeMonth(
 
 // A section's plain text, for tests and for an assistant to polish later.
 export const sectionText = (section) =>
-  section.parts.map((p) => p.text).join("");
+  plain(section.parts.map((p) => p.text).join(""));
 
 // A period told on its own: what went out in its dates, leaving regular
 // spending aside unless asked for, and how it compares with other periods.
@@ -396,7 +421,9 @@ export function summarizePeriod(
       kind: "regular",
       parts: [
         {
-          text: `${cap(plural(usual.length, "regular charge"))} (${money(total(usual))}) also fell in these dates and ${usual.length === 1 ? "isn't" : "aren't"} counted above.`,
+          text: own.length
+            ? `${cap(plural(usual.length, "regular charge"))} (${money(total(usual))}) also fell in these dates, making ${money(total(within))} in all.`
+            : `${cap(plural(usual.length, "regular charge"))} came to ${money(total(usual))}.`,
           txnIds: ids(usual),
         },
       ],
@@ -413,7 +440,7 @@ export function summarizePeriod(
         { text: ": " },
         ...listParts(
           threads.map((th) => ({
-            text: `${money(th.sum)} on ${th.name}`,
+            text: `${money(th.sum)} on ${bidi(th.name)}`,
             txnIds: ids(th.ts),
           })),
         ),
@@ -441,7 +468,7 @@ export function summarizePeriod(
         },
         ...listParts(
           others.map((o) => ({
-            text: `“${o.p.name}” came to ${money(total(o.ts))}`,
+            text: `“${bidi(o.p.name)}” came to ${money(total(o.ts))}`,
             txnIds: ids(o.ts),
           })),
         ),
@@ -503,13 +530,16 @@ export function summarizeThread(derived, state, name) {
   if (!inThread.length)
     return {
       sections: [
-        { kind: "empty", parts: [{ text: `Nothing is in ${name} yet.` }] },
+        {
+          kind: "empty",
+          parts: [{ text: `Nothing is in ${bidi(name)} yet.` }],
+        },
       ],
       months,
       items,
     };
   const inPart = cameIn.length && {
-    text: `${money(-total(cameIn))} came in from ${list([...new Set(cameIn.map((t) => t.merchant))])}.`,
+    text: `${money(-total(cameIn))} came in from ${list([...new Set(cameIn.map((t) => t.merchant))].map(bidi))}.`,
     txnIds: ids(cameIn),
   };
   if (!ts.length)
@@ -546,13 +576,13 @@ export function summarizeThread(derived, state, name) {
     kind: "overview",
     parts: [
       {
-        text: `${name} had ${plural(ts.length, "charge")} ${when}, ${money(total(ts))} in all`,
+        text: `${bidi(name)} had ${plural(ts.length, "charge")} ${when}, ${money(total(ts))} in all`,
         txnIds: ids(ts),
       },
       {
         text:
           merchants.length === 1
-            ? `, all at ${merchants[0]}. `
+            ? `, all at ${bidi(merchants[0])}. `
             : `, at ${plural(merchants.length, "place")}. `,
       },
       ...(typical != null && charges.length >= 3
@@ -582,7 +612,7 @@ export function summarizeThread(derived, state, name) {
       kind: "rhythm",
       parts: [
         {
-          text: `${m.txnIds.length} of them were on the ${ordinal(m.facts.day)} of the month at ${m.facts.merchant}, usually about ${money(m.facts.usual)}.`,
+          text: `${m.txnIds.length} of them were on the ${ordinal(m.facts.day)} of the month at ${bidi(m.facts.merchant)}, usually about ${money(m.facts.usual)}.`,
           txnIds: m.txnIds,
         },
       ],
@@ -599,7 +629,7 @@ export function summarizeThread(derived, state, name) {
       kind: "busiest",
       parts: [
         {
-          text: `The busiest month was ${monthLong(busiest.month)}: ${plural(busiest.count, "charge")}, ${money(busiest.total)}${shared.length ? `, ${busiest.count > 1 ? "all " : ""}during “${shared[0]}”` : ""}.`,
+          text: `The busiest month was ${monthLong(busiest.month)}: ${plural(busiest.count, "charge")}, ${money(busiest.total)}${shared.length ? `, ${busiest.count > 1 ? "all " : ""}during “${bidi(shared[0])}”` : ""}.`,
           txnIds: busiest.txnIds,
         },
       ],

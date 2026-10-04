@@ -8,7 +8,8 @@
 // October. Today is 4 October: October's own purchases have no statement yet.
 
 export const REALISTIC_TODAY = "2026-10-04";
-export const ACCOUNT = "Fictional Card";
+// A Hebrew account label with digits, as Israeli card exports have.
+export const ACCOUNT = "כרטיס בדוי 4821";
 
 // Calendar months with purchases, oldest first.
 export const PURCHASE_MONTHS = [
@@ -24,7 +25,8 @@ export const PURCHASE_MONTHS = [
 ];
 
 export const M = {
-  payer: "Northwind Payroll Ltd",
+  // Mixed Hebrew and English names, to check their direction in sentences.
+  payer: "Northwind Payroll בע״מ",
   power: "Brightline Power",
   fee: "Card Fee",
   phone: "Skyreach Mobile",
@@ -35,7 +37,7 @@ export const M = {
   vet: "Willowbrook Vet Clinic",
   grocer: "Greenbasket Market",
   cafe: "Copperleaf Cafe",
-  furniture: "Oakridge Furniture",
+  furniture: "ol2kridge רהיטים",
   books: "Pagebound Books",
   florist: "Sweetpea Florist",
 };
@@ -156,6 +158,8 @@ export function createRealisticData() {
         type: "Fictional refund",
         details: "Returned item",
       });
+    // A refund of a few shekels, too small to mention.
+    if (index === 6) add(M.grocer, 24, -4.5, { type: "Fictional refund" });
 
     const id = `real-card-${statement}`;
     batches[id] = {

@@ -142,7 +142,7 @@ export function createInspector(runtime, actions) {
       else
         kv.push([
           "Thread",
-          `<b style="color:${thr?.color || "var(--ink-2)"}">${esc(t.thread)}</b>, ${rule}`,
+          `<b style="color:${thr?.color || "var(--ink-2)"}"><bdi>${esc(t.thread)}</bdi></b>, ${rule}`,
         ]);
       if (t.periods?.length)
         kv.push([

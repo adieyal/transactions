@@ -15,7 +15,7 @@ export function createChrome(runtime, actions) {
 
   function renderChrome() {
     $("#demoNotice").innerHTML = state.isDemo
-      ? `Demo · a fictional year · <button class="linkish" id="tourBtn">Take the tour</button>`
+      ? `Demo<span class="wide-only"> · a fictional year</span> · <button class="linkish" id="tourBtn">Take the tour</button>`
       : "Imported data";
     $("#tourBtn")?.addEventListener("click", actions.startTour);
     $("#ranges").innerHTML = [
@@ -41,7 +41,16 @@ export function createChrome(runtime, actions) {
     actions.renderPrivacy();
   }
 
+  // The side panel scrolls as one; a new tab, month or workspace starts at
+  // its top, so the tabs never hide the start of what was opened.
+  function resetPanelScroll() {
+    const panel = $(".right");
+    if (panel) panel.scrollTop = 0;
+  }
+
   function openTab(which) {
+    if ($("#tab-" + which).getAttribute("aria-selected") !== "true")
+      resetPanelScroll();
     if (!state.view.panel) {
       state.view.panel = true;
       actions.saveView();
@@ -229,5 +238,5 @@ export function createChrome(runtime, actions) {
     ).observe($("#tl"));
   }
 
-  return { applyPanel, openTab, renderChrome, wireChrome };
+  return { applyPanel, openTab, renderChrome, resetPanelScroll, wireChrome };
 }
