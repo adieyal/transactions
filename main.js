@@ -74,6 +74,7 @@ const changes = createChanges(runtime, {
   save: (...keys) => actions.save(...keys),
   refresh: () => refresh(),
   refreshSoon: () => actions.refreshSoon(),
+  tell: (message) => toast(message),
 });
 const registry = createRegistry(runtime, MODULES, {
   commit: changes.commit,

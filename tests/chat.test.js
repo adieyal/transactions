@@ -50,8 +50,9 @@ function setup(calls = [], text = "Done.") {
       title: "Pets by month",
       code: `// ${brief}\nreturn lib.table([]);`,
     }),
+    // As ui/reports.js: commits the record and returns it.
     addReport: (q, answer) =>
-      changes.commit(
+      actions.commit(
         addReport(runtime.state, { report: { id: "r-chat", q, answer } }),
       ),
   };

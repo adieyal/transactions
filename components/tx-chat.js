@@ -55,9 +55,10 @@ export function createChatComponent(runtime, actions) {
 
   // Commits a model command's record from a tool and puts its line in the
   // reply. Returns what the assistant is told.
-  function change(rec, { ids = [], line, period = null } = {}) {
+  // committed: the record was committed already (ui/reports.js addReport).
+  function change(rec, { ids = [], line, period = null, committed } = {}) {
     if (!rec) return { changed: 0 };
-    actions.commit(rec, { refresh: "soon" });
+    if (!committed) actions.commit(rec, { refresh: "soon" });
     const key = `c${Date.now().toString(36)}${seq++}`;
     records.set(key, rec);
     const text =
@@ -199,7 +200,9 @@ export function createChatComponent(runtime, actions) {
     const line = t.changes?.find((c) => c.key === key);
     const rec = records.get(key);
     if (!line || !rec || line.undone) return;
-    actions.undo(rec);
+    // Refused when what it changed was edited again since; the reason is
+    // shown by changes.js, and the line keeps its Undo.
+    if (!actions.undo(rec)) return;
     records.delete(key);
     line.undone = true;
     actions.save("chat");

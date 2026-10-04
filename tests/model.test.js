@@ -283,3 +283,191 @@ test("one undo log: commit saves and refreshes, undo reverses by record", () => 
   assert.deepEqual(saved(s), before);
   assert.equal(changes.commit(null), null);
 });
+
+// C1-VERIFY property test: random commands, each undone and redone at once,
+// then all undone latest first, give back exactly what was there.
+test("undoing in order restores everything, over random commands", () => {
+  let seed = 7;
+  const rnd = () =>
+    (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+  for (let run = 0; run < 60; run++) {
+    const { state } = fresh();
+    const txns = deriveTransactions(state, { today }).txns;
+    const txIds = txns.map((t) => t.id);
+    const start = saved(state);
+    const done = [];
+    let n = 0;
+    for (let step = 0; step < 25; step++) {
+      const threads = parseRules(state.rules).threads.map((t) => t.name);
+      const ops = [
+        () =>
+          model.tag(state, {
+            ids: [pick(txIds), pick(txIds)],
+            add: [pick(["#a", "#trip"])],
+          }),
+        () => model.untag(state, { ids: [pick(txIds)], remove: ["#a"] }),
+        () =>
+          model.setNote(state, {
+            id: pick(txIds),
+            text: pick(["hi", "", "x #trip"]),
+          }),
+        () => model.setTransfer(state, { id: pick(txIds), on: rnd() < 0.5 }),
+        () =>
+          model.addPeriod(state, {
+            id: `p${n++}`,
+            name: "P",
+            start: `2026-03-0${1 + Math.floor(rnd() * 9)}`,
+            end: "2026-04-01",
+          }),
+        () =>
+          state.periods.length &&
+          model.editPeriod(state, {
+            id: pick(state.periods).id,
+            name: `E${n}`,
+          }),
+        () =>
+          state.periods.length &&
+          model.removePeriod(state, { id: pick(state.periods).id }),
+        () =>
+          model.setBudget(state, {
+            thread: pick(threads),
+            value: Math.floor(rnd() * 900),
+          }),
+        () => model.clearBudget(state, { thread: pick(threads) }),
+        () =>
+          model.addToThread(state, {
+            name: pick([...threads, "Pets"]),
+            txns: [pick(txns)],
+          }),
+        () =>
+          model.setRules(state, { rules: `${state.rules}\nX${n}\n  foo\n` }),
+        () =>
+          model.addLens(state, { id: `l${n++}`, title: "L", code: "return 1" }),
+        () =>
+          state.lenses.length &&
+          model.editLens(state, { id: pick(state.lenses).id, title: `T${n}` }),
+        () =>
+          state.lenses.length &&
+          model.removeLens(state, { id: pick(state.lenses).id }),
+        () => model.restoreStarterLenses(state),
+        () => model.addReport(state, { report: { id: `r${n++}`, q: "q?" } }),
+        () =>
+          state.reports.length &&
+          model.removeReport(state, { id: pick(state.reports).id }),
+      ];
+      let rec;
+      try {
+        rec = pick(ops)();
+      } catch (e) {
+        if (e instanceof model.CommandError) continue;
+        throw e;
+      }
+      if (!rec) continue;
+      const before = saved(state);
+      model.applyChange(state, rec);
+      const after = saved(state);
+      model.applyChange(state, model.invert(rec));
+      assert.deepEqual(saved(state), before, `undo ${rec.command}`);
+      model.applyChange(state, rec);
+      assert.deepEqual(saved(state), after, `redo ${rec.command}`);
+      done.push(rec);
+    }
+    for (const r of done.reverse()) model.applyChange(state, model.invert(r));
+    assert.deepEqual(saved(state), start, `run ${run}`);
+  }
+});
+
+// C1-VERIFY finding 1: a toast's Undo pressed after later edits reverses only
+// what it changed, as 8d87cd2's did, and keeps the later edits.
+test("undoing an earlier change keeps later edits", () => {
+  const runtime = fresh();
+  const { state } = runtime;
+  const told = [];
+  const io = {
+    save() {},
+    refresh() {},
+    refreshSoon() {},
+    tell: (m) => told.push(m),
+  };
+  const { commit, undo } = createChanges(runtime, io);
+
+  // Periods: remove one, rename the other, undo the remove.
+  const [car, trip] = state.periods;
+  const removed = commit(model.removePeriod(state, { id: car.id }));
+  commit(
+    model.editPeriod(state, { id: trip.id, name: "Renamed after remove" }),
+  );
+  commit(
+    model.addPeriod(state, {
+      id: "pnew",
+      start: "2026-05-01",
+      end: "2026-05-02",
+    }),
+  );
+  undo(removed);
+  assert.deepEqual(
+    state.periods.map((p) => p.name),
+    [car.name, "Renamed after remove", "New period"],
+  );
+
+  // Budgets: clear one, set another, undo the clear.
+  const threads = parseRules(state.rules).threads.filter((t) => t.budget);
+  const [a, b] = threads.map((t) => t.name);
+  const budgetOf = (name) =>
+    parseRules(state.rules).threads.find((t) => t.name === name).budget;
+  const was = budgetOf(a);
+  const cleared = commit(model.clearBudget(state, { thread: a }));
+  commit(model.setBudget(state, { thread: b, value: 700 }));
+  undo(cleared);
+  assert.equal(budgetOf(a), was);
+  assert.equal(budgetOf(b), 700);
+
+  // Lenses and saved questions: the same, by id.
+  const lens = state.lenses[0];
+  const others = state.lenses.slice(1).map((l) => l.id);
+  const gone = commit(model.removeLens(state, { id: lens.id }));
+  commit(
+    model.addLens(state, { id: "lafter", title: "After", code: "return 1" }),
+  );
+  undo(gone);
+  assert.deepEqual(
+    state.lenses.map((l) => l.id),
+    [lens.id, ...others, "lafter"],
+  );
+  assert.equal(state.lenses[0].id, lens.id, "back in its place");
+  commit(model.addReport(state, { report: { id: "r1", q: "One?" } }));
+  const r2 = commit(
+    model.addReport(state, { report: { id: "r2", q: "Two?" } }),
+  );
+  const off = commit(model.removeReport(state, { id: "r1" }));
+  undo(r2);
+  undo(off);
+  assert.deepEqual(
+    state.reports.map((r) => r.id),
+    ["r1"],
+  );
+
+  // The same note written twice: undoing the first would lose the second,
+  // so it is refused with a sentence, and stays undoable later.
+  const id = deriveTransactions(state, { today }).txns[0].id;
+  const note0 = state.notes[id];
+  const first = commit(model.setNote(state, { id, text: "first" }));
+  const second = commit(model.setNote(state, { id, text: "second" }));
+  assert.equal(undo(first), null);
+  assert.equal(state.notes[id], "second");
+  assert.match(told.at(-1), /changed again since/);
+  undo(second);
+  undo(first);
+  assert.equal(state.notes[id], note0);
+
+  // Thread rules edited on the same lines: refused, the edit kept.
+  const rules = state.rules;
+  const one = commit(
+    model.setRules(state, { rules: `${rules}\nCoffee\n  kite` }),
+  );
+  commit(model.setRules(state, { rules: `${rules}\nCoffee\n  kite cafe` }));
+  assert.equal(undo(one), null);
+  assert.match(state.rules, /kite cafe/);
+  assert.match(told.at(-1), /threads have changed/);
+});

@@ -452,6 +452,7 @@ export function chatTools(runtime, actions, change) {
       execute: (q) =>
         change(actions.addReport(q.question, q.answer || "", { open: false }), {
           line: `Saved the question “${q.question}”`,
+          committed: true,
         }),
     },
     {

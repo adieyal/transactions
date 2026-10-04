@@ -2,9 +2,14 @@
 // applies one to state, saves the documents it touches, logs it for undo and
 // asks for a refresh; undo does the reverse. The UI and the assistant's tools
 // reach state's saved fields only through these.
-import { applyChange, createUndoLog, keysOf } from "./model/index.js";
+import {
+  applyChange,
+  CommandError,
+  createUndoLog,
+  keysOf,
+} from "./model/index.js";
 
-// io: { save, refresh, refreshSoon } from main.js.
+// io: { save, refresh, refreshSoon, tell } from main.js.
 export function createChanges(runtime, io) {
   const { state } = runtime;
   const log = createUndoLog();
@@ -22,10 +27,19 @@ export function createChanges(runtime, io) {
 
   // Undoes a committed record (the latest when none is named). Returns the
   // record that did it, or null when there was nothing to undo.
+  // An undo the model refuses (a CommandError, e.g. thread rules edited
+  // since) stays in the log, and its sentence goes to io.tell.
   function undo(change, { refresh = "now" } = {}) {
     const back = log.undo(change);
     if (!back) return null;
-    applyChange(state, back);
+    try {
+      applyChange(state, back);
+    } catch (e) {
+      log.push(change);
+      if (!(e instanceof CommandError)) throw e;
+      io.tell?.(e.message);
+      return null;
+    }
     settle(back, refresh);
     return back;
   }

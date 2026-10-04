@@ -155,6 +155,9 @@ const SAVED_WRITE = new RegExp(
 // restoring documents, which set whole fields by key.
 const SAVED_WRITERS = ["model/", "documents.js", "backup.js", "main.js"];
 const SAVED_WRITE_ALLOW = [
+  // C4: the period drag previews by moving the saved period live, then puts
+  // it back and commits one editPeriod (found by the wider rule, C1-VERIFY 2).
+  { v: "ui/timeline-drag.js writes saved state 1 time", fix: "C4" },
   // C4 (converge the rest, audit plan 4-7): the bench rewrites and saved
   // suggestions are deleted; question answers get commands.
   { v: "components/tx-year-bench.js writes saved state 9 times", fix: "C4" },
@@ -830,14 +833,84 @@ test("every ADR is linked from docs/architecture.md", () => {
 
 const times = (n) => `${n} time${n > 1 ? "s" : ""}`;
 
+// The other ways round (C1-VERIFY finding 2): a write to an item or entry
+// inside a saved field, Object.assign into one, and writes through a name
+// that holds a saved field or one of its items (an alias, a destructured
+// field, or what .find() returned).
+const MUTATE = String.raw`(?:\s*\[[^\]\n]*\]|\s*\.\s*[\w$]+)+\s*(?:=(?![=>])|\+\+|--|\+=|-=)|\.(?:push|splice|unshift|pop|shift|sort|reverse)\(`;
+const SAVED_NESTED = new RegExp(
+  String.raw`\b(?:runtime\.)?state\.(?:${SAVED_FIELDS})\b(?:\s*\[[^\]\n]*\]|\s*\.\s*[\w$]+)+\s*(?:=(?![=>])|\+\+|--|\+=|-=)|Object\.assign\(\s*(?:runtime\.)?state\.(?:${SAVED_FIELDS})\b`,
+  "g",
+);
+const SAVED_ALIAS = new RegExp(
+  String.raw`\b(?:const|let|var)\s+(?:([\w$]+)|\{([^}]*)\})\s*=\s*(?:runtime\.)?state(?:\.(${SAVED_FIELDS})\b(?:\.find\([^;]*)?)?\s*[;]`,
+  "g",
+);
+function savedWrites(code) {
+  // A write both patterns see (state.notes[id] = …) counts once.
+  const at = new Set(
+    [...code.matchAll(SAVED_WRITE), ...code.matchAll(SAVED_NESTED)].map(
+      (m) => m.index + m[0].search(/state/),
+    ),
+  );
+  let n = at.size;
+  for (const m of code.matchAll(SAVED_ALIAS)) {
+    const names =
+      m[1] && m[3]
+        ? [m[1]]
+        : (m[2] || "")
+            .split(",")
+            .map((x) => x.trim().split(":").at(-1).trim())
+            .filter((x) => new RegExp(`^(?:${SAVED_FIELDS})$`).test(x));
+    for (const name of names) {
+      // The next 30 lines: a name is checked near where it is set.
+      const after = code
+        .slice(m.index + m[0].length)
+        .split("\n")
+        .slice(0, 30)
+        .join("\n")
+        // …up to where the name is declared again for something else.
+        .split(new RegExp(String.raw`\b(?:const|let|var)\s+${name}\b`))[0];
+      n += (
+        after.match(
+          new RegExp(
+            String.raw`(?<![\w$.])${name.replace("$", "\\$")}(?![\w$])(?:${MUTATE})|Object\.assign\(\s*${name.replace("$", "\\$")}\b`,
+            "g",
+          ),
+        ) || []
+      ).length;
+    }
+  }
+  return n;
+}
+
 test("saved state changes only through the model's commands", () => {
   const found = [];
   for (const file of FILES) {
     if (SAVED_WRITERS.some((w) => file.startsWith(w))) continue;
-    const n = (CODE[file].match(SAVED_WRITE) || []).length;
+    const n = savedWrites(CODE[file]);
     if (n) found.push(`${file} writes saved state ${times(n)}`);
   }
   expectAllowlist("Saved-state writes", found, SAVED_WRITE_ALLOW);
+});
+
+test("the saved-state rule catches nested, aliased and destructured writes", () => {
+  const probes = [
+    "state.periods.push(p);",
+    "state.periods[0].name = p;",
+    "const ps = runtime.state.periods; ps.splice(0, 1);",
+    "Object.assign(state.notes, p);",
+    "const { periods } = runtime.state; periods.push(p);",
+    "const p = state.periods.find((x) => x.id === id); p.name = n;",
+    "const p = state.periods.find((x) => x.id === id); Object.assign(p, q);",
+  ];
+  for (const probe of probes) assert.equal(savedWrites(probe), 1, probe);
+  for (const ok of [
+    "const n = state.periods.length;",
+    "if (state.notes[id] === x) f();",
+    "const { periods } = runtime.state; f(periods.length);",
+  ])
+    assert.equal(savedWrites(ok), 0, ok);
 });
 
 test("ui and components hold no business logic", () => {
