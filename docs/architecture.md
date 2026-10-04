@@ -409,7 +409,7 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | Step | Change                                                                                                              | Answers review finding |
 | ---- | ------------------------------------------------------------------------------------------------------------------- | ---------------------- |
 | R1   | `contract` exports, `registry.js`, the scoped `actions` proxy, the contract test                                    | 1                      |
-| R2   | `documents.js`; boot, saves and backups derived from it; the `demo`/`workspace` key reconciled                      | 2                      |
+| R2   | Boot, saves and backups derived from `documents.js` (today a checked list); the `demo`/`workspace` key reconciled   | 2                      |
 | R3   | One refresh path: registered renders, `highlight`/`select`/`clearFocus` commands, duplicate `renderReports` removed | 3, 5                   |
 | R4   | Pure logic out of UI: rules-text editing, assistant tools, period statistics, tags, the lens runner                 | 4                      |
 | R5   | Split `helpers.js`: `$` to `ui/dom.js`, `TODAY` injected                                                            | 7                      |
@@ -420,3 +420,94 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | R10  | `html` tag and delegated events, adopted as modules are touched                                                     | 8                      |
 | R11  | `localStorage` keys into `storage.js`                                                                               | 8                      |
 | R12  | Fonts and SheetJS bundled or lazy-loaded (needs the user's decision)                                                | 10                     |
+
+## 9. Guardrails
+
+`tests/architecture.test.js` runs in `npm test` with Node's test runner. It needs no dependencies: it reads the source files, uses a small scanner that ignores strings, comments and regular expressions, and builds the UI factories in Node.
+
+| Rule                                                                                                                                             | Test                                                          | Allowlisted today                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Every app file has a layer in `LAYERS`                                                                                                           | every application file has a layer                            | none                                                                                              |
+| Imports point to the same or a lower layer; packages only in `ui` and `build`; nothing imports `main.js`                                         | imports point only to the same or a lower layer               | `persistence.js` → `ui/dom.js` (R7)                                                               |
+| No `ui/` factory imports another                                                                                                                 | UI factories reach each other only through actions            | none                                                                                              |
+| No import cycles                                                                                                                                 | there are no import cycles                                    | none                                                                                              |
+| Core and domain use no `document`, `window`, storage, network, `DOMParser`, `navigator`, `XLSX`, `$(`, `innerHTML`, `new Date()` or `Date.now()` | the pure layers use no DOM, storage, network or ambient clock | `helpers.js` (R5); `transactions/import.js` (R6)                                                  |
+| Network only in `assistant.js`; `localStorage` calls only in `storage.js`                                                                        | only the named adapters use the network or browser storage    | `ui/assistant-settings.js`, `ui/tour.js` (R11)                                                    |
+| Every `actions.X` has exactly one provider; factories build without a DOM or `actions`; every factory is registered in `main.js`                 | every actions.X call has exactly one provider                 | none                                                                                              |
+| Every saved key is declared in `documents.js`, with a state field, a boot load, a save, backup and restore coverage, and one wrapper shape       | saved documents match documents.js                            | `answers` and `merchantAnswers` (story-first); `workspace` never saved and the `demo` marker (R2) |
+| A module warns above 400 lines and fails above 700                                                                                               | modules stay within their size budget                         | `ui/timeline.js` up to 1000 (R8), `ui/chat.js` up to 800 (R9)                                     |
+| Every allowlist entry names a step in section 8                                                                                                  | every allowlist entry names a step that exists                | none                                                                                              |
+
+Allowlists are exact. A violation that isn't listed fails the test, and so does a listed one that no longer occurs, so each entry gets deleted together with its fix.
+
+### Proof that each rule bites
+
+Each rule was broken on purpose, the test run, and the change reverted. These are excerpts of the failing output (`node --test tests/architecture.test.js`):
+
+```text
+### file with no layer (added misc.js): exit 1
+✖ every application file has a layer
+AssertionError: Add these files to LAYERS in tests/architecture.test.js (docs/architecture.md section 1)
++   'misc.js'
+
+### pure layer imports UI (transactions/rules.js imports ../ui/dom.js): exit 1
+✖ imports point only to the same or a lower layer
+actual: { unexpected: [ 'transactions/rules.js (domain) imports ui/dom.js (ui)' ], stale: [] }
+
+### UI factory imports another (ui/threads.js imports ./timeline.js): exit 1
+✖ UI factories reach each other only through actions, never by import
++   'ui/threads.js imports the UI factory ui/timeline.js'
+
+### import cycle (transactions/constants.js imports ./rules.js): exit 1
+✖ there are no import cycles
++   'transactions/constants.js -> transactions/rules.js -> transactions/constants.js'
+
+### DOM in the pure layer (document.title in parseRules): exit 1
+✖ the pure layers use no DOM, storage, network or ambient clock
+actual: { unexpected: [ 'transactions/rules.js uses document' ], stale: [] }
+
+### network outside the adapter (fetch in ui/chat.js): exit 1
+✖ only the named adapters use the network or browser storage
+actual: { unexpected: [ 'ui/chat.js uses the network' ], stale: [] }
+
+### actions typo (actions.renderTimelien): exit 1
+✖ every actions.X call has exactly one provider
+AssertionError: No module provides these actions functions
++   'ui/threads.js:89 actions.renderTimelien'
+
+### duplicate provider (ui/tour.js also returns openTab): exit 1
+✖ every actions.X call has exactly one provider
+AssertionError: Each actions function needs a single provider
++   'openTab: ui/chrome.js, ui/tour.js'
+
+### actions used during construction (actions.refresh() at the top of createTour): exit 1
+✖ every actions.X call has exactly one provider
+Error: actions.refresh used while being constructed
+
+### undeclared saved document (saveSoon("notez", …) in ui/tags.js): exit 1
+✖ saved documents match documents.js in boot, saving and backups
+actual: { unexpected: [ 'ui/tags.js writes undeclared document notez' ], stale: [] }
+
+### wrong wrapper (names saved as { items }): exit 1
+✖ saved documents match documents.js in boot, saving and backups
+actual: { unexpected: [ 'ui/inspector.js saves names as {items}, not {map}' ], stale: [] }
+
+### document left out of backups (names removed from createBackup): exit 1
+✖ saved documents match documents.js in boot, saving and backups
+actual: { unexpected: [ 'names is missing from: backup' ], stale: [] }
+
+### module over the size budget (420 lines added to ui/inspector.js): exit 1
+✖ modules stay within their size budget
+actual: { unexpected: [ 'ui/inspector.js' ], stale: [] }
+
+### stale allowlist entry (the seed's "demo" write removed from main.js): exit 1
+✖ saved documents match documents.js in boot, saving and backups
+actual: { unexpected: [], stale: [ 'main.js writes undeclared document demo' ] }
+```
+
+### Merging story-first
+
+A rehearsal merge of `story-first` (at `1efd3f6`) into this branch, made in a throwaway worktree, passes every guardrail except the saved-documents rule. The fixes belong in the merge:
+
+- **Delete the two allowlist entries for `answers` and `merchantAnswers`.** story-first now covers them, so they are stale.
+- **Decide what happens to `dismissed`.** story-first removed `ui/changes.js`, so `dismissed` is still loaded and backed up but no longer saved (`dismissed is missing from: save`). Either keep it as legacy data with an R2 allowlist entry, or remove it from `documents.js`, `state.js`, `main.js` and `backup.js`.
