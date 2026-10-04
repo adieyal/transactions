@@ -7,7 +7,7 @@ import {
   monthName,
   normText,
 } from "../helpers.js";
-import { $, toast } from "./dom.js";
+import { $, benchHidden, toast } from "./dom.js";
 import { wireLinkedRefs } from "../components/linked-ref.js";
 import { addToThread as addLines } from "../transactions/rules-edit.js";
 
@@ -291,7 +291,8 @@ export function createInspector(runtime, actions) {
     renderInspector,
     wireInspector,
     // The registered render: a refresh, so a field being typed in is kept.
-    refreshInspector: () => renderInspector({ fromRefresh: true }),
+    refreshInspector: () =>
+      benchHidden(state) || renderInspector({ fromRefresh: true }),
   };
 }
 

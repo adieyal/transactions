@@ -26,6 +26,13 @@ function toast(msg, t = 4200, action) {
 }
 // Whether a side-panel pane is the open tab. Renders for a pane return early
 // when it isn't; opening the tab redraws it.
+// The timeline and side panel sit in <main>, which the month and year views
+// and the first-run page hide unless the bench is open. A render under it
+// returns early while it is hidden (ADR 0004).
+const benchHidden = (state) =>
+  !state.bench &&
+  ["onemonth", "firstrun"].some((c) => document.body.classList.contains(c));
+
 const paneShown = (name) =>
   !!document.getElementById("pane-" + name)?.classList.contains("on");
 
@@ -56,4 +63,4 @@ function html(strings, ...values) {
   return new Raw(out);
 }
 
-export { $, html, paneShown, raw, toast };
+export { $, benchHidden, html, paneShown, raw, toast };

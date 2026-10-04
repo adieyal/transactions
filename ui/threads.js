@@ -1,10 +1,10 @@
 import { esc, fmtByCurrency, fmtShort } from "../helpers.js";
-import { $, html, paneShown } from "./dom.js";
+import { $, benchHidden, html, paneShown } from "./dom.js";
 
 export function createThreads(runtime, actions) {
   const { state } = runtime;
   function renderEditor() {
-    if (!paneShown("threads")) return;
+    if (benchHidden(state) || !paneShown("threads")) return;
     const ta = $("#rules");
     const text = state.previewRules ?? state.rules;
     if (ta.value !== text) ta.value = text;

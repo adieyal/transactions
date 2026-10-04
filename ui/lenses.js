@@ -1,5 +1,5 @@
 import { debounce, esc, fmt, monthName } from "../helpers.js";
-import { $, html, paneShown, toast } from "./dom.js";
+import { $, benchHidden, html, paneShown, toast } from "./dom.js";
 import { lensInput, viewProblem } from "../lens-api.js";
 import { newLensSandbox } from "./lens-sandbox.js";
 import { STARTER_LENSES } from "../defaults.js";
@@ -54,7 +54,7 @@ export function createLenses(runtime, actions) {
   }
 
   function renderLenses() {
-    if (!paneShown("lenses")) return;
+    if (benchHidden(state) || !paneShown("lenses")) return;
     const el = $("#lenses");
     if (!state.loaded || !runtime.derived.allTxns.length) {
       el.innerHTML = "";

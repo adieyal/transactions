@@ -1,9 +1,10 @@
 import { debounce, fmtByCurrency } from "../helpers.js";
-import { $, html } from "./dom.js";
+import { $, benchHidden, html } from "./dom.js";
 
 export function createFilter(runtime, actions) {
   const { state } = runtime;
   function renderFilterBar() {
+    if (benchHidden(state)) return;
     const box = $("#searchBox"),
       q = state.query.trim();
     box.classList.toggle("on", !!q);

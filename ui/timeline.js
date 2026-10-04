@@ -15,7 +15,7 @@ import { periodAt } from "../transactions/period-drag.js";
 import { layoutTimeline, niceBudget } from "./timeline-layout.js";
 import { wireTimelineDrag } from "./timeline-drag.js";
 import { describeTransfer, showBeadTip } from "./timeline-text.js";
-import { $, html, toast } from "./dom.js";
+import { $, benchHidden, html, toast } from "./dom.js";
 import { setBudget as setThreadBudget } from "../transactions/rules-edit.js";
 import { name as bidi } from "../story/copy.js";
 import { waitingForCurrency } from "../story/currency.js";
@@ -35,6 +35,7 @@ export function createTimeline(runtime, actions) {
     TL = null;
 
   function renderTimeline() {
+    if (benchHidden(state)) return;
     const host = $("#tl");
     if (!state.loaded) {
       host.innerHTML = html`<div class="empty"><div><p>Opening your ledger…</p></div></div>`;
@@ -429,12 +430,9 @@ export function createTimeline(runtime, actions) {
   function highlight(ids, { clearSelection = false } = {}) {
     state.highlight = ids instanceof Set ? ids : new Set(ids);
     if (clearSelection) state.selection.clear();
-    // The month view and first-run page hide the timeline; showing it
-    // again goes through refresh, which draws it.
-    const hidden = ["onemonth", "firstrun"].some((c) =>
-      document.body.classList.contains(c),
-    );
-    if (!hidden) renderTimeline();
+    // Skipped while the timeline is hidden; showing it again goes through
+    // refresh, which draws it.
+    renderTimeline();
     runtime.store.notify("highlight");
   }
   // Selects beads and lights them up, as clicking a citation does.
@@ -486,6 +484,7 @@ export function createTimeline(runtime, actions) {
   }
 
   function renderParkbar() {
+    if (benchHidden(state)) return;
     const el = $("#parkbar");
     const known = new Set(
       runtime.derived?.names.map((n) => n.toLowerCase()) || [],

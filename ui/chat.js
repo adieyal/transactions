@@ -1,5 +1,5 @@
 import { esc, fmt } from "../helpers.js";
-import { $, html, paneShown } from "./dom.js";
+import { $, benchHidden, html, paneShown } from "./dom.js";
 import { PALETTE } from "../transactions/constants.js";
 import {
   compactTxn,
@@ -267,7 +267,7 @@ export function createChat(runtime, actions) {
   let askCtl = null;
 
   function renderAskCtx() {
-    if (!paneShown("ask")) return;
+    if (benchHidden(state) || !paneShown("ask")) return;
     const n = [...state.selection].filter((id) =>
       runtime.derived?.byId.has(id),
     ).length;
@@ -286,7 +286,7 @@ export function createChat(runtime, actions) {
   }
 
   function renderLog() {
-    if (!paneShown("ask")) return;
+    if (benchHidden(state) || !paneShown("ask")) return;
     renderAskMem();
     const log = $("#log");
     $("#askoff").innerHTML = caps.sample

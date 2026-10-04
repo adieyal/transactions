@@ -1,5 +1,5 @@
 import { esc } from "../helpers.js";
-import { $, toast } from "./dom.js";
+import { $, benchHidden, toast } from "./dom.js";
 import { sameIds } from "./highlight.js";
 import { detectMoments, findMoments } from "../story/moments.js";
 import { answerMoment } from "../story/answers.js";
@@ -69,6 +69,7 @@ export function createQuestions(runtime, actions) {
   // The open questions and the tab's count. <tx-questions> draws the list
   // (components/tx-questions.js).
   function renderQuestions() {
+    if (benchHidden(state)) return;
     open = openMoments();
     $("#qCount").textContent = open.length || "";
   }

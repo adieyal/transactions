@@ -1,5 +1,5 @@
 import { esc, fmtDate, fnv } from "../helpers.js";
-import { $, paneShown, toast } from "./dom.js";
+import { $, benchHidden, paneShown, toast } from "./dom.js";
 import { markdown } from "./markdown.js";
 import { coverageText } from "../assistant/prompts.js";
 import { latestPayment } from "../story/saved-question.js";
@@ -12,6 +12,7 @@ export function createReports(runtime, actions) {
     state.reports.filter((r) => r.dataKey !== dataKey());
 
   function renderReports() {
+    if (benchHidden(state)) return;
     const el = $("#reports");
     if (!el || !paneShown("reports")) return;
     const stale = staleReports().length;
