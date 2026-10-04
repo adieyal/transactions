@@ -110,3 +110,76 @@ test("the strip shows the person's periods clipped to the month, and no stretch 
   ]);
   assert.deepEqual(strip.stretches, [], "payments in a period are explained");
 });
+
+// A first statement of the person's own, as an imported CSV would give it.
+function ownStatement(rows) {
+  const batch = {
+    id: "own-zar",
+    kind: "generic",
+    currency: "ZAR",
+    account: "Everyday",
+    periods: ["2026-09"],
+    file: "mine.csv",
+    added: "2026-10-01",
+    rows: rows.map(([date, merchant, amount], i) => ({
+      id: `own-${i}`,
+      account: "Everyday",
+      period: "2026-09",
+      date,
+      chargeDate: date,
+      merchant,
+      amount,
+      currency: "ZAR",
+      orig: null,
+      type: "",
+      details: "",
+      inst: null,
+      section: "",
+      file: "mine.csv",
+    })),
+  };
+  const s = { ...createRuntime().state, batches: { [batch.id]: batch } };
+  return [deriveTransactions(s, { today: "2026-10-04" }), s];
+}
+
+test("a month the statement covers only part of is told as a range (Copy s2)", () => {
+  const [d, s] = ownStatement([
+    ["2026-09-13", "Corner Grocer", 120],
+    ["2026-09-14", "Juniper Books", 89],
+    ["2026-09-15", "Corner Grocer", 80],
+    ["2026-09-16", "Plumtree Pharmacy", 62],
+    ["2026-09-17", "Harbour Lights Cinema", 70],
+  ]);
+  const st = oneMonthStory(d, s, "2026-09");
+  assert.equal(st.label, "13–17 September so far");
+  assert.match(
+    words(st.lead),
+    /went out between 13 and 17 September, in 5 payments\./,
+  );
+  const text = st.paragraphs.map(words).join(" ");
+  assert.ok(!/busiest/.test(text), "no week is covered in full to compare");
+});
+
+test("a whole month's statement is told as the month", () => {
+  const [d, s] = ownStatement([
+    ["2026-09-02", "Northgate Rent", 1200],
+    ["2026-09-30", "Corner Grocer", 175],
+  ]);
+  assert.equal(oneMonthStory(d, s, "2026-09").label, "September 2026");
+});
+
+test("a first statement with no threads yet still gets its question (Copy s6)", () => {
+  const [d, s] = ownStatement([
+    ["2026-09-02", "Northgate Rent", 1200],
+    ["2026-09-03", "Corner Grocer", 180],
+    ["2026-09-10", "Corner Grocer", 165],
+    ["2026-09-17", "Juniper Books", 130],
+    ["2026-09-28", "Corner Grocer", 175],
+  ]);
+  const st = oneMonthStory(d, s, "2026-09");
+  assert.ok(st.loose, "every payment is loose");
+  assert.match(
+    st.question?.text ?? "",
+    /^ZAR\s1,200 went to \u2068Northgate Rent\u2069\. Is it something you pay every month\?$/,
+  );
+});

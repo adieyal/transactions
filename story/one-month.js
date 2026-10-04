@@ -69,6 +69,45 @@ export function monthAxis(month) {
   });
 }
 
+// The days of the month the statements cover (Copy rules s2: a month counts
+// as complete only when a statement covers all of it). A statement file
+// doesn't say its dates, so its first and last rows mark them. Payments
+// rarely fall on the very first and last days, so a span that reaches into
+// the first and the last week of the month counts as all of it; a gap of a
+// week or more at either end means the statement doesn't reach it.
+const EDGE = 7;
+export function monthSpan(state, month) {
+  const last = daysIn(month);
+  const [start, end] = [`${month}-01`, `${month}-31`];
+  let from = null,
+    to = null;
+  for (const b of Object.values(state.batches || {})) {
+    const ds = (b.rows || [])
+      .map((r) => r.date)
+      .filter(Boolean)
+      .sort();
+    if (!ds.length || ds[0] > end || ds.at(-1) < start) continue;
+    const f = ds[0] < start ? 1 : day({ date: ds[0] });
+    const t = ds.at(-1) > end ? last : day({ date: ds.at(-1) });
+    from = Math.min(from ?? f, f);
+    to = Math.max(to ?? t, t);
+  }
+  if (from == null) return null;
+  const complete = from <= EDGE && to > last - EDGE;
+  return complete ? { from: 1, to: last, complete } : { from, to, complete };
+}
+
+// "13–17 September so far" for the latest month, "13–30 September" for an
+// earlier one, and "September 2026" when the month is complete.
+export function monthLabel(state, month, latest) {
+  const span = monthSpan(state, month);
+  if (!span || span.complete) return monthLong(month);
+  const name = monthLong(month).split(" ")[0];
+  const days =
+    span.from === span.to ? `${span.from}` : `${span.from}–${span.to}`;
+  return `${days} ${name}${latest && span.to < daysIn(month) ? " so far" : ""}`;
+}
+
 // One row per thread with payments this month, in the threads' own order,
 // each bead sized by its amount as drawn: 9px plus 0.85 × √amount, at most
 // 30px.
@@ -99,10 +138,16 @@ export function monthRows(derived, state, month) {
 // "₪995 went out in September, in 12 payments." and, when money moved to
 // another of the person's accounts, "Another ₪150 went to Savings on the
 // 24th."
-function lead(pays, moves, derived, label) {
+function lead(pays, moves, derived, label, span) {
+  const when =
+    span && !span.complete
+      ? span.from === span.to
+        ? `on ${span.from} ${label}`
+        : `between ${span.from} and ${span.to} ${label}`
+      : `in ${label}`;
   const parts = [
     {
-      text: `${money(sum(pays))} went out in ${label}, in ${pays.length === 1 ? "one payment" : `${pays.length} payments`}.`,
+      text: `${money(sum(pays))} went out ${when}, in ${pays.length === 1 ? "one payment" : `${pays.length} payments`}.`,
       txnIds: pays.map((t) => t.id),
     },
   ];
@@ -129,9 +174,16 @@ function lead(pays, moves, derived, label) {
   return parts;
 }
 
-// The busiest week, and a thread whose payments all fell inside it.
-function busiestWeek(pays, month, monthName) {
+// The busiest week, and a thread whose payments all fell inside it. Only
+// weeks the statements cover in full are compared.
+function busiestWeek(pays, month, monthName, span) {
+  const covered = (w) => {
+    const from = w * 7 + 1,
+      to = w === 4 ? daysIn(month) : from + 6;
+    return !span || (from >= span.from && to <= span.to);
+  };
   const weeks = [0, 1, 2, 3, 4]
+    .filter(covered)
     .map((w) => ({
       w,
       ts: pays.filter((t) => Math.min(4, Math.floor((day(t) - 1) / 7)) === w),
@@ -205,14 +257,14 @@ function repeatsAndLargest(pays) {
 }
 
 // "Is it something you pay every month?" about the largest payment to a
-// merchant seen once this month, while there are only one or two months.
-// The answer is kept under the merchant, so it is asked once.
+// merchant seen once this month, while there are only one or two months
+// (Copy rules s6, Maybe regular). Any payment can be asked about, in a
+// thread or not: a first statement often has no threads yet. The answer is
+// kept under the merchant, so it is asked once.
 function maybeRegular(pays, months, answers) {
   if (months > 2) return null;
   const once = pays.filter(
-    (t) =>
-      t.thread !== LOOSE &&
-      pays.filter((x) => x.merchant === t.merchant).length === 1,
+    (t) => pays.filter((x) => x.merchant === t.merchant).length === 1,
   );
   const t = once.sort((a, b) => b.amount - a.amount)[0];
   if (!t) return null;
@@ -277,8 +329,9 @@ function tell(derived, state, month, inMonth) {
   const moves = inMonth.filter(
     (t) => t.amount > 0 && t.transfer && t.currency === currency,
   );
-  const label = monthLong(month);
-  const monthName = label.split(" ")[0];
+  const span = monthSpan(state, month);
+  const label = monthLabel(state, month, month === months.at(-1));
+  const monthName = monthLong(month).split(" ")[0];
   const accounts = [...new Set(inMonth.map((t) => t.account))];
   const batches = Object.keys(state.batches).length;
   return {
@@ -297,11 +350,13 @@ function tell(derived, state, month, inMonth) {
     axis: monthAxis(month),
     rows: monthRows(derived, state, month),
     allIds: pays.map((t) => t.id),
-    lead: pays.length ? lead(pays, moves, derived, monthName) : [],
+    span,
+    lead: pays.length ? lead(pays, moves, derived, monthName, span) : [],
     paragraphs: pays.length
-      ? [busiestWeek(pays, month, monthName), repeatsAndLargest(pays)].filter(
-          Boolean,
-        )
+      ? [
+          busiestWeek(pays, month, monthName, span),
+          repeatsAndLargest(pays),
+        ].filter(Boolean)
       : [],
     question: maybeRegular(pays, months.length, state.answers),
     loose: looseEnds(pays),
