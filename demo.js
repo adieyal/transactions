@@ -1,11 +1,13 @@
 import { addMonths, TODAY } from "./helpers.js";
 
 // Every account, merchant, transaction and story below is fictional.
-// The year has three chapters: the car breaks down and the holiday savings
+// The year has three parts: the car breaks down and the holiday savings
 // pause, a move to a new flat brings a burst of appliances, and the year
-// ends with the holiday the savings were for.
+// ends with the holiday the savings were for. The car and the holiday come
+// explained with periods and notes; the move is left for the app to ask
+// about, so the demo shows a question turning into a period.
 const CAR = 3,
-  MOVE = 6;
+  MOVE = 7;
 
 export function createDemoData(today = TODAY) {
   const batches = {},
@@ -71,20 +73,13 @@ export function createDemoData(today = TODAY) {
     }
 
     if (index === MOVE) {
-      const van = add(bank, "Demo Everyday", "Bluebell Removals", 9, 640);
-      note(van, "Van and two movers for the day. #move");
-      add(bank, "Demo Everyday", "Cloudfern Internet", 10, 40, {
+      add(bank, "Demo Everyday", "Bluebell Removals", 9, 640);
+      add(bank, "Demo Everyday", "Cloudfern Internet", 10, 58, {
         details: "Connection at new address",
       });
-      const fridge = add(card, "Demo Card", "Kettle & Coil", 11, 890);
-      note(fridge, "Fridge. The new flat came without one. #move");
-      const washer = add(card, "Demo Card", "Kettle & Coil", 12, 540);
-      note(washer, "Washing machine. #move");
-      const small = add(card, "Demo Card", "Kettle & Coil", 14, 75);
-      note(
-        small,
-        "Kettle and toaster, ours are still in a box somewhere. #move",
-      );
+      add(card, "Demo Card", "Kettle & Coil", 11, 890);
+      add(card, "Demo Card", "Kettle & Coil", 12, 540);
+      add(card, "Demo Card", "Kettle & Coil", 14, 75);
       add(card, "Demo Card", "Northgate Hardware", 15, 48);
       add(card, "Demo Card", "Linen Lane", 16, 120, {
         details: "Curtains",
@@ -92,8 +87,7 @@ export function createDemoData(today = TODAY) {
       add(card, "Demo Card", "Paper Kite Cafe", 11, 31);
       add(card, "Demo Card", "Paper Kite Cafe", 13, 27);
       add(card, "Demo Card", "Northgate Hardware", 22, 32);
-      const shelves = add(card, "Demo Card", "Northgate Hardware", 27, 64);
-      note(shelves, "Shelf brackets and wall plugs. #move");
+      add(card, "Demo Card", "Northgate Hardware", 27, 64);
     }
 
     if (index === latest) {
@@ -170,15 +164,6 @@ export function createDemoData(today = TODAY) {
         color: "#9A5B2E",
         story:
           "The clutch went on the ring road. The tow and the repair came out of the holiday fund, and we skipped the next two savings transfers to get back on our feet.",
-      },
-      {
-        id: "demo-move",
-        name: "Moving to Elm Street",
-        start: day(MOVE, 8),
-        end: day(MOVE, 28),
-        color: "#5B7F3A",
-        story:
-          "We moved into the flat on Elm Street. It came without a fridge or a washing machine, so most of the dots on the Home wire this month are appliances. We ate out a lot while the kitchen was in boxes.",
       },
       {
         id: "demo-trip",

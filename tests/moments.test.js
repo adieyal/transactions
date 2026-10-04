@@ -63,14 +63,14 @@ test("the demo year yields each kind of moment with the right transactions", () 
 
   const move = find(moments, "cluster", "Bluebell Removals");
   assert.deepEqual(describe(derived, move), [
-    "2026-03-09 Bluebell Removals 640",
-    "2026-03-11 Kettle & Coil 890",
-    "2026-03-12 Kettle & Coil 540",
-    "2026-03-14 Kettle & Coil 75",
-    "2026-03-15 Northgate Hardware 48",
-    "2026-03-16 Linen Lane 120",
+    "2026-04-09 Bluebell Removals 640",
+    "2026-04-11 Kettle & Coil 890",
+    "2026-04-12 Kettle & Coil 540",
+    "2026-04-14 Kettle & Coil 75",
+    "2026-04-15 Northgate Hardware 48",
+    "2026-04-16 Linen Lane 120",
   ]);
-  assert.equal(move.month, "2026-03");
+  assert.equal(move.month, "2026-04");
   assert.equal(move.facts.total, 2313);
 
   const garage = find(moments, "large", "Cobble Lane Garage");
@@ -112,11 +112,11 @@ test("the demo year yields each kind of moment with the right transactions", () 
 
   const removals = find(moments, "new", "Bluebell Removals");
   assert.deepEqual(describe(derived, removals), [
-    "2026-03-09 Bluebell Removals 640",
+    "2026-04-09 Bluebell Removals 640",
   ]);
 
   const bills = find(moments, "budget", "Bills");
-  assert.equal(bills.month, "2026-03");
+  assert.equal(bills.month, "2026-04");
   assert.deepEqual(
     [bills.facts.spent, bills.facts.budget, bills.facts.first],
     [305, 300, true],
@@ -154,15 +154,17 @@ test("open moments are ranked, capped at three a month, and fold into bigger one
   assert.ok(!ids.has(find(all, "large", "Kettle & Coil").id));
 });
 
-test("moments explained by a period or a note are dropped", () => {
+test("the shipped demo explains the car and the holiday and leaves the move open", () => {
   const state = shipped();
   const derived = derive(state);
   const all = detectMoments(derived, state);
   const open = new Set(findMoments(derived, state).map((m) => m.id));
   // The car is in a period and its charges have their own notes.
   assert.ok(!open.has(find(all, "large", "Cobble Lane Garage").id));
-  assert.ok(!all.some((m) => m.kind === "cluster" && m.month === "2026-03"));
+  // The holiday's purchases fall inside its period.
+  assert.ok(!all.some((m) => m.kind === "cluster" && m.month === "2026-08"));
   for (const [kind, name] of [
+    ["cluster", "Bluebell Removals"],
     ["gap", "Demo savings transfer"],
     ["price", "Lantern Stream"],
     // In the holiday's dates, but routine, and its note is on every charge.
@@ -305,15 +307,15 @@ test("question copy states the facts and offers options without an assistant", (
   );
   assert.equal(
     text("new", "Bluebell Removals"),
-    "₪640 went to Bluebell Removals in March 2026, the first time it appears in your statements. Want to add a note?",
+    "₪640 went to Bluebell Removals in April 2026, the first time it appears in your statements. Want to add a note?",
   );
   assert.equal(
     text("budget", "Bills"),
-    "Bills came to ₪305 of ₪300 in March 2026, the first month above the budget. Want to add a note?",
+    "Bills came to ₪305 of ₪300 in April 2026, the first month above the budget. Want to add a note?",
   );
   const move = find(all, "cluster", "Bluebell Removals");
   assert.equal(kindLabel(move), "Several purchases close together");
-  assert.equal(momentWhen(move), "9–16 March 2026");
+  assert.equal(momentWhen(move), "9–16 April 2026");
   assert.equal(
     momentWhen(find(all, "gap", "Demo savings transfer")),
     "December 2025 and January 2026",
@@ -368,7 +370,7 @@ test("copy helpers and a typical month", () => {
   );
 
   const shippedState = shipped();
-  assert.equal(typicalMonth(derive(shippedState)), 590);
+  assert.equal(typicalMonth(derive(shippedState)), 598.5);
   const short = shipped();
   for (const [id, batch] of Object.entries(short.batches))
     if (batch.periods[0] > "2025-10") delete short.batches[id];

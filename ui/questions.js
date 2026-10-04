@@ -219,6 +219,7 @@ export function createQuestions(runtime, actions) {
   }
 
   return {
+    answerQuestion: answer,
     openQuestions: () => open,
     questionCard: cardHTML,
     renderPrivacy,

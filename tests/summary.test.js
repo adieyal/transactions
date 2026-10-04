@@ -14,11 +14,9 @@ import {
 } from "../story/summary.js";
 
 const TODAY = "2026-09-30";
-function demo({ moveOpen = false } = {}) {
+function demo() {
   const { state } = createRuntime();
   Object.assign(state, createDemoData(TODAY));
-  if (moveOpen)
-    state.periods = state.periods.filter((p) => p.id !== "demo-move");
   return state;
 }
 const derive = (state) => deriveTransactions(state, { today: TODAY });
@@ -80,15 +78,30 @@ function checkIds(sections, derived) {
   return checked;
 }
 
-test("the demo's April reads as an ordinary month", () => {
+test("the demo's April is the move, with its question inline", () => {
   const state = demo();
   const derived = derive(state);
   const april = summarizeMonth(derived, state, "2026-04");
   assert.deepEqual(text(april), [
-    ["overview", "₪611 went out in April, close to a typical month (₪590)."],
+    [
+      "overview",
+      "April was a big month: ₪3,136 went out, about five times a typical month.",
+    ],
     [
       "regular",
-      "The regular things stayed close to usual: ₪247 on Bills, ₪218 on Groceries, ₪55 on Pets, ₪38 on Getting around and ₪53 on other regular things.",
+      "Regular spending came to ₪727: ₪305 on Bills, ₪218 on Groceries, ₪82 on Dining out, ₪55 on Pets and ₪67 on other regular things. Bills came to ₪305, against a usual ₪245. Dining out came to ₪82, against a usual ₪28.",
+    ],
+    [
+      "question",
+      "₪2,313 went to Bluebell Removals, Kettle & Coil, Northgate Hardware and Linen Lane within a week. Want to name this period?",
+    ],
+    [
+      "question",
+      "₪144 went to Northgate Hardware in April 2026, the first time it appears in your statements. Want to add a note?",
+    ],
+    [
+      "question",
+      "Bills came to ₪305 of ₪300 in April 2026, the first month above the budget. Want to add a note?",
     ],
     [
       "savings",
@@ -96,70 +109,71 @@ test("the demo's April reads as an ordinary month", () => {
     ],
     [
       "budget",
-      "Budgets: Bills ₪247 of ₪300, Groceries ₪218 of ₪300, Dining out ₪24 of ₪100, Getting around ₪38 of ₪100, Subscriptions ₪29 of ₪50 and Pets ₪55 of ₪120.",
+      "Budgets: Bills ₪305 of ₪300, Groceries ₪218 of ₪300, Dining out ₪82 of ₪100, Getting around ₪38 of ₪100, Subscriptions ₪29 of ₪50 and Pets ₪55 of ₪120.",
     ],
   ]);
-  assert.ok(checkIds(april, derived) >= 14);
+  assert.equal(checkIds(april, derived), 17);
   const bills = april
     .find((s) => s.kind === "budget")
     .parts.find((p) => p.text.startsWith("Bills"));
   assert.deepEqual(
     bills.txnIds.map((id) => derived.byId.get(id).merchant).sort(),
-    ["Brightwell Energy", "Cloudfern Internet", "Willow Water"],
+    [
+      "Brightwell Energy",
+      "Cloudfern Internet",
+      "Cloudfern Internet",
+      "Willow Water",
+    ],
   );
 });
 
-test("the move month tells the period apart from your own words", () => {
+test("a month with a period tells it apart from your own words", () => {
   const state = demo();
   const derived = derive(state);
-  const march = summarizeMonth(derived, state, "2026-03");
-  assert.deepEqual(text(march), [
+  const december = summarizeMonth(derived, state, "2025-12");
+  assert.deepEqual(text(december), [
     [
       "overview",
-      "March was a big month: ₪3,163 went out, about five times a typical month.",
+      "December was a big month: ₪2,207 went out, about four times a typical month.",
     ],
     [
       "regular",
-      "Regular spending came to ₪754: ₪305 on Bills, ₪236 on Groceries, ₪91 on Dining out, ₪55 on Pets and ₪67 on other regular things. Bills came to ₪305, against a usual ₪245. Dining out came to ₪91, against a usual ₪24.",
+      "Regular spending came to ₪607: ₪227 on Bills, ₪221 on Groceries, ₪55 on Pets, ₪38 on Getting around and ₪66 on other regular things. Dining out came to ₪37, against a usual ₪28.",
     ],
     [
       "period",
-      "“Moving to Elm Street”, 8–28 March 2026: ₪2,409 went out, with ₪1,505 at Kettle & Coil (three purchases), ₪640 at Bluebell Removals, ₪144 at Northgate Hardware (three purchases) and ₪120 at Linen Lane.",
+      "“The car broke down”, 10–13 December 2025: ₪1,600 went out at Cobble Lane Garage.",
     ],
     [
       "yours",
-      "We moved into the flat on Elm Street. It came without a fridge or a washing machine, so most of the dots on the Home wire this month are appliances. We ate out a lot while the kitchen was in boxes.",
+      "The clutch went on the ring road. The tow and the repair came out of the holiday fund, and we skipped the next two savings transfers to get back on our feet.",
     ],
     [
       "question",
-      "Bills came to ₪305 of ₪300 in March 2026, the first month above the budget. Want to add a note?",
+      "No Demo savings transfer in December 2025 or January 2026, though there was one in each of the other 10 months. Want to add a note?",
     ],
     [
-      "savings",
-      "You moved ₪150 from Demo Everyday to Demo Savings, ₪750 in all since September 2025.",
+      "question",
+      "You've paid Paper Kite Cafe on the 9th of the month for 12 months running. Want to add a note?",
     ],
     [
       "budget",
-      "Budgets: Bills ₪305 of ₪300, Groceries ₪236 of ₪300, Dining out ₪91 of ₪100, Getting around ₪38 of ₪100, Subscriptions ₪29 of ₪50 and Pets ₪55 of ₪120.",
+      "Budgets: Bills ₪227 of ₪300, Groceries ₪221 of ₪300, Dining out ₪37 of ₪100, Getting around ₪38 of ₪100, Subscriptions ₪29 of ₪50 and Pets ₪55 of ₪120.",
     ],
   ]);
-  assert.ok(checkIds(march, derived) >= 20);
-  const yours = march.find((s) => s.kind === "yours");
+  assert.equal(checkIds(december, derived), 15);
+  const yours = december.find((s) => s.kind === "yours");
   assert.equal(yours.label, "Your description");
-  assert.equal(yours.periodId, "demo-move");
+  assert.equal(yours.periodId, "demo-car");
 });
 
-test("answering the open move question changes the summary", () => {
-  const state = demo({ moveOpen: true });
+test("answering the move question changes April's summary", () => {
+  const state = demo();
   const derived = derive(state);
-  const before = summarizeMonth(derived, state, "2026-03");
+  const before = summarizeMonth(derived, state, "2026-04");
   const move = before.find(
     (s) => s.kind === "question" && s.moment.kind === "cluster",
   ).moment;
-  assert.equal(
-    sectionText(before.find((s) => s.moment === move)),
-    "₪2,313 went to Bluebell Removals, Kettle & Coil, Northgate Hardware and Linen Lane within a week. Want to name this period?",
-  );
   assert.ok(!before.some((s) => s.kind === "period"));
 
   Object.assign(
@@ -179,18 +193,17 @@ test("answering the open move question changes the summary", () => {
     story: "",
   });
   const again = derive(state);
-  const after = summarizeMonth(again, state, "2026-03");
+  const after = summarizeMonth(again, state, "2026-04");
   assert.ok(
     !after.some((s) => s.kind === "question" && s.moment.id === move.id),
   );
   assert.equal(
     sectionText(after.find((s) => s.kind === "period")),
-    "“Moving house”, 9–16 March 2026: ₪2,313 went out, with ₪1,505 at Kettle & Coil (three purchases), ₪640 at Bluebell Removals, ₪120 at Linen Lane and ₪48 at Northgate Hardware.",
+    "“Moving house”, 9–16 April 2026: ₪2,313 went out, with ₪1,505 at Kettle & Coil (three purchases), ₪640 at Bluebell Removals, ₪120 at Linen Lane and ₪48 at Northgate Hardware.",
   );
   assert.ok(!after.some((s) => s.kind === "yours"), "no words were written");
   checkIds(after, again);
 });
-
 test("other demo months: questions inline, refunds, savings both ways", () => {
   const state = demo();
   const derived = derive(state);
@@ -232,8 +245,17 @@ test("with fewer than three months there is no comparison", () => {
 
 test("a period is told apart from the regular spending in its dates", () => {
   const state = demo();
-  const derived = derive(state);
-  const move = state.periods.find((p) => p.id === "demo-move");
+  let derived = derive(state);
+  // The move as someone might name it after answering its question.
+  const move = {
+    id: "p-move",
+    name: "Moving house",
+    start: "2026-04-08",
+    end: "2026-04-28",
+    story: "",
+  };
+  state.periods.push(move);
+  derived = derive(state);
   assert.deepEqual(text(summarizePeriod(derived, state, move)), [
     [
       "period",
@@ -251,35 +273,26 @@ test("a period is told apart from the regular spending in its dates", () => {
   const listed = summarizePeriod(derived, state, move, { regular: true });
   assert.equal(
     sectionText(listed[1]),
-    "Regular spending in these dates came to ₪359: ₪106 on Groceries, ₪91 on Dining out, ₪55 on Pets, ₪40 on Bills, ₪38 on Getting around and ₪29 on Subscriptions.",
+    "Regular spending in these dates came to ₪359: ₪97 on Groceries, ₪82 on Dining out, ₪58 on Bills, ₪55 on Pets, ₪38 on Getting around and ₪29 on Subscriptions.",
   );
   checkIds(listed, derived);
   checkIds(summarizePeriod(derived, state, move), derived);
 
-  const notes = periodNotes(derived, move);
+  // The move came without notes; the car's are listed in date order.
+  assert.deepEqual(periodNotes(derived, move), []);
+  const car = state.periods.find((p) => p.id === "demo-car");
   assert.deepEqual(
-    notes.map((n) => [n.date, n.merchant, n.note]),
+    periodNotes(derived, car).map((n) => [n.date, n.merchant, n.note]),
     [
       [
-        "2026-03-09",
-        "Bluebell Removals",
-        "Van and two movers for the day. #move",
+        "2025-12-10",
+        "Cobble Lane Garage",
+        "Tow home after the clutch went on the ring road. #car",
       ],
       [
-        "2026-03-11",
-        "Kettle & Coil",
-        "Fridge. The new flat came without one. #move",
-      ],
-      ["2026-03-12", "Kettle & Coil", "Washing machine. #move"],
-      [
-        "2026-03-14",
-        "Kettle & Coil",
-        "Kettle and toaster, ours are still in a box somewhere. #move",
-      ],
-      [
-        "2026-03-27",
-        "Northgate Hardware",
-        "Shelf brackets and wall plugs. #move",
+        "2025-12-13",
+        "Cobble Lane Garage",
+        "New clutch. Paid from the holiday money, so the savings transfers stop for a while. #car",
       ],
     ],
   );
@@ -308,26 +321,32 @@ test("a thread is told as a summary, a month strip and a blow-by-blow list", () 
       "rhythm",
       "12 of them were on the 9th of the month at Paper Kite Cafe, usually about ₪26.",
     ],
-    [
-      "busiest",
-      "The busiest month was March 2026: three charges, ₪91, all during “Moving to Elm Street”.",
-    ],
+    ["busiest", "The busiest month was April 2026: three charges, ₪82."],
     ["budget", "It stayed within the ₪100 monthly budget every month."],
   ]);
   checkIds(dining.sections, derived);
   assert.equal(dining.months.length, 12);
   assert.deepEqual(
     dining.months.map((m) => m.count),
-    [1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1],
   );
   assert.equal(dining.items.length, 14);
-  const march = dining.items.filter((i) => i.date.startsWith("2026-03"));
-  assert.ok(march.every((i) => i.periods.includes("Moving to Elm Street")));
+  // The busiest month names a period when all its charges fall inside one.
+  assert.equal(
+    sectionText(
+      summarizeThread(derived, state, "Pets").sections.find(
+        (s) => s.kind === "busiest",
+      ),
+    ),
+    "The busiest month was August 2026: one charge, ₪95, during “Holiday in Lantern Bay”.",
+  );
+  const august = summarizeThread(derived, state, "Trips").items;
+  assert.ok(august.every((i) => i.periods.includes("Holiday in Lantern Bay")));
 
   const bills = summarizeThread(derived, state, "Bills");
   assert.equal(
     sectionText(bills.sections.find((s) => s.kind === "budget")),
-    "It came to more than the ₪300 monthly budget in March 2026.",
+    "It came to more than the ₪300 monthly budget in April 2026.",
   );
   const car = summarizeThread(derived, state, "Car");
   assert.deepEqual(text(car.sections), [

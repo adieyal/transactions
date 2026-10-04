@@ -41,7 +41,7 @@ test("naming a period answers the move and remembers the merchants", () => {
   });
   assert.equal(
     result.message,
-    "Saved a period, “Moving house”, 9–16 March 2026.",
+    "Saved a period, “Moving house”, 9–16 April 2026.",
   );
   assert.deepEqual(result.created, { periodId: "p-move" });
   assert.equal(result.answers[move.id].status, "answered");
