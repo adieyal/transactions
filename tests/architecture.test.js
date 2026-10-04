@@ -639,8 +639,34 @@ test("components draw only inside themselves", () => {
   const found = FILES.filter(
     (f) => layerOf(f) === "ui" && REACH.test(CODE[f]),
   ).map((f) => `${f} reaches outside itself`);
+  // Components are held to more: no way round to the page at all. document
+  // is allowed only to listen (addEventListener, removeEventListener).
+  const COMPONENT_REACH = [
+    ["ownerDocument", (f) => /\bownerDocument\b/.test(CODE[f])],
+    ["getRootNode", (f) => /\bgetRootNode\b/.test(CODE[f])],
+    [
+      "window or globalThis",
+      (f) => /(?<![\w$.])(?:window|globalThis)\b/.test(CODE[f]),
+    ],
+    [
+      "document other than to listen",
+      (f) =>
+        /(?<![\w$.])document\b(?!\s*\.\s*(?:add|remove)EventListener\b)/.test(
+          CODE[f],
+        ),
+    ],
+    [
+      'closest("body") or closest("html")',
+      (f) => /\.closest\(\s*["'`]\s*(?:body|html)\b/.test(SOURCE[f]),
+    ],
+  ];
+  const strict = FILES.filter((f) => f.startsWith("components/")).flatMap((f) =>
+    COMPONENT_REACH.filter(([, bites]) => bites(f)).map(
+      ([name]) => `${f} reaches outside itself through ${name}`,
+    ),
+  );
   assert.deepEqual(
-    found.filter((v) => v.startsWith("components/")),
+    [...found.filter((v) => v.startsWith("components/")), ...strict],
     [],
     "A component looks things up only inside its own element (this.querySelector)",
   );
