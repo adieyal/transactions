@@ -225,39 +225,41 @@ export const GENERIC_ANSWERS = [
   { label: "Skip", action: "skip", source: "generic" },
 ];
 
-// Words in merchant names that suggest an answer, in English and Hebrew.
-export const KEYWORDS = [
-  {
-    terms: ["removal", "movers", "moving", "הובלה", "הובלות"],
-    label: "Moving house",
-    action: "period",
+// Words in merchant names that suggest an answer, per language. Any
+// language can be added, and a merchant in a language not listed simply gets
+// the generic answers.
+export const KEYWORD_TERMS = {
+  en: {
+    moving: ["removal", "movers", "moving"],
+    garage: ["garage", "mechanic"],
+    vet: ["vet", "veterinar"],
+    stay: ["hotel", "guesthouse", "hostel"],
+    flights: ["airline", "airways"],
+    pharmacy: ["pharmacy", "chemist"],
   },
-  {
-    terms: ["garage", "mechanic", "מוסך"],
-    label: "Car repair",
-    action: "note",
+  he: {
+    moving: ["הובלה", "הובלות"],
+    garage: ["מוסך"],
+    vet: ["וטרינר"],
+    stay: ["מלון", "צימר"],
+    flights: ["תעופה", "אל על"],
+    pharmacy: ["בית מרקחת", "סופר פארם"],
   },
-  {
-    terms: ["vet", "veterinar", "וטרינר"],
-    label: "Vet visit",
-    action: "note",
-  },
-  {
-    terms: ["hotel", "guesthouse", "hostel", "מלון", "צימר"],
-    label: "A trip away",
-    action: "period",
-  },
-  {
-    terms: ["airline", "airways", "תעופה", "אל על"],
-    label: "Flights",
-    action: "period",
-  },
-  {
-    terms: ["pharmacy", "chemist", "בית מרקחת", "סופר פארם"],
-    label: "Pharmacy",
-    action: "note",
-  },
+};
+// What each kind of keyword offers, in the app's own language.
+const KEYWORD_ANSWERS = [
+  { key: "moving", label: "Moving house", action: "period" },
+  { key: "garage", label: "Car repair", action: "note" },
+  { key: "vet", label: "Vet visit", action: "note" },
+  { key: "stay", label: "A trip away", action: "period" },
+  { key: "flights", label: "Flights", action: "period" },
+  { key: "pharmacy", label: "Pharmacy", action: "note" },
 ];
+export const KEYWORDS = KEYWORD_ANSWERS.map(({ key, label, action }) => ({
+  terms: Object.values(KEYWORD_TERMS).flatMap((l) => l[key] || []),
+  label,
+  action,
+}));
 
 const words = (s) => ` ${String(s).toLowerCase()} `;
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);

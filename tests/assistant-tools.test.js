@@ -64,9 +64,11 @@ test("find_transactions and totals answer from the same filters", () => {
     byMonth.map((x) => x.key),
     [...byMonth.map((x) => x.key)].sort(),
   );
+  assert.ok(byMonth.every((x) => x.currency === "ILS"));
+  assert.deepEqual(Object.keys(found.totals), ["ILS"]);
   assert.equal(
     byMonth.reduce((s, x) => s + x.total, 0).toFixed(2),
-    found.total.toFixed(2),
+    found.totals.ILS.toFixed(2),
   );
   const byThread = totals(derived, { group_by: "thread" });
   assert.ok(byThread[0].total >= byThread[1].total, "largest first");

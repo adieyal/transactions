@@ -1,4 +1,5 @@
 import { BLANK_RULES, STARTER_LENSES } from "./defaults.js";
+import { FORMAT_CURRENCY } from "./transactions/import.js";
 
 // The single definition of every saved document: its storage key, the state
 // field it holds, the wrapper it is stored in, its field in a backup (null:
@@ -316,7 +317,6 @@ export function loadDocuments(docs, state) {
 // Statements saved before batches recorded a currency take the currency of
 // their recognised format; any other is left without one, for the app to ask
 // once (see needsCurrency). Rows take their statement's currency.
-const FORMAT_CURRENCY = { leumi: "ILS" };
 export function withCurrencies(batch) {
   batch.currency ??= FORMAT_CURRENCY[batch.kind] ?? null;
   if (batch.currency) for (const r of batch.rows) r.currency ??= batch.currency;

@@ -1,4 +1,4 @@
-import { monthName } from "../helpers.js";
+import { fmt, monthName } from "../helpers.js";
 
 // What the assistant is told, built from the derived data. Pure: the UI
 // sends the text only when the person asks something.
@@ -23,11 +23,23 @@ export function systemPrompt({ derived, state, today, tools, write, compact }) {
     .sort((a, b) => (a.start < b.start ? -1 : 1));
   const budgets = derived.R.threads
     .filter((t) => t.budget != null)
-    .map((t) => `${t.name} ₪${t.budget}/month`);
+    .map((t) => {
+      // A budget is in its thread's currency; with several, it applies to each.
+      const cs = [
+        ...new Set(
+          derived.allTxns
+            .filter((x) => x.thread === t.name)
+            .map((x) => x.currency),
+        ),
+      ];
+      return cs.length === 1
+        ? `${t.name} ${fmt(t.budget, 0, cs[0])}/month`
+        : `${t.name} ${t.budget}/month in each currency`;
+    });
   let intro = `You're the question-answering part of Transactions, a personal tool one person uses to explore their own card and bank statements. Today is ${today}.
-Money is in ILS (₪). A positive amount is money out; negative is a refund or money in. "Threads" are the person's own groupings, from rules they edit: ${derived.names.join(", ")}. Accounts and the statement months present: ${coverageText(derived)}. Any other months are missing, so say so when an answer depends on them.
+Each amount is in its own currency, given as an ISO code (currency): ${[...new Set(derived.allTxns.map((t) => t.currency))].sort().join(", ") || "none yet"}. Never add up, compare or convert amounts in different currencies; give each currency's figures separately. A positive amount is money out; negative is a refund or money in. "Threads" are the person's own groupings, from rules they edit: ${derived.names.join(", ")}. Accounts and the statement months present: ${coverageText(derived)}. Any other months are missing, so say so when an answer depends on them.
 Transfers between their own accounts (such as the bank paying the card bill) are not spending: the tools leave them out unless you pass include_transfers.
-Transaction fields: date is when it was bought and charge_date when it was billed, if different; amount is in ILS and orig is the amount in the currency it was charged in; type and details are copied from the statement; rule is the line of their thread rules that put it in its thread; source is the account, statement month and file it came from; kind is set for things worked out rather than read from a statement, with why explaining it.
+Transaction fields: date is when it was bought and charge_date when it was billed, if different; amount is in the transaction's currency and orig is the amount in the currency it was charged in, when that differs; type and details are copied from the statement; rule is the line of their thread rules that put it in its thread; source is the account, statement month and file it came from; kind is set for things worked out rather than read from a statement, with why explaining it.
 ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}${pers.length ? `Periods they've marked as context for what was going on (they can overlap, and not every charge in the dates belongs):\n${pers.map((p) => `- "${p.name}" ${p.start} to ${p.end}${p.story ? `: ${p.story.replace(/\s+/g, " ").slice(0, 300)}` : ""}`).join("\n")}\n` : ""}Answer briefly (a few sentences or a short list) in the language the person writes in. Don't guess figures. When you refer to specific transactions, cite them inline as [[id]] using ids from the data (at most 8 citations; no other link syntax).`;
   if (tools) {
     intro += `\nUse the tools to look things up.`;

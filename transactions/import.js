@@ -4,8 +4,10 @@ import { HE_MONTHS, INST_RE, parseAmount, parseDateCell } from "./parse.js";
 // A Leumi card statement saved as a web page, from its table rows (see
 // tableRows in files.js): { nested, text } for a row wrapping other tables,
 // { cells } for the rest. Returns a batch, or null when it isn't one.
-// The Israeli card format's amounts are in shekels.
+// The Israeli card format's amounts are in shekels. Each recognised format
+// names its currency here; a generic file shows or is told its own.
 const LEUMI_CURRENCY = "ILS";
+export const FORMAT_CURRENCY = { leumi: LEUMI_CURRENCY };
 
 function parseLeumiRows(tableRows, file) {
   if (!tableRows.some((r) => r.cells?.includes("תאריך העסקה"))) return null;

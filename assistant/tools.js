@@ -1,4 +1,4 @@
-import { monthOf, normText } from "../helpers.js";
+import { monthOf, normText, sumsByCurrency } from "../helpers.js";
 
 // What the assistant's tools do, as pure functions of the derived data. The
 // UI describes the tools to the assistant, calls these, and applies any
@@ -57,6 +57,7 @@ export function compactTxn(t, { rules, transferText }) {
     merchant: t.merchant,
     original: t.original && t.original !== t.merchant ? t.original : undefined,
     amount: t.amount,
+    currency: t.currency,
     orig: t.orig ? `${t.orig.currency} ${t.orig.amount}` : undefined,
     type: t.type || undefined,
     details: t.details || undefined,
@@ -84,13 +85,16 @@ export function findTransactions(derived, q, compact) {
   const lim = Math.min(200, Math.max(1, +q.limit || 60));
   return {
     count: ts.length,
-    total: +ts.reduce((a, t) => a + t.amount, 0).toFixed(2),
+    // One total per currency, never added together: { EUR: 120.5, GBP: 40 }.
+    totals: Object.fromEntries(
+      sumsByCurrency(ts).map(([c, v]) => [c, +v.toFixed(2)]),
+    ),
     rows: ts.slice(0, lim).map(compact),
   };
 }
 
-// totals: count and sum per group, by key for months and statement periods,
-// otherwise largest first.
+// totals: count and sum per group and currency, by key for months and
+// statement periods, otherwise largest first.
 export function totals(derived, q) {
   const f =
     {
@@ -102,8 +106,8 @@ export function totals(derived, q) {
     }[q.group_by] || ((t) => t.thread);
   const g = {};
   for (const t of filterTxns(derived, q)) {
-    const k = f(t);
-    g[k] ||= { key: k, count: 0, total: 0 };
+    const k = f(t) + "\n" + t.currency;
+    g[k] ||= { key: f(t), currency: t.currency, count: 0, total: 0 };
     g[k].count++;
     g[k].total += t.amount;
   }
@@ -112,22 +116,36 @@ export function totals(derived, q) {
     total: +x.total.toFixed(2),
   }));
   return /month|period/.test(q.group_by)
-    ? out.sort((a, b) => (a.key < b.key ? -1 : 1))
-    : out.sort((a, b) => b.total - a.total);
+    ? out.sort((a, b) =>
+        a.key < b.key
+          ? -1
+          : a.key > b.key
+            ? 1
+            : a.currency < b.currency
+              ? -1
+              : 1,
+      )
+    : out.sort(
+        (a, b) =>
+          (a.currency < b.currency ? -1 : a.currency > b.currency ? 1 : 0) ||
+          b.total - a.total,
+      );
 }
 
 // list_merchants: each distinct statement description, largest total first.
 export function listMerchants(derived) {
   const g = {};
   for (const t of derived.allTxns) {
-    g[t.nameKey] ||= {
+    const k = t.nameKey + "\n" + t.currency;
+    g[k] ||= {
       original: t.original,
       name: t.merchant,
+      currency: t.currency,
       count: 0,
       total: 0,
     };
-    g[t.nameKey].count++;
-    g[t.nameKey].total += t.amount;
+    g[k].count++;
+    g[k].total += t.amount;
   }
   return Object.values(g)
     .sort((a, b) => b.total - a.total)

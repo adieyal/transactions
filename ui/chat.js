@@ -29,7 +29,7 @@ export function createChat(runtime, actions) {
     },
     text: {
       type: "string",
-      description: "Part of a merchant name or note (Hebrew or English)",
+      description: "Part of a merchant name or note, in any language",
     },
     thread: { type: "string" },
     account: { type: "string" },
@@ -84,7 +84,7 @@ export function createChat(runtime, actions) {
     {
       name: "list_merchants",
       description:
-        "List every distinct merchant description: {original (exactly as on the statement), name (current display name, same as original unless renamed), count, total}. Use before renaming or translating.",
+        "List every distinct merchant description: {original (exactly as on the statement), name (current display name, same as original unless renamed), currency, count, total}. Use before renaming or translating.",
       execute: () => listMerchants(runtime.derived),
     },
     {
@@ -238,7 +238,7 @@ export function createChat(runtime, actions) {
     {
       name: "find_transactions",
       description:
-        "Find transactions matching filters. Returns {count, total, rows} with rows newest first (at most `limit`, default 60). Amounts in ILS, positive = money out.",
+        "Find transactions matching filters. Returns {count, totals, rows} with rows newest first (at most `limit`, default 60). totals has one sum per currency code, never added together. Each row's amount is in its currency, positive = money out.",
       inputSchema: {
         type: "object",
         properties: { ...FILTER_PROPS, limit: { type: "number" } },
@@ -248,7 +248,7 @@ export function createChat(runtime, actions) {
     {
       name: "totals",
       description:
-        "Sum and count transactions grouped by month, thread, merchant, account or statement period, after the same filters. Returns [{key, count, total}] sorted by key for month/period, otherwise by total.",
+        "Sum and count transactions grouped by month, thread, merchant, account or statement period, after the same filters. Returns [{key, currency, count, total}], one entry per key and currency (amounts in different currencies are never added), sorted by key for month/period, otherwise by total.",
       inputSchema: {
         type: "object",
         properties: {

@@ -28,7 +28,7 @@ const stripFences = (text) =>
     .replace(/\s*```$/, "")
     .trim();
 
-// Every number in a text, without thousands separators: "₪3,136" → "3136".
+// Every number in a text, without thousands separators: "€3,136" → "3136".
 const numbersIn = (text) =>
   (String(text).match(/\d[\d,]*(?:\.\d+)?/g) || []).map((n) =>
     String(Number(n.replace(/,/g, ""))),
@@ -67,7 +67,7 @@ export function parseAnswerSuggestions(text) {
     if (typeof item !== "string" || !item.trim())
       return { ok: false, reason: "an answer wasn't plain text" };
     const label = item.trim().replace(/\s+/g, " ");
-    if (/\d/.test(label) || /₪/.test(label))
+    if (/\d/.test(label) || /\p{Sc}/u.test(label))
       return {
         ok: false,
         reason: `an answer brought in a figure: “${short(label)}”`,
