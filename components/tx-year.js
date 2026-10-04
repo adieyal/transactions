@@ -184,6 +184,10 @@ export function createYearComponent(runtime, actions) {
             if (at[0] != null) back.setSelectionRange(at[0], at[1]);
           }
           showLensView(this, ui);
+          if (ui.focusTag) {
+            ui.focusTag = false;
+            this.querySelector("#bench-tag")?.focus();
+          }
           if (ui.focusAsk) {
             ui.focusAsk = false;
             const ask = this.querySelector("#ask");

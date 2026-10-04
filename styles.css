@@ -478,7 +478,7 @@ tx-first-run{display:block}
 tx-first-run[hidden]{display:none}
 tx-first-run a{color:var(--link)}
 tx-first-run a:hover{color:var(--link-hover)}
-.fr-main{display:block; max-width:1240px; margin:0 auto; padding:56px 28px 72px}
+.fr-main{display:block; box-sizing:content-box; max-width:1240px; margin:0 auto; padding:56px 28px 72px}
 .fr-top{display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start}
 .fr-lead{flex:999 1 520px; min-width:0; max-width:700px}
 .fr-h1{font:500 52px/1.1 var(--display); margin:0 0 18px}
@@ -550,7 +550,7 @@ tx-one-month[hidden]{display:none}
 .om-bead{position:absolute; top:17px; transform:translate(-50%,-50%); border-radius:50%; border:1.5px solid var(--band); box-sizing:border-box; transition:opacity .2s, box-shadow .2s; opacity:.9}
 .om-bead.dim{opacity:.12}
 .om-bead.ring{box-shadow:0 0 0 3px var(--lit), 0 0 0 4.5px var(--ink); z-index:2}
-.om-main{max-width:1320px; margin:0 auto; padding:36px 28px 72px; display:flex; flex-wrap:wrap; gap:40px 24px; align-items:flex-start}
+.om-main{box-sizing:content-box; max-width:1320px; margin:0 auto; padding:36px 28px 72px; display:flex; flex-wrap:wrap; gap:40px 24px; align-items:flex-start}
 .om-source{flex:0 0 150px; padding-top:10px; font-size:13px; color:var(--ink-label)}
 .om-story{flex:999 1 480px; max-width:700px; min-width:0}
 .om-story h1{font:500 46px/1.12 var(--display); margin:0 0 18px}
@@ -834,3 +834,5 @@ tx-year .sp.yr-receipt.on{background:var(--lit); border-color:var(--ink)}
 .yr-addbudget{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; align-self:flex-start; margin-top:2px; font:500 12px var(--ui); min-height:0; padding:0; border:0; border-radius:12px; background:#FFFFFF; color:#1E2528; cursor:pointer}
 .yr-row:hover .yr-addbudget, .yr-row:focus-within .yr-addbudget{position:static; width:auto; height:auto; overflow:visible; clip-path:none; display:inline-flex; align-items:center; min-height:24px; padding:0 8px; border:1px solid #B7BEBD}
 .yr-notsent{margin:0 0 14px; font-size:14px; color:#3E474B}
+/* Keep a focused element clear of the sticky timeline (WCAG 2.4.11). */
+tx-year .yr-main *{scroll-margin-top:calc(var(--yr-band-h, 368px) + 16px)}

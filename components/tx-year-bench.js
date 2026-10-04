@@ -219,6 +219,7 @@ export function benchClick(b, ui, runtime, actions, host) {
     actions.refresh();
   } else if ("benchTag" in d) {
     ui.tagging = true;
+    ui.focusTag = true;
     if (ts.length > 1)
       ui.manyMsg = `Type a tag, like #garden, and it’s added to the notes of all ${real.length} payments.`;
   } else if ("benchTagAdd" in d) {

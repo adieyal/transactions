@@ -20,22 +20,22 @@
     <button class="hbtn" id="restoreBtn">Restore a backup</button>
     <button class="hbtn primary" id="addBtn">Add statements</button>
     <div class="menu" id="moreMenu">
-      <button class="hbtn" id="moreBtn" aria-haspopup="menu" aria-expanded="false">More</button>
-      <div role="menu">
+      <button class="hbtn" id="moreBtn" aria-controls="morePanel" aria-expanded="false">More</button>
+      <div id="morePanel">
         <div class="menuhead" id="rangesHead">Time range</div>
         <div class="chips" id="ranges" role="group" aria-labelledby="rangesHead"></div>
-        <button role="menuitem" data-act="bench">Timeline and panels</button>
-        <button role="menuitem" data-act="tour">Take the tour</button>
-        <button role="menuitem" data-act="ai">AI assistant settings</button>
-        <button role="menuitem" data-act="dl-rules">Download threads as text</button>
-        <button role="menuitem" data-act="dl-all">Download everything (JSON)</button>
-        <button role="menuitem" data-act="import-backup">Import backup (JSON)</button>
-        <button role="menuitem" data-act="reset-lenses">Restore starter lenses</button>
-        <button role="menuitem" data-act="restart-demo">Restart the demo</button>
+        <button data-act="bench">Timeline and panels</button>
+        <button data-act="tour">Take the tour</button>
+        <button data-act="ai">AI assistant settings</button>
+        <button data-act="dl-rules">Download threads as text</button>
+        <button data-act="dl-all">Download everything (JSON)</button>
+        <button data-act="import-backup">Import backup (JSON)</button>
+        <button data-act="reset-lenses">Restore starter lenses</button>
+        <button data-act="restart-demo">Restart the demo</button>
       </div>
     </div>
-    <input type="file" id="backupFile" class="vh" accept=".json,application/json">
-    <input type="file" id="file" multiple class="vh" accept=".xls,.xlsx,.csv,.txt,.html,.htm">
+    <input type="file" id="backupFile" class="vh" tabindex="-1" aria-hidden="true" accept=".json,application/json">
+    <input type="file" id="file" multiple class="vh" tabindex="-1" aria-hidden="true" accept=".xls,.xlsx,.csv,.txt,.html,.htm">
   </header>
   <p class="sub demoline" id="demoNotice"></p>
   <tx-first-run id="firstRun" hidden></tx-first-run>

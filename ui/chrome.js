@@ -39,9 +39,11 @@ export function createChrome(runtime, actions) {
 
   function renderChrome() {
     renderShell();
+    // Copy rule 7: the bar inside the example, and nothing for your own
+    // data. The tour stays under More.
     $("#demoNotice").innerHTML = state.isDemo
-      ? html`Demo<span class="wide-only"> · a fictional year</span> · <button class="linkish" id="tourBtn">Take the tour</button>`
-      : "Imported data";
+      ? html`You’re looking at Sam’s year, an example. <button class="linkish" id="demoAdd">Add your statements</button>`
+      : "";
     $("#ranges").innerHTML = [
       ["all", "All"],
       ["12", "12 months"],
@@ -100,7 +102,7 @@ export function createChrome(runtime, actions) {
 
   function wireChrome() {
     $("#demoNotice").addEventListener("click", (e) => {
-      if (e.target.closest("#tourBtn")) actions.startTour();
+      if (e.target.closest("#demoAdd")) $("#file").click();
     });
     $("#addBtn").onclick = () => $("#file").click();
     $("#restoreBtn").onclick = () => $("#backupFile").click();
@@ -203,9 +205,20 @@ export function createChrome(runtime, actions) {
       menu.classList.toggle("open", o);
       $("#moreBtn").setAttribute("aria-expanded", o);
     };
-    addEventListener("click", () => {
+    const closeMenu = () => {
       menu.classList.remove("open");
       $("#moreBtn").setAttribute("aria-expanded", false);
+    };
+    addEventListener("click", closeMenu);
+    // A disclosure, not an ARIA menu: Tab moves through it, Escape closes it
+    // and returns focus to More, and leaving it closes it (UX review m5).
+    menu.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || !menu.classList.contains("open")) return;
+      closeMenu();
+      $("#moreBtn").focus();
+    });
+    menu.addEventListener("focusout", (e) => {
+      if (!menu.contains(e.relatedTarget)) closeMenu();
     });
     menu.querySelector("div").onclick = async (e) => {
       const act = e.target.dataset.act;

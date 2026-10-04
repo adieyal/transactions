@@ -192,7 +192,7 @@ function deriveTransactions(state, { today }) {
     ...(txns.some((t) => t.transfer) ? [TRANSFERS] : []),
   ];
   const colorOf = Object.fromEntries(R.threads.map((t) => [t.name, t.color]));
-  colorOf[LOOSE] = "#7B8588";
+  colorOf[LOOSE] = "#6F787B";
   colorOf[TRANSFERS] = "#6F7F99";
   const tags = {};
   for (const n of Object.values(state.notes))
