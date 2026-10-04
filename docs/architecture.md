@@ -12,6 +12,7 @@ The architecture that new code in Transactions follows, and that existing code m
 - **Template strings stay, escaped by default.** New code builds HTML with an escaping `html` tag and wires events once, by delegation on a stable host ([ADR 0005](adr/0005-escaped-templates-and-delegated-events.md)).
 - **Pure logic is tested in Node against the demo year; UI is checked in headless Chrome** ([ADR 0006](adr/0006-testing-pure-logic-and-the-ui.md)).
 - **One HTML file, no backend, and network access only from named adapters**, each run only when the person asks ([ADR 0007](adr/0007-single-file-no-backend-network-boundary.md)).
+- **Money carries its statement's currency, with no default and no conversion.** Story code meets money only through `story/currency.js`, one currency at a time ([ADR 0008](adr/0008-statement-currency.md)).
 
 ## 1. Layers and dependency direction
 
@@ -402,6 +403,7 @@ flowchart TD
 | `story/moments.js`           | domain      | `helpers.js` (pure parts), `transactions/*` | Pure: `findMoments(derived, state)` and `applyAnswer(...)`, which returns the changes and an undo record without mutating its inputs. `today` is passed in.                                                   |
 | `story/summary.js`           | domain      | core, `transactions/*`, `story/*`           | Pure: `summarise(derived, state, month) → Section[]`, where each part carries `txnIds`.                                                                                                                       |
 | `story/copy.js`              | domain      | core                                        | Pure strings: numbers, dates, plurals, question and privacy wording                                                                                                                                           |
+| `story/currency.js`          | domain      | core, `story/copy.js`                       | Pure: `currencyView(derived, currency)` and `sectionsPerCurrency(derived, txns, fn)`; amounts are never added or compared across currencies (ADR 0008)                                                        |
 | `ui/questions.js`            | ui          | `story/*`, core, `ui/dom.js`                | provides `renderQuestions`, `wireQuestions`, `answer`; requires `refresh`, `save`, `addPeriod`, `bulkTag`, `highlight`, `openTab`; renders `renderQuestions`                                                  |
 | `ui/month.js`                | ui          | `story/*`, core, `ui/dom.js`                | provides `renderMonth`, `wireMonth`, `showMonth`; requires `refresh`, `highlight`, `openTab`; renders `renderMonth`                                                                                           |
 | `answers`, `merchantAnswers` | persistence | —                                           | Two `DOCUMENTS` entries. Until `documents.js` exists, the hand edits story-first already made (in `state.js`, `main.js`, `persistence.js` and `backup.js`) are correct and covered by `tests/backup.test.js`. |

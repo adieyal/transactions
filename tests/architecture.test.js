@@ -627,3 +627,12 @@ test("every allowlist entry names a step that exists", () => {
     .map((a) => `${a.v} -> ${a.fix}`);
   assert.deepEqual(unknown, []);
 });
+
+test("every ADR is linked from docs/architecture.md", () => {
+  const plan = read("docs/architecture.md");
+  const missing = readdirSync(path.join(root, "docs/adr"))
+    .filter((f) => /^\d{4}-.*\.md$/.test(f))
+    .filter((f) => !plan.includes(`adr/${f}`));
+  assert.deepEqual(missing, []);
+  assert.ok(plan.includes("`story/currency.js`"));
+});
