@@ -1,8 +1,8 @@
 import { CURRENCIES, esc, fmt, fnv, monthName } from "../helpers.js";
 import { $, toast } from "./dom.js";
 import {
-  columnWords,
   detectCurrency,
+  guessColumns,
   guessHeaderRow,
   inferDateOrder,
   inferExpenseSign,
@@ -173,17 +173,7 @@ export function createImport(runtime, actions) {
         currencyColumn: null,
         account: fileName.replace(/\.[^.]+$/, ""),
       };
-      const H = matrix[hdr] || [];
-      const find = (re) => {
-        const i = H.findIndex((c) => re.test(String(c)));
-        return i < 0 ? null : i;
-      };
-      for (const k of ["date", "merchant", "debit", "credit", "currencyColumn"])
-        map[k] = find(columnWords(k));
-      map.amount =
-        map.debit == null && map.credit == null
-          ? find(columnWords("amount"))
-          : null;
+      Object.assign(map, guessColumns(matrix, hdr));
       if (preset)
         Object.assign(map, preset, {
           dateChosen: !!preset.dateFormat,

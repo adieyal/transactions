@@ -227,6 +227,77 @@ const columnWords = (k) =>
     "i",
   );
 
+// Which columns hold the date, the description, the money and the currency,
+// read from what the cells hold. Heading words (COLUMN_WORDS) only break a
+// tie or name money out and in, so a file in any language is mapped. A
+// column the cells don't settle is left for the person.
+function guessColumns(matrix, headerRow = 0) {
+  const head = matrix[headerRow] || [];
+  const rows = bodyRows(matrix, { headerRow }).slice(0, 200);
+  const ncol = Math.max(0, ...rows.map((r) => r.length));
+  const cols = Array.from({ length: ncol }, (_, i) => {
+    const cells = rows.map((r) => String(r[i] ?? "").trim()).filter(Boolean);
+    const n = rows.length || 1;
+    const dates = cells.filter(
+      (c) => parseDateCell(c, "DMY") || parseDateCell(c, "MDY"),
+    );
+    const isDate = (c) => dates.includes(c);
+    const money = cells.filter((c) => !isDate(c) && parseAmount(c));
+    const codes = cells.filter((c) => c.length <= 4 && currencyIn(c));
+    const text = cells.filter(
+      (c) => !isDate(c) && !parseAmount(c) && !codes.includes(c),
+    );
+    return {
+      i,
+      word: (k) => columnWords(k).test(String(head[i] ?? "")),
+      filled: cells.length / n,
+      date: dates.length / n,
+      money: money.length / n,
+      code: codes.length / n,
+      text: text.length / n,
+      distinct: new Set(text).size,
+      length: text.reduce((s, c) => s + c.length, 0) / (text.length || 1),
+    };
+  });
+  // The hinted column when its cells agree, else the best by content.
+  const pick = (k, fits, score) => {
+    const ok = cols.filter(fits);
+    const hinted = ok.find((c) => c.word(k));
+    if (hinted) return hinted.i;
+    return ok.sort((a, b) => score(b) - score(a) || a.i - b.i)[0]?.i ?? null;
+  };
+  const date = pick(
+    "date",
+    (c) => c.date >= 0.6,
+    (c) => c.date,
+  );
+  const merchant = pick(
+    "merchant",
+    (c) => c.i !== date && c.text >= 0.5,
+    (c) => c.distinct * Math.min(c.length, 40),
+  );
+  const currencyColumn = pick(
+    "currencyColumn",
+    (c) => c.code >= 0.6,
+    () => 0,
+  );
+  const moneyCols = cols.filter(
+    (c) => c.i !== date && c.money > 0 && c.money + 0.2 >= c.filled,
+  );
+  const debit = moneyCols.find((c) => c.word("debit"))?.i ?? null;
+  const credit = moneyCols.find((c) => c.word("credit"))?.i ?? null;
+  // One signed column: the one headed as the amount, or the first that holds
+  // money on most rows (a running balance usually comes after it).
+  const amount =
+    debit != null || credit != null
+      ? null
+      : ((
+          moneyCols.find((c) => c.word("amount") && c.money >= 0.6) ??
+          moneyCols.find((c) => c.money >= 0.6)
+        )?.i ?? null);
+  return { date, merchant, amount, debit, credit, currencyColumn };
+}
+
 // A row's currency: from the currency column when it holds an ISO code or a
 // symbol, then from the amount cell itself ("EUR 90.00"), and only then the
 // one the file was found or said to be in.
@@ -419,6 +490,7 @@ export {
   applyMapping,
   csvMatrix,
   decodeText,
+  guessColumns,
   guessHeaderRow,
   inferDateOrder,
   inferExpenseSign,

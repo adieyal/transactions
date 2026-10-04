@@ -98,3 +98,45 @@ test("rows that can't be read are counted with their reason", () => {
     { row: 5, reason: "zero" },
   ]);
 });
+
+test("columns are found from what the cells hold, in any language", async () => {
+  const { guessColumns } = await import("../transactions/import.js");
+  const de = [
+    ["Buchungstag", "Verwendungszweck", "Betrag (EUR)", "Saldo"],
+    ["02.09.2026", "Fiktive Bäckerei", "-4,20", "1.000,00"],
+    ["03.09.2026", "Fiktiver Lohn", "2.500,00", "3.500,00"],
+    ["05.09.2026", "Fiktiver Markt", "-38,15", "3.461,85"],
+  ];
+  assert.deepEqual(guessColumns(de, 0), {
+    date: 0,
+    merchant: 1,
+    amount: 2,
+    debit: null,
+    credit: null,
+    currencyColumn: null,
+  });
+  const ja = [
+    ["メモ", "日付", "通貨", "金額"],
+    ["架空のカフェ", "2026/09/02", "JPY", "1,280"],
+    ["架空の書店", "2026/09/04", "JPY", "3,300"],
+  ];
+  assert.deepEqual(guessColumns(ja, 0), {
+    date: 1,
+    merchant: 0,
+    amount: 3,
+    debit: null,
+    credit: null,
+    currencyColumn: 2,
+  });
+  // Heading words name money out and in, which the cells can't.
+  const en = [
+    ["Date", "Description", "Debit", "Credit"],
+    ["2026-09-02", "Fictional Shop", "12.00", ""],
+    ["2026-09-03", "Fictional Employer", "", "900.00"],
+  ];
+  const g = guessColumns(en, 0);
+  assert.deepEqual(
+    [g.date, g.merchant, g.debit, g.credit, g.amount],
+    [0, 1, 2, 3, null],
+  );
+});
