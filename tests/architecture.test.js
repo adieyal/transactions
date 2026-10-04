@@ -92,16 +92,10 @@ const BOUNDARY_ALLOW = [
 
 // Saved documents (documents.js) that the code does not fully handle yet.
 const DOCUMENT_ALLOW = [
-  // story-first milestone 1 adds both on its branch; delete these entries
-  // when it merges, since the code then covers them.
-  {
-    v: "answers is missing from: state, boot, save, backup, restore",
-    fix: "story-first",
-  },
-  {
-    v: "merchantAnswers is missing from: state, boot, save, backup, restore",
-    fix: "story-first",
-  },
+  // R2: `dismissed` is legacy from Worth a look, which no longer writes it.
+  // It is still loaded, backed up and restored, because it hides the flags
+  // a person dismissed, and story/moments.js turns flags into questions.
+  { v: "dismissed is missing from: save", fix: "R2" },
   // R2: only a backup restore writes `workspace`, and the seed writes `demo`.
   { v: "workspace is missing from: save", fix: "R2" },
   { v: "main.js writes undeclared document demo", fix: "R2" },

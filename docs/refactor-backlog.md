@@ -13,7 +13,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 
 | Rank | Item                                                                                                            |    Size     |    Risk    | Removes allowlist entries                                                    |      Wait for story-first?       |
 | ---: | --------------------------------------------------------------------------------------------------------------- | :---------: | :--------: | ---------------------------------------------------------------------------- | :------------------------------: |
-|    0 | [M0](#m0-merge-tasks-for-story-first) Merge tasks                                                               |      S      |    Low     | `answers`, `merchantAnswers`                                                 |           is the merge           |
+|    0 | [M0](#m0-merge-tasks-for-story-first) Merge tasks                                                               |      S      |    Low     | `answers`, `merchantAnswers` (done; adds `dismissed` under R2)               |           is the merge           |
 |    1 | [R2](#r2-derive-boot-saves-and-backups-from-documentsjs) Derive boot, saves and backups from `documents.js`     |      M      |   Medium   | `workspace is missing from: save`, `main.js writes undeclared document demo` |               Yes                |
 |    2 | [R3](#r3-one-refresh-path) One refresh path                                                                     |      M      |   Medium   | none (removes the duplicate `renderReports` call)                            |               Yes                |
 |    3 | [R1](#r1-declared-module-contracts-and-registry) Declared module contracts and registry                         |      M      |    Low     | none (turns the provider test into a contract test)                          |               Yes                |
@@ -47,6 +47,7 @@ Items that can start now: R6, R11 for the settings, and R4d.
   1. Delete the two `story-first` entries from `DOCUMENT_ALLOW`.
   2. Decide what happens to `dismissed`. Retiring `ui/changes.js` left it loaded and backed up but never saved. Either keep it as legacy data, with an allowlist entry naming R2, or remove it from `documents.js`, `state.js`, `main.js` and `backup.js`. Keep `parseBackup` accepting it, so older backups still load.
 - **Size:** S. **Risk:** low. **Wait:** this is the merge itself.
+- **Done** on branch `integration`, 4 October 2026. The two entries are deleted. `dismissed` is kept as legacy data with an R2 allowlist entry (`dismissed is missing from: save`), because it still hides dismissed flags, and `story/moments.js` turns flags into questions. Removing it would ask again about things people had already dismissed.
 
 ### R2. Derive boot, saves and backups from `documents.js`
 
@@ -60,7 +61,7 @@ Items that can start now: R6, R11 for the settings, and R4d.
   - Report invalid documents at boot instead of skipping them silently.
   - Whether importing real statements should end demo mode is a product question for the user, not part of this item.
 - **Size:** M. **Risk:** medium. Boot touches saved user data, so add a test that loads today's demo workspace documents unchanged.
-- **Removes:** `workspace is missing from: save`, `main.js writes undeclared document demo`, and `dismissed` if M0 kept it.
+- **Removes:** `workspace is missing from: save`, `main.js writes undeclared document demo`, and `dismissed is missing from: save` (kept by M0).
 - **Wait:** yes.
 
 ### R3. One refresh path
