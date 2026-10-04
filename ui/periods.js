@@ -199,23 +199,24 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
     });
   }
 
-  // Adds a period and opens it with the name selected, ready to type over.
-  function addPeriod(start, end) {
+  // Adds a period. Without a name it opens with "New period" selected, ready
+  // to type over; with one (from an answered question) it is saved as is.
+  function addPeriod(start, end, { name = "", story = "" } = {}) {
     const p = {
       id: "p" + Date.now().toString(36),
-      name: "New period",
+      name: name || "New period",
       start,
       end,
-      story: "",
+      story,
       color: PALETTE[(state.periods.length + 3) % PALETTE.length],
     };
     state.periods.push(p);
-    state.periodSel = p.id;
     state.selection.clear();
     state.statement = null;
+    if (!name) state.periodSel = p.id;
     actions.savePeriods();
     actions.refresh();
-    const n = $("#pName");
+    const n = !name && $("#pName");
     if (n) {
       n.focus();
       n.select();

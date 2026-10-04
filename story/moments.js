@@ -542,8 +542,11 @@ export function explainer(derived, state) {
 
 // The questions to offer: not answered or skipped, not explained, not part of
 // a bigger moment, and at most three a month, highest rank first.
-export function findMoments(derived, state) {
-  const all = detectMoments(derived, state);
+export function findMoments(
+  derived,
+  state,
+  all = detectMoments(derived, state),
+) {
   const answers = state.answers || {};
   const explained = explainer(derived, state);
   const perMonth = {};
@@ -576,7 +579,8 @@ export function applyAnswer(
     },
     merchantAnswers: { ...merchantAnswers },
   };
-  if (status === "answered" && choice)
+  // Only short answers are worth offering again as a suggestion.
+  if (status === "answered" && choice && choice.length <= 60)
     for (const key of m.facts.keys || [])
       next.merchantAnswers[key] = { choice, action, at };
   return next;

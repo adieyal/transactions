@@ -82,11 +82,9 @@ This fictional ₪350 transfer moves money to Demo Savings and is excluded from 
 
 ![Matched savings transfer with a link to the other account transaction](docs/screenshots/08-transfers.png)
 
-### 9. Spending changes
+### 9. Questions
 
-The changes panel highlights recurring merchant price changes and charges that appear to be missing from newer covered statement months. Choose **Show** to locate a change on the timeline or **Dismiss** to hide the alert.
-
-The demo includes price increases for an energy bill, a subscription, café visits, and pet supplies.
+The **Questions** tab offers a few optional questions about things the app noticed: purchases close together, a charge larger than usual, a regular payment that's missing, a price change, a new merchant, a same-day habit or a budget gone over. Each states the fact and offers a quick answer, **Name this period**, **Write a note** or **Skip**. An answer becomes a period or a note, and Undo is in the message that follows. Click a question to light up its transactions on the timeline. Answers are optional and only you can see them; the chip in the header says where they are saved.
 
 ![Detected price changes in the fictional statements](docs/screenshots/09-spending-changes.png)
 

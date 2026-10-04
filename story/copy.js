@@ -173,6 +173,27 @@ export const privacyLabel = (backendKind) =>
     ? "Saved privately to your Claude account"
     : "Private to this device";
 
+// The explanation behind the privacy chip and the banner above the questions.
+export function privacyText(backendKind) {
+  const account = backendKind === "account";
+  const where = account
+    ? "in your Claude account, where only you can see them"
+    : "in this browser, on this device only";
+  const assistant =
+    "Nothing goes to an assistant unless you press a button that asks one.";
+  return {
+    label: privacyLabel(backendKind),
+    details: [
+      `Your statements, notes, periods and answers are saved ${where}.`,
+      assistant,
+      "The questions come from patterns in your own data. Answering is optional, and Skip is always there.",
+    ],
+    banner: account
+      ? `Only you see your answers. They are saved privately to your Claude account, alongside your statements. ${assistant}`
+      : `Only you see your answers. They are saved in this browser, alongside your statements, and are not sent anywhere. ${assistant}`,
+  };
+}
+
 export const GENERIC_ANSWERS = [
   { label: "Name this period", action: "period", source: "generic" },
   { label: "Write a note", action: "note", source: "generic" },

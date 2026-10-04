@@ -38,6 +38,7 @@ export function createChrome(runtime, actions) {
     $("#sendBtn").disabled = !caps.sample || !runtime.derived?.allTxns.length;
     $("#askInput").disabled = !caps.sample;
     actions.setStatus();
+    actions.renderPrivacy();
   }
 
   function openTab(which) {
@@ -46,7 +47,7 @@ export function createChrome(runtime, actions) {
       actions.saveView();
       applyPanel();
     }
-    ["lenses", "threads", "ask", "reports"].forEach((w) => {
+    ["lenses", "questions", "threads", "ask", "reports"].forEach((w) => {
       $("#tab-" + w).setAttribute("aria-selected", w === which);
       $("#pane-" + w).classList.toggle("on", w === which);
     });
@@ -55,6 +56,7 @@ export function createChrome(runtime, actions) {
       actions.renderLog();
     }
     if (which === "reports") actions.renderReports();
+    if (which === "questions") actions.renderQuestions();
   }
 
   function wireChrome() {
@@ -94,6 +96,7 @@ export function createChrome(runtime, actions) {
       applyPanel();
     };
     $("#tab-lenses").onclick = () => openTab("lenses");
+    $("#tab-questions").onclick = () => openTab("questions");
     $("#tab-threads").onclick = () => openTab("threads");
     $("#tab-reports").onclick = () => openTab("reports");
     $("#tab-ask").onclick = () => openTab("ask");
