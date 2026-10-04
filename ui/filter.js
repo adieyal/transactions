@@ -1,10 +1,11 @@
 import { debounce, fmtByCurrency } from "../helpers.js";
-import { $, benchHidden, html } from "./dom.js";
+import { $, html } from "./dom.js";
 
 export function createFilter(runtime, actions) {
   const { state } = runtime;
+  // The search sits in the header on every view, so this draws even while
+  // the hidden <main> skips its renders (ADR 0004).
   function renderFilterBar() {
-    if (benchHidden(state)) return;
     const box = $("#searchBox"),
       q = state.query.trim();
     box.classList.toggle("on", !!q);
@@ -69,6 +70,8 @@ export function createFilter(runtime, actions) {
       }
     });
     const input = $("#q");
+    // A tag chip keeps the focus in the search, so the row under it stays open.
+    $("#qTags").addEventListener("mousedown", (e) => e.preventDefault());
     const redraw = debounce(() => {
       state.selection.clear();
       state.highlight = new Set();
@@ -115,13 +118,22 @@ export function createFilter(runtime, actions) {
     });
   }
 
-  return { renderFilterBar, wireFilter };
+  // The one place the filter changes from outside the box: @period and the like.
+  function setQuery(q) {
+    $("#q").value = q;
+    state.query = q;
+    state.selection.clear();
+    state.highlight = new Set();
+    actions.refresh();
+  }
+
+  return { renderFilterBar, wireFilter, setQuery };
 }
 
 export const contract = {
   name: "filter",
   create: createFilter,
-  provides: ["renderFilterBar", "wireFilter"],
+  provides: ["renderFilterBar", "wireFilter", "setQuery"],
   requires: ["bulkTag", "parseTags", "refresh"],
   renders: ["renderFilterBar"],
   wires: ["wireFilter"],

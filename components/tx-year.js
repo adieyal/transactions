@@ -193,10 +193,13 @@ export function createYearComponent(runtime, actions) {
             sp.classList.toggle("on", sameIds(sp.dataset.ids.split(","), hl)),
           );
           const sel = state.selection;
+          // The header's filter: matches stay lit and the rest dim.
+          const matched = runtime.derived?.matched;
           this.querySelectorAll(".yr-bead").forEach((b) => {
             const on = hl.has(b.dataset.id);
+            const out = !!matched && !matched.has(b.dataset.id);
             b.classList.toggle("sel", sel.has(b.dataset.id));
-            b.classList.toggle("dim", lit && !on);
+            b.classList.toggle("dim", (lit && !on) || out);
             b.classList.toggle("ring", ring && on);
           });
           const threads = new Set();

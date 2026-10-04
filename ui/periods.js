@@ -114,10 +114,7 @@ export function createPeriods(runtime, actions) {
       $("#pStory")?.focus();
     });
     $("#pFilter").onclick = () => {
-      const q = "@" + p.name.split(/\s+/)[0];
-      $("#q").value = q;
-      state.query = q;
-      actions.refresh();
+      actions.setQuery("@" + p.name.split(/\s+/)[0]);
     };
     $("#pRemove").onclick = () => removePeriod(p.id);
     $("#pRegular").onchange = (e) => {
@@ -243,7 +240,7 @@ export const contract = {
     "removePeriod",
     "renderPeriodInspector",
   ],
-  requires: ["AI", "commit", "refresh", "sampleErr", "undo"],
+  requires: ["AI", "commit", "refresh", "sampleErr", "setQuery", "undo"],
   renders: [],
   wires: [],
 };

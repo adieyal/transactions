@@ -202,6 +202,9 @@ function deriveTransactions(state, { today }) {
       tags[m[0]] = (tags[m[0]] || 0) + 1;
   return {
     R,
+    // The filter's matches by id, for the canvas views that keep every bead
+    // and dim the rest; null with no filter.
+    matched: Q ? new Set([...shown, ...extras].map((t) => t.id)) : null,
     txns: shown,
     allTxns: txns,
     expected: shownExpected,

@@ -8,8 +8,8 @@ import { createRuntime } from "../state.js";
 import { deriveTransactions } from "../transactions/derive.js";
 
 const today = "2026-09-30";
-// Renders outside <main>: the header and shell.
-const OUTSIDE = new Set(["renderChrome"]);
+// Renders outside <main>: the header and shell, and the search in the header.
+const OUTSIDE = new Set(["renderChrome", "renderFilterBar"]);
 const MODULES = [
   "filter",
   "timeline",
@@ -65,8 +65,9 @@ for (const bench of [false, true]) {
         for (const r of contract.renders)
           if (!OUTSIDE.has(r)) renders.push([r, made[r]]);
       }
-      // Ten before the chat became <tx-chat>, which draws only inside itself.
-      assert.ok(renders.length >= 8);
+      // Ten before the chat became <tx-chat>, which draws only inside itself,
+      // and the search moved into the header.
+      assert.ok(renders.length >= 7);
       for (const [name, render] of renders) {
         touched.length = 0;
         try {

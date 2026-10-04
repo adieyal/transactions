@@ -209,9 +209,12 @@ export function createOneMonthComponent(runtime, actions) {
           this.querySelectorAll(".sp[data-ids]").forEach((sp) =>
             sp.classList.toggle("on", sameIds(sp.dataset.ids.split(","), hl)),
           );
+          // The header's filter: matches stay lit and the rest dim.
+          const matched = runtime.derived?.matched;
           this.querySelectorAll(".om-bead").forEach((b) => {
             const on = hl.has(b.dataset.id);
-            b.classList.toggle("dim", lit && !on);
+            const out = !!matched && !matched.has(b.dataset.id);
+            b.classList.toggle("dim", (lit && !on) || out);
             b.classList.toggle("ring", ring && on);
           });
           const days = this.querySelector(".sp.on[data-days]")?.dataset.days;

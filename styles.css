@@ -365,7 +365,15 @@ dialog::backdrop{background:rgba(10,14,16,.35)}
 .radio{display:flex; gap:8px; align-items:flex-start; font-size:14px; color:var(--ink)}
 .radio input{margin-top:3px}
 .warnbox{border:1px solid var(--warn); color:var(--ink); border-radius:8px; padding:8px 11px; font-size:13.5px}
-@media (max-width:980px){ .filterbar{padding:12px 14px 0} }
+/* The search in the header, between the scale controls and the Private
+   pill on every view after first run; its match count and tag chips take
+   the header's last row while a filter is set or the box has the focus. */
+header .search{flex:0 1 340px; min-width:200px}
+header .search input{min-height:44px}
+header .filterbar{flex:1 0 100%; padding:0}
+body.onemonth header:not(:has(#searchBox.on, #searchBox:focus-within, .filterbar:focus-within)) .filterbar{display:none}
+body.firstrun header .search, body.firstrun header .filterbar{display:none}
+@media (max-width:560px){ header .search{flex:1 1 100%} }
 .pstrip{fill:transparent; cursor:crosshair}
 .pstrip:hover{fill:var(--grid); fill-opacity:.35}
 .period .pbody{cursor:grab}
