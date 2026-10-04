@@ -18,6 +18,7 @@ import {
   selectedIds,
 } from "./tx-year-bench.js";
 import { wireGather } from "./tx-year-gather.js";
+import { showLensView, wireLensView } from "./tx-year-lens.js";
 import { suggestKey } from "./tx-year-saved.js";
 import { restoreNotes, retag } from "../transactions/tags.js";
 
@@ -291,6 +292,7 @@ export function createYearComponent(runtime, actions) {
             back.focus();
             if (at[0] != null) back.setSelectionRange(at[0], at[1]);
           }
+          showLensView(this, ui);
           if (ui.focusAsk) {
             ui.focusAsk = false;
             const ask = this.querySelector("#ask");
@@ -424,6 +426,7 @@ export function createYearComponent(runtime, actions) {
           });
           // Click a bead for its details; shift-click to add or take it out.
           wireGather(this, (ids, add) => this.pick(ids, add));
+          wireLensView(this);
           this.addEventListener("click", (e) => {
             const bead = e.target.closest(".yr-bead[data-id]");
             if (bead) return this.pick([bead.dataset.id], e.shiftKey);

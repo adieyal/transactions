@@ -43,27 +43,8 @@ Trips
   #trip
 `;
 
+// The starter lenses artboard 3 draws, in its order.
 const STARTER_LENSES = [
-  {
-    id: "l-where",
-    title: "Where it went, by thread",
-    code: `// Money out per thread, largest first. Click a bar to light up its beads.
-// Each currency is added up on its own.
-const out = txns.filter(t => t.amount > 0);
-const several = lib.currencies.length > 1;
-const g = lib.groupBy(out, t => t.thread + "|" + t.currency);
-return {
-  kind: "bars",
-  items: Object.values(g)
-    .map(ts => ({
-      label: several ? ts[0].thread + " (" + ts[0].currency + ")" : ts[0].thread,
-      value: lib.sum(ts, t => t.amount),
-      currency: ts[0].currency,
-      ids: ts.map(t => t.id)
-    }))
-    .sort((a, b) => a.currency.localeCompare(b.currency) || b.value - a.value)
-};`,
-  },
   {
     id: "l-spoken",
     title: "Already spoken for",
@@ -99,10 +80,34 @@ return {
 };`,
   },
 ];
+// A lens the app started with before artboard 3; it is no longer a starter
+// but stays the app's own (More → Restore starter lenses puts it back).
+const OTHER_LENSES = [
+  {
+    id: "l-where",
+    title: "Where it went, by thread",
+    code: `// Money out per thread, largest first. Click a bar to light up its beads.
+// Each currency is added up on its own.
+const out = txns.filter(t => t.amount > 0);
+const several = lib.currencies.length > 1;
+const g = lib.groupBy(out, t => t.thread + "|" + t.currency);
+return {
+  kind: "bars",
+  items: Object.values(g)
+    .map(ts => ({
+      label: several ? ts[0].thread + " (" + ts[0].currency + ")" : ts[0].thread,
+      value: lib.sum(ts, t => t.amount),
+      currency: ts[0].currency,
+      ids: ts.map(t => t.id)
+    }))
+    .sort((a, b) => a.currency.localeCompare(b.currency) || b.value - a.value)
+};`,
+  },
+];
 // The threads text for someone's own workspace: how to write threads, and no
 // threads yet (the demo's threads name its fictional merchants).
 const BLANK_RULES =
   STARTER_RULES.split("\n\n")[0] +
   "\n\n// For example:\n// Groceries [budget 1500/month]\n//   supermarket\n";
 
-export { BLANK_RULES, STARTER_LENSES, STARTER_RULES };
+export { BLANK_RULES, OTHER_LENSES, STARTER_LENSES, STARTER_RULES };

@@ -6,7 +6,7 @@ import {
   withCurrencies,
 } from "./documents.js";
 import { isCurrency } from "./helpers.js";
-import { STARTER_LENSES } from "./defaults.js";
+import { OTHER_LENSES, STARTER_LENSES } from "./defaults.js";
 import { markFromBackup } from "./lens-api.js";
 
 export const BATCH_CHUNK_SIZE = 350;
@@ -136,7 +136,7 @@ export function parseBackup(source, today) {
     out[d.field] = d.in ? d.in(value, { [d.field]: d.older?.() }) : value;
   }
   // Lens code from a file is labelled; it runs in the sandbox like the rest.
-  out.lenses = markFromBackup(out.lenses, STARTER_LENSES);
+  out.lenses = markFromBackup(out.lenses, [...STARTER_LENSES, ...OTHER_LENSES]);
   return out;
 }
 

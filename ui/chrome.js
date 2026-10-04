@@ -1,7 +1,7 @@
 import { createBackup } from "../backup.js";
 import { debounce } from "../helpers.js";
 import { $, html, toast } from "./dom.js";
-import { STARTER_LENSES } from "../defaults.js";
+import { OTHER_LENSES, STARTER_LENSES } from "../defaults.js";
 import { coveredMonths } from "../story/moment-kit.js";
 
 export function createChrome(runtime, actions) {
@@ -233,7 +233,8 @@ export function createChrome(runtime, actions) {
       }
       if (act === "reset-lenses") {
         const have = new Set(state.lenses.map((l) => l.id));
-        STARTER_LENSES.forEach((l) => {
+        // The drawn starters, and the app's other own lens.
+        [...STARTER_LENSES, ...OTHER_LENSES].forEach((l) => {
           if (!have.has(l.id)) state.lenses.push({ ...l });
         });
         actions.save("lenses");

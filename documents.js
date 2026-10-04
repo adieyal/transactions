@@ -1,4 +1,4 @@
-import { BLANK_RULES, STARTER_LENSES } from "./defaults.js";
+import { BLANK_RULES, OTHER_LENSES, STARTER_LENSES } from "./defaults.js";
 import { FORMAT_CURRENCY } from "./transactions/import.js";
 
 // The single definition of every saved document: its storage key, the state
@@ -186,7 +186,8 @@ export const DOCUMENTS = [
     check: listOf(isLens),
     delay: 700,
     in: (lenses) => lenses.map(fromOff),
-    older: () => STARTER_LENSES.map((l) => ({ ...l })),
+    // A backup from before lenses were saved had all three of the app's own.
+    older: () => [...OTHER_LENSES, ...STARTER_LENSES].map((l) => ({ ...l })),
   },
   {
     key: "periods",

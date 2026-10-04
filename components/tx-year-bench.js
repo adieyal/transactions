@@ -4,6 +4,7 @@ import { dayLong, exactMoney, monthLong, plain } from "../story/copy.js";
 import { manyStory, oneStory } from "../story/bench.js";
 import { addToThread } from "../transactions/rules-edit.js";
 import { parseTags } from "../transactions/tags.js";
+import { lensViewClick, lensViewHTML } from "./tx-year-lens.js";
 
 // The bench (artboard 3's aside, "Details and tools"; Copy rules s9):
 // Details for one bead or several, the thread rules, and the lenses. Its
@@ -130,7 +131,7 @@ function threadsHTML(ui, runtime) {
     <p class="bn-fine top">Saved in this browser only. First matching thread wins.</p>`;
 }
 
-function lensesHTML(runtime) {
+function lensesHTML(ui, runtime) {
   const cards = runtime.state.lenses
     .map(
       (l) => `<article class="bn-card" data-lens="${esc(l.id)}">
@@ -140,14 +141,14 @@ function lensesHTML(runtime) {
     </article>`,
     )
     .join("");
-  return `<div class="bn-lenses">${cards}<div class="bn-row"><button class="bn-small" data-lens-blank>Start a blank lens</button><button class="bn-small" data-lens-starters>Restore starter lenses</button></div></div>`;
+  return `<div class="bn-lenses">${cards}<div class="bn-row"><button class="bn-small" data-lens-blank>Start a blank lens</button><button class="bn-small" data-lens-starters>Restore starter lenses</button></div></div>${lensViewHTML(ui, runtime)}`;
 }
 
 export function benchHTML(ui, runtime) {
   const tab = ui.bench ?? "details";
   let body;
   if (tab === "threads") body = threadsHTML(ui, runtime);
-  else if (tab === "lenses") body = lensesHTML(runtime);
+  else if (tab === "lenses") body = lensesHTML(ui, runtime);
   else {
     const ids = selectedIds(runtime);
     const ts = ids.map((id) => runtime.derived.byId.get(id));
@@ -271,7 +272,7 @@ export function benchClick(b, ui, runtime, actions, host) {
     ui.story = null;
     state.scale = "year";
     ui.focusAsk = true;
-  } else if (d.lensEdit) actions.openLensEditor(d.lensEdit);
+  } else if (lensViewClick(d, ui, actions)) return true;
   else if (d.lensPin) {
     state.lenses = state.lenses.map((l) =>
       l.id === d.lensPin ? { ...l, inStory: !l.inStory } : l,
