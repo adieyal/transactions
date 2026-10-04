@@ -11,8 +11,10 @@ import { createFilter } from "./ui/filter.js";
 import { createTimeline } from "./ui/timeline.js";
 import { createTags } from "./ui/tags.js";
 import { createInspector } from "./ui/inspector.js";
-import { createChanges } from "./ui/changes.js";
 import { createPeriods } from "./ui/periods.js";
+import { createQuestions } from "./ui/questions.js";
+import { createMonth } from "./ui/month.js";
+import { createThreadSummary } from "./ui/thread-summary.js";
 import { createReports } from "./ui/reports.js";
 import { createThreads } from "./ui/threads.js";
 import { createLenses } from "./ui/lenses.js";
@@ -36,8 +38,10 @@ Object.assign(actions, createFilter(runtime, actions));
 Object.assign(actions, createTimeline(runtime, actions));
 Object.assign(actions, createTags(runtime, actions));
 Object.assign(actions, createInspector(runtime, actions));
-Object.assign(actions, createChanges(runtime, actions));
 Object.assign(actions, createPeriods(runtime, actions));
+Object.assign(actions, createQuestions(runtime, actions));
+Object.assign(actions, createMonth(runtime, actions));
+Object.assign(actions, createThreadSummary(runtime, actions));
 Object.assign(actions, createReports(runtime, actions));
 Object.assign(actions, createThreads(runtime, actions));
 Object.assign(actions, createLenses(runtime, actions));
@@ -59,7 +63,8 @@ function renderAll() {
   actions.renderChrome();
   actions.renderFilterBar();
   actions.renderParkbar();
-  actions.renderChanges();
+  actions.renderQuestions();
+  actions.renderMonth();
   if ($("#pane-reports").classList.contains("on")) actions.renderReports();
   actions.renderTimeline();
   actions.renderEditor();
@@ -88,7 +93,9 @@ async function boot() {
   actions.wireConnect();
   actions.wireFilter();
   actions.wireParkbar();
-  actions.wireChanges();
+  actions.wireQuestions();
+  actions.wireMonth();
+  actions.wirePrivacy();
   actions.wireInspector();
   actions.wireReports();
   actions.renderTimeline();
@@ -152,6 +159,9 @@ async function boot() {
     runtime.state.periods = docs.periods.items;
   if (Array.isArray(docs.reports?.items))
     runtime.state.reports = docs.reports.items;
+  if (docs.answers?.map) runtime.state.answers = docs.answers.map;
+  if (docs.merchantAnswers?.map)
+    runtime.state.merchantAnswers = docs.merchantAnswers.map;
   if (docs.view) {
     runtime.state.view.parked = Array.isArray(docs.view.parked)
       ? docs.view.parked
@@ -185,7 +195,8 @@ async function boot() {
 
 const refreshSoon = debounce(() => {
   actions.derive();
-  actions.renderChanges();
+  actions.renderQuestions();
+  actions.renderMonth();
   actions.renderFilterBar();
   actions.renderTimeline();
   actions.renderEditor();

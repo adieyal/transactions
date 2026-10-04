@@ -1,5 +1,6 @@
 import { $, esc, fmt, fmtDate, monthName, normText } from "../helpers.js";
 import { toast } from "./dom.js";
+import { wireHoverHighlight } from "./highlight.js";
 
 export function createInspector(runtime, actions) {
   const { state, caps } = runtime;
@@ -14,6 +15,7 @@ export function createInspector(runtime, actions) {
   }
 
   function wireInspector() {
+    wireHoverHighlight($("#insp"), runtime, actions);
     $("#insp").addEventListener("click", (e) => {
       const c = e.target.closest("[data-cite]");
       if (c) {
@@ -88,6 +90,14 @@ export function createInspector(runtime, actions) {
             toast("Removed. Add the file again any time.");
           }),
       );
+      return;
+    }
+    if (
+      state.threadSel &&
+      !state.selection.size &&
+      runtime.derived.names.includes(state.threadSel)
+    ) {
+      actions.renderThreadInspector(el, state.threadSel);
       return;
     }
     const ids = [...state.selection].filter((id) =>

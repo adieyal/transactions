@@ -37,7 +37,7 @@ header{display:flex; align-items:center; gap:18px; padding:14px 22px 12px; flex-
 .btn.small{padding:3px 9px; font-size:13px}
 .btn:disabled{opacity:.45; cursor:default}
 .linkish{border:0; background:none; padding:0; color:var(--focus); text-decoration:underline; text-underline-offset:2px}
-main{display:grid; grid-template-columns:minmax(0,1fr) 400px; min-height:0}
+main{display:grid; grid-template-columns:minmax(0,1fr) 470px; min-height:0}
 .tabs .hidepanel{margin-left:auto; align-self:center; display:grid; place-items:center; width:28px; height:28px; border:0; border-radius:6px; background:none; color:var(--ink-2); padding:0}
 .tabs .hidepanel:hover{color:var(--ink); background:var(--grid)}
 .tabs .hidepanel svg{transition:transform .15s}
@@ -200,8 +200,8 @@ dl.kv dd{margin:0}
 .newlens{border:1.5px dashed var(--wire); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; background:transparent}
 .newlens textarea{border:1px solid var(--wire); border-radius:6px; background:var(--raised); padding:7px 9px; min-height:64px; resize:vertical}
 /* right panel */
-.tabs{display:flex; gap:0; border-bottom:1px solid var(--grid); padding:0 18px; position:sticky; top:0; background:var(--panel); z-index:2}
-.tab{border:0; background:none; padding:12px 12px 10px; font-weight:500; color:var(--ink-2); border-bottom:2px solid transparent; margin-bottom:-1px}
+.tabs{display:flex; gap:0; border-bottom:1px solid var(--grid); padding:0 8px; overflow-x:auto; scrollbar-width:none; position:sticky; top:0; background:var(--panel); z-index:2}
+.tab{border:0; background:none; white-space:nowrap; padding:12px 7px 10px; font-size:14px; font-weight:500; color:var(--ink-2); border-bottom:2px solid transparent; margin-bottom:-1px}
 .tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--ink)}
 .pane{padding:14px 18px 24px; display:none; flex:1; min-height:0}
 .pane.on{display:flex; flex-direction:column}
@@ -320,10 +320,6 @@ dialog::backdrop{background:rgba(10,14,16,.35)}
 .transferlink{fill:none; stroke:#6F7F99; stroke-dasharray:2 3; opacity:.8}
 .transferlink.dim{opacity:.1}
 .flagmark{font-size:10px; fill:var(--warn)!important}
-#changes{margin:18px 16px 0 24px}
-#changes:empty{display:none}
-ul.changes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; font-size:14px}
-ul.changes li{background:var(--raised); border:1px solid var(--grid); border-radius:8px; padding:7px 11px}
 .chg{display:inline-block; width:16px; text-align:center}
 .chg.up{color:var(--warn)} .chg.down{color:#3F7F4F} .chg.gone{color:var(--ink-3)}
 .pname{font:500 24px/1.2 var(--display); border:0; border-bottom:2px solid; background:transparent; padding:2px 0; width:100%; color:var(--ink)}
@@ -335,5 +331,73 @@ ul.changes li{background:var(--raised); border:1px solid var(--grid); border-rad
 .report{background:var(--raised); border:1px solid var(--grid); border-radius:10px; padding:10px 12px; margin-bottom:10px}
 .report h3{font:600 14.5px/1.35 var(--ui); margin:0 0 2px}
 .report .a{margin-top:8px}
-@media (max-width:980px){ #changes{margin:18px 14px 0} }
 @media (prefers-reduced-motion:reduce){ .bead{transition:none} }
+/* questions */
+.privchip{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--wire); background:var(--raised); border-radius:999px; padding:3px 11px; font-size:13px; color:var(--ink-2)}
+.privchip::before{content:""; width:7px; height:7px; border-radius:50%; background:#5E8237}
+.privchip:hover{color:var(--ink); border-color:var(--ink-3)}
+#privacyDlg{width:min(520px,94vw)}
+#privacyBody p{margin:0 0 8px; line-height:1.5}
+.qcount{display:inline-block; min-width:18px; padding:0 5px; margin-left:3px; border-radius:9px; background:var(--grid); color:var(--ink); font-size:11.5px; text-align:center}
+.qcount:empty{display:none}
+.qprivacy{padding:10px 12px; border-radius:10px; background:var(--raised); border:1px solid var(--grid); font-size:13px; line-height:1.5; color:var(--ink-2); margin-bottom:12px}
+.qlist{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px}
+.qcard{background:var(--raised); border:1px solid var(--grid); border-radius:12px; padding:12px 14px; cursor:pointer}
+.qcard.on{border-color:var(--ink-3); box-shadow:0 0 0 1px var(--ink-3)}
+.qmeta{display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px; font-size:12px; color:var(--ink-2)}
+.qkind{font-weight:600; letter-spacing:.04em; text-transform:uppercase}
+.qtext{margin:8px 0 10px; font:400 17px/1.5 var(--display)}
+.qanswers{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.qchip{min-height:36px; padding:0 14px; border-radius:18px; border:1px solid var(--wire); background:var(--raised); color:var(--ink); font-weight:500; font-size:14px}
+.qchip:hover{border-color:var(--ink-3)}
+.qskip{min-height:36px; padding:0 10px; border:0; background:none; color:var(--ink-2); font-weight:500; font-size:14px}
+.qskip:hover{color:var(--ink)}
+.qwrite{display:flex; flex-direction:column; gap:6px}
+.qwrite input{border:1px solid var(--wire); background:var(--raised); border-radius:6px; padding:7px 9px; font-size:14px; color:var(--ink)}
+.qfoot{margin:10px 0 0; font-size:12px; color:var(--ink-3)}
+body.nopanel .qcount{min-width:0; width:16px; padding:4px 0; margin:4px 0 0}
+/* your month */
+.mnav{display:flex; align-items:center; gap:10px}
+.mstep{border:1px solid var(--wire); background:var(--raised); color:var(--ink); border-radius:999px; width:30px; height:30px; font-size:17px; line-height:1; padding:0}
+.mstep:disabled{opacity:.35; cursor:default}
+.mkick{font-size:12px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2)}
+.mtitle{font:500 30px/1.15 var(--display); margin:8px 0 12px}
+.msum .mp{font:400 17px/1.6 var(--display); margin:0 0 12px}
+.msum .mp-overview{font-size:19.5px; line-height:1.5}
+.sp{border-bottom:1.5px dotted var(--ink-3); cursor:default; transition:background .15s}
+.sp.on,.sp:focus-visible{background:color-mix(in srgb,#E9C46A 45%,transparent); border-bottom-color:var(--ink); outline:0}
+.yours{margin:0 0 14px; padding:10px 14px; border-left:3px solid var(--wire); background:var(--raised); border-radius:0 8px 8px 0}
+.yours figcaption{font:600 11.5px var(--ui); letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2); margin-bottom:4px}
+.yourtext{font:400 16px/1.55 var(--display)}
+.yourtext p{margin:0 0 6px}
+.mqhead{font:600 11.5px var(--ui); letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2); margin:16px 0 8px}
+.msum .qlist{margin:0 0 10px}
+/* period and thread summaries */
+.ins-label{font:600 11.5px var(--ui); letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2); margin:12px 0 5px}
+.ins-label:first-child{margin-top:0}
+.ins-label .sub{font:400 12px var(--ui); letter-spacing:0; text-transform:none; margin-left:6px}
+.psum p,.tsum p{font:400 16px/1.55 var(--display); margin:0 0 8px}
+.pregular{display:flex; gap:7px; align-items:center; font-size:13px; color:var(--ink-2); margin:2px 0 4px}
+.pnotes{list-style:none; margin:0 0 6px; padding:0; display:flex; flex-direction:column; gap:6px}
+.pnotes li{display:flex; flex-direction:column; gap:1px; font-size:13px}
+.pn-when{color:var(--ink-2)}
+.pn-text,.bw-note{font:400 15px/1.45 var(--display)}
+.tname{font:500 26px/1.15 var(--display); margin:0 0 2px}
+.tsum{margin-top:10px}
+.tstrip{display:flex; align-items:flex-end; gap:4px; height:64px; margin:10px 0 6px}
+.tm{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:3px; height:100%; border-bottom:0}
+.tm i{display:block; width:70%; max-width:22px; border-radius:3px 3px 0 0; opacity:.85}
+.tm b{font:500 10px var(--ui); color:var(--ink-3)}
+.tm.sp{border-bottom:0}
+.blow{list-style:none; margin:0; padding:0; max-height:340px; overflow:auto; display:flex; flex-direction:column}
+.blow li{display:grid; grid-template-columns:96px minmax(0,1fr) auto; gap:2px 10px; padding:6px 4px; border-bottom:1px solid var(--grid); font-size:13.5px}
+.blow li.sp{border-bottom:1px solid var(--grid)}
+.bw-date{color:var(--ink-2)}
+.bw-a{text-align:right; font-variant-numeric:tabular-nums}
+.bw-ctx{grid-column:2 / -1; color:var(--ink-2); font-size:12.5px}
+.pnotes li .sp{align-self:flex-start}
+/* assistant help, only when asked */
+.qassist{min-height:36px; padding:0 10px; border:0; background:none; color:var(--focus); font-size:13.5px; margin-left:auto}
+.qassist:disabled{color:var(--ink-3)}
+.qnote,.mpnote{font-size:12.5px; color:var(--ink-2); margin:6px 0 0}
+.mpolish{margin:4px 0 2px}

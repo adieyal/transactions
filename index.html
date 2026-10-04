@@ -16,6 +16,7 @@
     <h1 class="mark"><svg width="26" height="22" viewBox="0 0 26 22" aria-hidden="true"><line x1="1" y1="5" x2="25" y2="5" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="11" x2="25" y2="11" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="17" x2="25" y2="17" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="5" r="3" fill="#2F6B8F"/><circle cx="13" cy="5" r="2" fill="#2F6B8F"/><circle cx="18" cy="11" r="3.5" fill="#A4502F"/><circle cx="9" cy="17" r="2.5" fill="#5E8237"/><circle cx="21" cy="17" r="2.5" fill="none" stroke="#5E8237" stroke-dasharray="1.5 1.5"/></svg>Transactions</h1>
     <span class="sub" id="demoNotice">Demo · all example data is fictional</span>
     <div class="spacer"></div>
+    <button class="privchip" id="privacyChip" aria-haspopup="dialog">Private to this device</button>
     <div class="chips" id="ranges" role="group" aria-label="Time range"></div>
     <button class="btn" id="addBtn">Add statements</button>
     <div class="menu" id="moreMenu">
@@ -45,18 +46,25 @@
       <div id="tlwrap"><div id="tl"></div><div id="tip" role="status"></div></div>
       <div id="parkbar" aria-label="Parked threads"></div>
       <div id="insp"></div>
-      <div id="changes"></div>
     </section>
     <aside class="right">
       <div class="tabs" role="tablist">
-        <button class="tab" role="tab" id="tab-lenses" aria-selected="true" aria-controls="pane-lenses">Lenses</button>
+        <button class="tab" role="tab" id="tab-month" aria-selected="true" aria-controls="pane-month">Your month</button>
+        <button class="tab" role="tab" id="tab-lenses" aria-selected="false" aria-controls="pane-lenses">Lenses</button>
+        <button class="tab" role="tab" id="tab-questions" aria-selected="false" aria-controls="pane-questions">Questions <span class="qcount" id="qCount"></span></button>
         <button class="tab" role="tab" id="tab-threads" aria-selected="false" aria-controls="pane-threads">Threads</button>
         <button class="tab" role="tab" id="tab-ask" aria-selected="false" aria-controls="pane-ask">Ask</button>
         <button class="tab" role="tab" id="tab-reports" aria-selected="false" aria-controls="pane-reports">Reports</button>
         <button class="hidepanel" id="hidePanel" title="Hide the panel" aria-label="Hide the panel"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
-      <div class="pane on" id="pane-lenses" role="tabpanel" aria-labelledby="tab-lenses">
+      <div class="pane on" id="pane-month" role="tabpanel" aria-labelledby="tab-month">
+        <div id="month"></div>
+      </div>
+      <div class="pane" id="pane-lenses" role="tabpanel" aria-labelledby="tab-lenses">
         <div id="lenses"></div>
+      </div>
+      <div class="pane" id="pane-questions" role="tabpanel" aria-labelledby="tab-questions">
+        <div id="questions"></div>
       </div>
       <div class="pane" id="pane-threads" role="tabpanel" aria-labelledby="tab-threads">
         <p class="lead">Each thread is a wire on the timeline. Type a name, then indented bits of merchant names, #tags from your notes, or /patterns/. Put the cursor on a line to see what it catches.</p>
@@ -123,6 +131,13 @@
       <span><button class="btn small quiet" id="aiTest">Test connection</button> <span class="sub" id="aiNote"></span></span>
       <span><button class="btn small quiet" id="aiForget">Forget key</button> <button class="btn small quiet" id="aiCancel">Cancel</button> <button class="btn small" id="aiSave">Save</button></span>
     </div>
+  </div>
+</dialog>
+<dialog id="privacyDlg" aria-labelledby="privacyTitle">
+  <div class="dlg">
+    <h2 id="privacyTitle">Private to this device</h2>
+    <div id="privacyBody"></div>
+    <div class="row-actions"><button class="btn small" id="privacyClose">Close</button></div>
   </div>
 </dialog>
 <div id="toast" role="status" aria-live="polite"></div>

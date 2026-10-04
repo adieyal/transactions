@@ -1,9 +1,11 @@
 import { $, esc } from "../helpers.js";
+import { detectMoments } from "../story/moments.js";
+import { money, monthLong, privacyText } from "../story/copy.js";
 
 const SEEN_KEY = "transactions-tour-seen";
 
-// A short walk through the demo year. Each step points at the real UI and
-// makes one point about reading spending as a record of life.
+// A short walk through the demo year: reading a month, checking a figure,
+// answering a question, privacy, and threads. Each step points at the real UI.
 export function createTour(runtime, actions) {
   const { state } = runtime;
   let at = -1,
@@ -11,88 +13,134 @@ export function createTour(runtime, actions) {
     spot = null,
     card = null;
 
-  const txn = (merchant, amount) =>
-    runtime.derived?.allTxns.find(
-      (t) => t.merchant === merchant && (amount == null || t.amount === amount),
-    );
-  const dot = (t) => t && $(`#tl [data-id="${t.id}"]`);
-  // A period's dots on one wire.
-  const periodOn = (id, thread) => {
-    const p = state.periods.find((x) => x.id === id);
-    return (runtime.derived?.allTxns || [])
-      .filter((t) => t.thread === thread && t.periods.includes(p?.name))
-      .map(dot);
-  };
-  const select = (t) => {
-    state.selection = new Set([t.id]);
-    state.highlight = new Set([t.id]);
-    state.periodSel = null;
-    actions.refresh();
-  };
-  const openPeriod = (id) => {
-    state.periodSel = id;
-    state.selection.clear();
-    state.highlight = new Set();
-    actions.refresh();
-  };
   const clear = () => {
     state.selection.clear();
     state.highlight = new Set();
     state.periodSel = null;
+    state.threadSel = null;
     actions.refresh();
   };
+  // The demo's biggest burst of purchases: the move. Once answered with a
+  // period it is no longer a burst outside a period, so use that period.
+  function theMove() {
+    const open = detectMoments(runtime.derived, state).find(
+      (m) => m.kind === "cluster",
+    );
+    if (open) return open;
+    for (const [id, a] of Object.entries(state.answers)) {
+      const p = state.periods.find((x) => x.id === a.created?.periodId);
+      if (id.startsWith("cluster-") && p)
+        return {
+          id,
+          month: p.start.slice(0, 7),
+          txnIds: runtime.derived.allTxns
+            .filter((t) => t.date >= p.start && t.date <= p.end)
+            .map((t) => t.id),
+          facts: {},
+        };
+    }
+    return null;
+  }
+  const showMonth = (month) => {
+    clear();
+    state.monthView = month;
+    actions.openTab("month");
+    actions.renderMonth();
+    $("#pane-month").scrollTop = 0;
+  };
+  const movePeriod = (move) =>
+    state.periods.find(
+      (p) => p.id === state.answers[move.id]?.created?.periodId,
+    );
 
   function buildSteps() {
-    const repair = txn("Cobble Lane Garage", 1480);
-    const fridge = txn("Kettle & Coil", 890);
+    const move = theMove();
+    if (!move) return [];
+    const M = monthLong(move.month).split(" ")[0];
+    const privacy = privacyText(actions.Store.backend.kind);
     return [
       {
-        title: "This isn't a bank statement",
-        body: "It's a year of someone's life. Each wire is part of it: food, bills, the cat, getting around. Each dot is a moment money changed hands, and bigger dots mean bigger amounts.",
-        target: () => $("#tlwrap"),
-        before: clear,
-      },
-      repair && {
-        title: "Life gets in the way",
-        body: "A few months in, the clutch went. The repair came out of the holiday fund, and on the Transfers wire you can see two months without a savings transfer. The note on the charge says why. A statement never would.",
-        target: () => dot(repair),
-        before: () => select(repair),
-      },
-      state.periods.some((p) => p.id === "demo-move") && {
-        title: "Remember moving house?",
-        body: "Mark the stretches of time that mattered: a move, a trip, a renovation. The cluster on the Home wire is the fridge, the washing machine and the kettle from the week of the move. Drag across the dots that belong together and choose Mark as a period.",
-        target: () => periodOn("demo-move", "Home"),
-        before: () => openPeriod("demo-move"),
-      },
-      state.periods.some((p) => p.id === "demo-move") && {
-        title: "Write down what was going on",
-        body: "A period keeps its story next to what it cost. Months later, this is what you'll want to remember.",
-        target: () => $("#insp"),
-      },
-      fridge && {
-        title: "Notes and #tags",
-        body: "Add a note to any charge. Tags in notes become filters: click #move to see everything the move cost, wherever it was spent.",
-        target: () => $("#qTags"),
-        before: () => select(fridge),
+        title: "Your month, in plain words",
+        body: `This is ${M}, told in sentences: what went out, what was regular and what stood out. Every figure comes straight from the statements.`,
+        target: () => $("#month .msum"),
+        before: () => showMonth(move.month),
       },
       {
-        title: "Your categories, your words",
-        body: "Threads are a short list you can edit. Rename a wire, split one up, or add a budget. Put the cursor on a line to see which charges it catches.",
-        target: () => $("#editor"),
+        title: "Every figure can be checked",
+        body: "Hover an underlined phrase and its transactions light up on the timeline. Try it on any sentence.",
+        target: () => $("#month .mp-overview .sp"),
         before: () => {
-          clear();
-          actions.openTab("threads");
+          showMonth(move.month);
+          const phrase = $("#month .mp-overview .sp");
+          if (!phrase) return;
+          phrase.classList.add("on");
+          state.highlight = new Set(phrase.dataset.ids.split(","));
+          actions.renderTimeline();
         },
       },
-      state.periods.some((p) => p.id === "demo-trip") && {
-        title: "And the holiday you saved for",
-        body: "The car set the fund back two months, but they got there. The money moved out of savings, and the trip is all there on the Trips wire.",
-        target: () => periodOn("demo-trip", "Trips"),
-        before: () => openPeriod("demo-trip"),
+      !state.answers[move.id] && {
+        title: "The app asks, so you don't have to",
+        body: `${money(move.facts.total)} went out in one week in ${M}, so the app asks about it. Answer if you like: pick an option, name it yourself, write a note or skip. Only you see your answer. Press Next and the tour will answer “Moving house” for you.`,
+        target: () => $(`#month .qcard[data-qid="${move.id}"]`),
+        before: () => showMonth(move.month),
+      },
+      {
+        title: "Your answer becomes a period",
+        body: () => {
+          const p = movePeriod(move);
+          return p
+            ? `“${p.name}” is now a period on the timeline, and ${M}'s summary tells it in a sentence of its own. Undo is in the message at the bottom.`
+            : "Your answer is saved, and the question won't come back.";
+        },
+        target: () => {
+          const p = movePeriod(move);
+          return p ? $(`#tl g.period[data-pid="${p.id}"]`) : null;
+        },
+        before: () => {
+          if (!state.answers[move.id])
+            actions.answerQuestion(move, {
+              action: "period",
+              label: "Moving house",
+            });
+          showMonth(move.month);
+          state.highlight = new Set(move.txnIds);
+          actions.renderTimeline();
+        },
+      },
+      {
+        title: "Private, and it says so",
+        body: `This chip says where everything is kept: ${privacy.label.charAt(0).toLowerCase() + privacy.label.slice(1)}. Click it for the details. Nothing goes to an assistant unless you ask.`,
+        target: () => $("#privacyChip"),
+        before: clear,
+      },
+      {
+        title: "More questions, all optional",
+        body: "Other things the app noticed wait here, like a price change or a savings transfer that paused. Answer any you like. Skip means it won't ask again.",
+        target: () => $("#pane-questions"),
+        before: () => {
+          clear();
+          actions.openTab("questions");
+        },
+      },
+      {
+        title: "Every thread has a story too",
+        body: "Click a thread's name on the timeline to see it summed up: how often, how much, the busiest month, and every charge blow by blow.",
+        target: () => $("#insp"),
+        before: () => {
+          clear();
+          state.threadSel = "Dining out";
+          state.highlight = new Set(
+            runtime.derived.allTxns
+              .filter((t) => t.thread === "Dining out")
+              .map((t) => t.id),
+          );
+          actions.openTab("month");
+          actions.refresh();
+        },
       },
       {
         title: "Now make it yours",
-        body: "Add your own statements and shape the view around your own life. Everything stays in this browser. You can replay this tour from More.",
+        body: "Add your own statements and your months will be told the same way. Everything stays where the chip says. You can replay this tour from More.",
         final: true,
         before: clear,
       },
@@ -165,7 +213,7 @@ export function createTour(runtime, actions) {
     step.before?.();
     card.innerHTML = `<button class="tour-close" data-tour="end" aria-label="Close the tour" title="Close (Esc)">×</button>
       <div class="tour-count">${at + 1} of ${steps.length}</div>
-      <h3>${esc(step.title)}</h3><p>${esc(step.body)}</p>
+      <h3>${esc(step.title)}</h3><p>${esc(typeof step.body === "function" ? step.body() : step.body)}</p>
       <div class="row-actions">${
         step.final
           ? `<button class="linkish" data-tour="end">Keep exploring</button><button class="btn small" data-tour="add">Add your statements</button>`
@@ -211,6 +259,7 @@ export function createTour(runtime, actions) {
   function startTour() {
     if (at >= 0 || !runtime.derived?.allTxns.length) return;
     steps = buildSteps();
+    if (!steps.length) return;
     spot = document.createElement("div");
     spot.className = "tour-spot";
     card = document.createElement("div");

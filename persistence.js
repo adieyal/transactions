@@ -68,6 +68,11 @@ export function createPersistence(runtime, actions) {
       400,
     );
 
+  const saveAnswers = () => {
+    saveSoon("answers", () => ({ map: state.answers }), 300);
+    saveSoon("merchantAnswers", () => ({ map: state.merchantAnswers }), 300);
+  };
+
   const saveLenses = () => saveSoon("lenses", () => ({ items: state.lenses }));
 
   const saveView = () =>
@@ -107,6 +112,7 @@ export function createPersistence(runtime, actions) {
     Store,
     restoreBackup,
     removeBatch,
+    saveAnswers,
     saveBatch,
     saveChat,
     saveLenses,
