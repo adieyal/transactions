@@ -63,26 +63,30 @@ function rowsHTML(derived, txns, scale, { year, compact, numbers }) {
       if (!ts.length) return "";
       const beads = ts
         .map((t) => {
-          const back = t.amount < 0;
+          const back = t.amount < 0 && !t.expected;
           const a = Math.abs(t.amount);
           const raw = compact
             ? 4 + Math.sqrt(a) * 0.32
             : (year ? 7 : 9) + Math.sqrt(a) * (year ? 0.7 : 0.85);
           const sz = Math.round(Math.min(compact ? 14 : 30, raw));
-          const look = back
-            ? `background: var(--band); border-color: ${esc(col)}`
-            : `background: ${esc(col)}`;
-          const title = back
-            ? `${dayShort(t.date)} · ${t.merchant} refund · ${money(a, t.currency)} back`
-            : `${dayShort(t.date)} · ${t.merchant} · ${money(a, t.currency)}`;
-          return `<div class="yr-bead${back ? " back" : ""}" data-id="${esc(t.id)}" title="${esc(title)}" style="top: ${WY}px; left: ${pct(scale.mid(t.date))}%; width: ${sz}px; height: ${sz}px; ${look}">${back ? `<span class="yr-minus" style="background: ${esc(col)}"></span>` : ""}</div>`;
+          const look = t.expected
+            ? `background: transparent; border: 1.5px dashed ${esc(col)}`
+            : back
+              ? `background: var(--band); border-color: ${esc(col)}`
+              : `background: ${esc(col)}`;
+          const title = t.expected
+            ? `${dayShort(t.date)} · ${t.merchant} · expected, about ${money(a, t.currency)}`
+            : back
+              ? `${dayShort(t.date)} · ${t.merchant} refund · ${money(a, t.currency)} back`
+              : `${dayShort(t.date)} · ${t.merchant} · ${money(a, t.currency)}`;
+          return `<div class="yr-bead${back ? " back" : ""}${t.expected ? " expected" : ""}" data-id="${esc(t.id)}" title="${esc(title)}" style="top: ${WY}px; left: ${pct(scale.mid(t.date))}%; width: ${sz}px; height: ${sz}px; ${look}">${back ? `<span class="yr-minus" style="background: ${esc(col)}"></span>` : ""}</div>`;
         })
         .join("");
       let arcs = "";
       if (year && !compact) {
         const by = new Map();
         for (const t of ts)
-          if (t.amount > 0 && seen.get(t.key)?.size >= 3)
+          if (t.amount > 0 && !t.expected && seen.get(t.key)?.size >= 3)
             by.set(t.key, [...(by.get(t.key) || []), t]);
         for (const ser of by.values()) {
           ser.sort((a, b) => a.date.localeCompare(b.date));
@@ -96,10 +100,10 @@ function rowsHTML(derived, txns, scale, { year, compact, numbers }) {
         }
       }
       const out = ts
-        .filter((t) => t.amount > 0)
+        .filter((t) => t.amount > 0 && !t.expected)
         .reduce((s, t) => s + t.amount, 0);
       const back = ts
-        .filter((t) => t.amount < 0)
+        .filter((t) => t.amount < 0 && !t.expected)
         .reduce((s, t) => s - t.amount, 0);
       const cur = ts[0].currency;
       const meta =
@@ -164,6 +168,13 @@ export function bandHTML(derived, state, view) {
       t.thread &&
       !(t.amount < 0 && t.transfer),
   );
+  // Charges that repeat, projected into the month ahead: dashed beads.
+  if (year && scale.ahead) {
+    const ahead = scale.cols.at(-1);
+    for (const e of derived.expected || [])
+      if (monthOf(e.date) === ahead && e.thread)
+        txns.push({ ...e, expected: true });
+  }
   const axis = year
     ? scale.cols
         .map((ym, i) => {
@@ -206,7 +217,7 @@ export function bandHTML(derived, state, view) {
   const totals =
     numbers && !compact ? numbersHTML(derived, state, view, scale, txns) : "";
   return `<section class="yr-band" aria-label="Timeline"><div class="yr-scroll"><div class="yr-inner">
-    <div class="yr-top"><div class="yr-scalelabel">${esc(label)}</div><div class="yr-flex"></div><button class="yr-compact" aria-pressed="${compact}">${compact ? "Full timeline" : "Compact timeline"}</button></div>
+    <div class="yr-top"><div class="yr-scalelabel">${esc(label)}${txns.some((t) => t.expected) ? ", and what’s expected ahead" : ""}</div><div class="yr-flex"></div><button class="yr-compact" aria-pressed="${compact}">${compact ? "Full timeline" : "Compact timeline"}</button></div>
     <div class="yr-axisrow"><div class="yr-gutter"></div><div class="yr-axis">${axis}</div></div>
     ${totals}
     <div class="yr-periodsrow"><div class="yr-gutter"></div><div class="yr-periods" data-cols="${esc((year ? scale.cols : [month]).join(","))}" data-scale="${year ? "year" : "month"}" title="Drag along this strip to mark a period">${chips}<div class="yr-pnew" hidden></div></div></div>

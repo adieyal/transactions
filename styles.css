@@ -708,3 +708,8 @@ tx-year .sp.on{background:var(--lit); border-bottom-color:var(--ink)}
 .yr-askfoot .yr-fine{margin:0}
 .yr-h3{margin:0 0 10px; font-size:16px; font-weight:600}
 .yr-sendlist{margin:0 0 12px; padding-left:20px; font-size:15px; line-height:1.6}
+.yr-bead.expected{opacity:.75}
+.yr-bead.expected.dim{opacity:.12}
+/* A phone shows the band above the story rather than over it: at 390px the
+   band is taller than the screen, and sticky it would hide the story. */
+@media (max-width:700px){.yr-band{position:static}}
