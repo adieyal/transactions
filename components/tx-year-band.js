@@ -151,40 +151,23 @@ function budgetHTML(ts, budget, cur, col, scale) {
   return `${boxes}<div class="yr-budgetline" style="width: ${pct(w)}%; bottom: ${4 + LANE}px; border-top-color: ${esc(col)}"></div><div class="yr-budgetlabel" style="right: ${pct(100 - w)}%; bottom: ${6 + LANE}px">${esc(`${money(budget, cur)} a month`)}</div>`;
 }
 
-// Named periods as tinted bands with their name on the strip; busy
-// stretches the app found as dashed outlines with "₪720 · 2–6 Jun ?".
-function periodsOf(derived, state, scale, range) {
-  const [from, to] = range;
-  const named = (state.periods || []).filter(
-    (p) => p.start <= to && p.end >= from,
-  );
-  const stretches = detectMoments(derived, state).filter(
-    (m) => m.kind === "cluster" && m.from <= to && m.to >= from,
-  );
-  const span = (a, b) =>
-    `left: ${pct(scale.at(a))}%; width: ${pct(Math.max(scale.end(b) - scale.at(a), 0.8))}%`;
-  const bands = [
-    ...named.map(
-      (p) =>
-        `<div class="yr-pband" data-pid="${esc(p.id)}" style="${span(p.start, p.end)}"></div>`,
-    ),
-    ...stretches.map(
-      (m) => `<div class="yr-sband" style="${span(m.from, m.to)}"></div>`,
-    ),
-  ].join("");
-  const chips = [
-    ...named.map(
-      (p) =>
-        `<button class="yr-pchip" data-period="${esc(p.id)}" data-tip="${esc(`${p.name}: a period you named. Drag to move it, drag a side to change its dates, or click to rename or delete it.`)}" style="left: ${pct(scale.at(p.start))}%; min-width: ${pct(Math.max(scale.end(p.end) - scale.at(p.start), 0.8))}%">${esc(p.name)}</button>`,
-    ),
-    ...stretches.map((m) => {
+// Busy stretches the app found, for <tx-period-strip>, which draws them as
+// dashed outlines with "₪720 · 2–6 Jun ?" beside the named periods.
+function stretchesOf(derived, state, [from, to]) {
+  return detectMoments(derived, state)
+    .filter((m) => m.kind === "cluster" && m.from <= to && m.to >= from)
+    .map((m) => {
       const r = shortRange(m.from, m.to)
         .replace(/ \d{4}$/, "")
         .replace(" – ", "–");
-      return `<button class="sp yr-schip" data-stretch="${esc(m.id)}" data-ids="${esc(m.txnIds.join(","))}" aria-label="${esc(`A busy stretch, ${r}, not named yet. Name it`)}" style="left: ${pct(scale.at(m.from))}%">${esc(`${money(m.facts.total, m.currency)} · ${r}`)}<span aria-hidden="true" class="yr-q">?</span></button>`;
-    }),
-  ].join("");
-  return { bands, chips };
+      return {
+        from: m.from,
+        to: m.to,
+        label: `${money(m.facts.total, m.currency)} · ${r}`,
+        aria: `A busy stretch, ${r}, not named yet. Name it`,
+        data: { "data-stretch": m.id, "data-ids": m.txnIds.join(",") },
+      };
+    });
 }
 
 export function bandHTML(derived, state, view) {
@@ -234,7 +217,7 @@ export function bandHTML(derived, state, view) {
   const grid = lines
     .map((x) => `<div class="yr-gridline" style="left: ${pct(x)}%"></div>`)
     .join("");
-  const { bands, chips } = periodsOf(derived, state, scale, range);
+  const stretches = stretchesOf(derived, state, range);
   const tx = year && scale.ahead ? scale.at(today) : null;
   const future =
     tx == null
@@ -250,8 +233,7 @@ export function bandHTML(derived, state, view) {
     <div class="yr-top"><div class="yr-scalelabel">${esc(label)}${txns.some((t) => t.expected) ? ", and what’s expected ahead" : ""}</div><div class="yr-flex"></div><button class="yr-compact" aria-pressed="${compact}">${compact ? "Full timeline" : "Compact timeline"}</button></div>
     <div class="yr-axisrow"><div class="yr-gutter"></div><div class="yr-axis">${axis}</div></div>
     ${totals}
-    <div class="yr-periodsrow"><div class="yr-gutter"></div><div class="yr-periods" data-cols="${esc((year ? scale.cols : [month]).join(","))}" data-scale="${year ? "year" : "month"}" data-tip="Drag along this strip to mark a period">${chips}<div class="yr-pnew" hidden></div></div></div>
-    <div class="yr-rows"><div class="yr-grid">${grid}${future}${win}${bands}</div>${rowsHTML(derived, txns, scale, { year, compact, numbers })}</div>
+    <tx-period-strip variant="year" months="${esc((year ? scale.cols : [month]).join(","))}" stretches="${esc(JSON.stringify(stretches))}"><div class="yr-rows"><div class="yr-grid">${grid}${future}${win}</div>${rowsHTML(derived, txns, scale, { year, compact, numbers })}</div></tx-period-strip>
     ${year && !compact ? `<p class="yr-legend">${esc(LEGEND)}</p>` : ""}
   </div></div></section>`;
 }

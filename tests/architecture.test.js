@@ -673,6 +673,41 @@ test("components draw only inside themselves", () => {
   expectAllowlist("Reach", found, REACH_ALLOW);
 });
 
+test("period lanes, drag and the Periods strip have one home each", () => {
+  // Every view gets its period editing from these modules (ADR 0011), so a
+  // second copy, which would drift from them, fails here.
+  const HOMES = [
+    [
+      "lane packing",
+      "transactions/period-lanes.js",
+      (f) =>
+        /\blaneEnds\b|\.findIndex\(\s*\(?\s*\w+\s*\)?\s*=>\s*\w+\s*<\s*\w+\.start\b/.test(
+          CODE[f],
+        ),
+    ],
+    [
+      "move and resize maths",
+      "transactions/period-drag.js",
+      (f) => /Math\.round\([^;]*\binv\(|\bedge\s*===/.test(CODE[f]),
+    ],
+    [
+      "period names and their edit card",
+      "components/tx-period-strip.js",
+      (f) =>
+        f.startsWith("components/") &&
+        /data-period="|\bcv-pedit\b/.test(SOURCE[f]),
+    ],
+  ];
+  const found = HOMES.flatMap(([what, home, bites]) =>
+    FILES.filter((f) => f !== home && bites(f)).map(
+      (f) => `${f} has its own ${what}; use ${home}`,
+    ),
+  );
+  assert.deepEqual(found, [], "Period logic lives only in its home module");
+  for (const [what, home, bites] of HOMES)
+    assert.ok(bites(home), `${home} should hold the ${what}`);
+});
+
 test("modules stay within their size budget", (t) => {
   const found = [];
   for (const file of FILES) {

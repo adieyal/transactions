@@ -1,6 +1,6 @@
 import { addMonths, monthOf, ms } from "../helpers.js";
 import { LOOSE, TRANSFERS } from "../transactions/constants.js";
-import { periodLanes } from "../transactions/period-drag.js";
+import { periodLanes } from "../transactions/period-lanes.js";
 
 // Where everything on the timeline goes, as plain numbers: the time scale,
 // statement bars, period lanes, thread rows, budget bands, beads, arcs and

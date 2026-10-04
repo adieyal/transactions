@@ -2,10 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   dragTo,
+  monthsScale,
+  nudge,
   periodAt,
-  periodLanes,
   startDrag,
 } from "../transactions/period-drag.js";
+import { periodLanes } from "../transactions/period-lanes.js";
 
 const P = (id, start, end) => ({ id, start, end });
 // A day is 10px: x 0 is 1 September 2026.
@@ -98,4 +100,30 @@ test("resizing snaps to whole days and a side stops at the other", () => {
     start: "2026-09-05",
     end: "2026-09-05",
   });
+});
+
+test("arrow keys nudge a period a day, and Shift its end, which stops at its start", () => {
+  const p = P("a", "2026-09-05", "2026-09-05");
+  assert.deepEqual(nudge(p, 1), { start: "2026-09-06", end: "2026-09-06" });
+  assert.deepEqual(nudge(p, 1, true), {
+    start: "2026-09-05",
+    end: "2026-09-06",
+  });
+  assert.deepEqual(nudge(p, -1, true), {
+    start: "2026-09-05",
+    end: "2026-09-05",
+  });
+});
+
+test("monthsScale: months as equal columns, and back from x to a date", () => {
+  const s = monthsScale(["2026-02", "2026-03"]);
+  assert.equal(s.at("2026-02-01"), 0);
+  assert.equal(s.end("2026-02-28"), 0.5);
+  assert.equal(s.at("2026-03-01"), 0.5);
+  assert.equal(s.at("2026-01-20"), 0);
+  assert.equal(s.end("2026-04-02"), 1);
+  assert.equal(s.dateAt(0.5 + 0.5 * (10.5 / 31)), "2026-03-11");
+  assert.equal(s.dateAt(1.2), "2026-03-31");
+  assert.equal(s.dateAt(-1), "2026-02-01");
+  assert.deepEqual([s.from, s.to], ["2026-02-01", "2026-03-31"]);
 });

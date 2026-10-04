@@ -1,31 +1,13 @@
-// Named periods on a timeline: which row each sits on, which one a point
-// is over, and where a drag takes it. Shared by the old timeline (ui/
-// timeline.js) and the canvas views (components/), which pass in their own
-// geometry: x positions in pixels, and inv(x), the time at x in ms.
+// Moving and resizing named periods on a timeline: which one a point is
+// over, where a drag takes it, and a nudge from the keyboard. The one home
+// of these rules (tests/architecture.test.js): the old timeline (ui/
+// timeline-drag.js) and <tx-period-strip> pass in their own geometry, x
+// positions in pixels and inv(x), the time at x in ms. monthsScale is the
+// canvas views' date-to-x scale.
 
 const DAY = 864e5;
 const iso = (v) => new Date(v).toISOString().slice(0, 10);
 const msOf = (d) => Date.parse(`${d}T00:00:00Z`);
-
-// Periods packed into lanes so overlapping ones sit on top of each other:
-// earliest first, and the longer of two that start together first. A
-// period goes in the first lane that ends before it starts.
-export function periodLanes(periods) {
-  const pers = [...periods].sort((a, b) =>
-    a.start < b.start ? -1 : a.start > b.start ? 1 : a.end > b.end ? -1 : 1,
-  );
-  const laneEnds = [],
-    laneOf = {};
-  for (const p of pers) {
-    let l = laneEnds.findIndex((e) => e < p.start);
-    if (l < 0) {
-      l = laneEnds.length;
-      laneEnds.push(p.end);
-    } else laneEnds[l] = p.end;
-    laneOf[p.id] = l;
-  }
-  return { pers, laneOf, lanes: laneEnds.length };
-}
 
 // The period whose column is under x, and which side if x is within
 // `slop` pixels of one. bands: [{ id, a, b }], a and b its sides' x. The
@@ -71,4 +53,46 @@ export function dragTo(drag, x, inv) {
   if (drag.edge === "start")
     return { start: iso(Math.min(e, s + days * DAY)), end: drag.end };
   return { start: drag.start, end: iso(Math.max(s, e + days * DAY)) };
+}
+
+// A nudge of a day from the keyboard: the whole period, or with endOnly its
+// end, which stops at its start.
+export function nudge(p, days, endOnly) {
+  if (!endOnly)
+    return {
+      start: iso(msOf(p.start) + days * DAY),
+      end: iso(msOf(p.end) + days * DAY),
+    };
+  const end = iso(msOf(p.end) + days * DAY);
+  return { start: p.start, end: end >= p.start ? end : p.end };
+}
+
+// Months side by side as equal columns, each day an equal part of its
+// month: at(date) and end(date) are the start and end of a day as a
+// fraction of the width (clamped to the months), and inv(f) is the time at
+// a fraction, in ms. cols: ["YYYY-MM", …].
+export function monthsScale(cols) {
+  const N = cols.length;
+  const days = (ym) => {
+    const [y, m] = ym.split("-").map(Number);
+    return new Date(Date.UTC(y, m, 0)).getUTCDate();
+  };
+  const pos = (date, off) => {
+    const i = cols.indexOf(date.slice(0, 7));
+    if (i < 0) return date < cols[0] ? 0 : 1;
+    return (i + (Number(date.slice(8, 10)) - 1 + off) / days(cols[i])) / N;
+  };
+  const inv = (f) => {
+    const g = Math.min(N - 1e-9, Math.max(0, f * N));
+    const i = Math.floor(g);
+    return msOf(`${cols[i]}-01`) + (g - i) * days(cols[i]) * DAY;
+  };
+  return {
+    from: `${cols[0]}-01`,
+    to: `${cols[N - 1]}-${String(days(cols[N - 1])).padStart(2, "0")}`,
+    at: (d) => pos(d, 0),
+    end: (d) => pos(d, 1),
+    inv,
+    dateAt: (f) => iso(inv(f)),
+  };
 }

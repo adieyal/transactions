@@ -847,8 +847,12 @@ tx-year .yr-main *{scroll-margin-top:calc(var(--yr-band-h, 368px) + 16px)}
 .cv-tip .m{font-family:var(--display); font-size:15px}
 .cv-tip .s{color:var(--ink-2)}
 /* Editing a period on the canvas strips (components/period-edit.js). */
-/* A name spans at least its period's dates, so it can be grabbed anywhere
-   along them; stackPeriods puts names that would overlap on rows of 28px. */
+/* <tx-period-strip> (components/tx-period-strip.js): a name spans at least
+   its period's dates, so it can be grabbed anywhere along them, and names
+   that would overlap stack on rows of 28px. The tints run behind what the
+   element wraps. */
+tx-period-strip{display:block; position:relative}
+.ps-bands{position:absolute; bottom:0; pointer-events:none}
 .yr-pchip, .om-pchip{cursor:grab; touch-action:none; z-index:2; text-align:left}
 .yr-periodsrow{height:auto; min-height:28px}
 .om-periodsrow{height:auto; min-height:36px}

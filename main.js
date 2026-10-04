@@ -30,6 +30,7 @@ import { contract as txMonth } from "./components/tx-month.js";
 import { contract as txQuestions } from "./components/tx-questions.js";
 import { contract as txLens } from "./components/tx-lens.js";
 import { contract as txFirstRun } from "./components/tx-first-run.js";
+import { contract as txPeriodStrip } from "./components/tx-period-strip.js";
 import { contract as txOneMonth } from "./components/tx-one-month.js";
 import { contract as txYear } from "./components/tx-year.js";
 import { coveredMonths } from "./story/moments.js";
@@ -61,6 +62,7 @@ const MODULES = [
   txQuestions,
   txLens,
   txFirstRun,
+  txPeriodStrip,
   txOneMonth,
   txYear,
 ];
@@ -180,6 +182,10 @@ function openLayoutLab() {
   const [older, newer] = lab.querySelectorAll("tx-month");
   older.setAttribute("month", ms.at(-2) ?? ms.at(-1) ?? "");
   newer.setAttribute("month", ms.at(-1) ?? "");
+  // The same Periods strip the year and month views embed, over both months.
+  lab
+    .querySelector("tx-period-strip")
+    .setAttribute("months", ms.slice(-2).join(","));
   lab
     .querySelector("tx-lens")
     .setAttribute("lens", runtime.state.lenses[0]?.id ?? "");
