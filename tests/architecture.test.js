@@ -77,6 +77,10 @@ const PURE_ALLOW = [];
 const NETWORK =
   /(?<![.\w$])(fetch|XMLHttpRequest|WebSocket|EventSource)\b|\bsendBeacon\b/;
 const NETWORK_FILES = ["assistant.js"];
+// Adding a <script> fetches code: only files.js may, to load SheetJS when a
+// spreadsheet is chosen (ADR 0007).
+const SCRIPT_LOAD = /createElement\(\s*["']script["']\s*\)/;
+const SCRIPT_FILES = ["files.js"];
 const STORAGE =
   /(?<![.\w$])(localStorage|sessionStorage)\s*(\.\s*(getItem|setItem|removeItem|clear|key)\b|\[)/;
 const STORAGE_FILES = ["storage.js"];
@@ -336,6 +340,8 @@ test("only the named adapters use the network or browser storage", () => {
   for (const file of FILES) {
     if (!NETWORK_FILES.includes(file) && NETWORK.test(CODE[file]))
       found.push(`${file} uses the network`);
+    if (!SCRIPT_FILES.includes(file) && SCRIPT_LOAD.test(SOURCE[file]))
+      found.push(`${file} loads a script`);
     if (!STORAGE_FILES.includes(file) && STORAGE.test(CODE[file]))
       found.push(`${file} uses storage`);
   }

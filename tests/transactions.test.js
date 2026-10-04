@@ -265,3 +265,45 @@ test("generic tables, CSV text and header guessing work without a browser", () =
   assert.equal(sigOf(m[0]), "a|b");
   assert.equal(typeof guessHeaderRow(m), "number");
 });
+
+test("SheetJS loads on demand, pinned and hash-checked, and a failed load says so", async () => {
+  const { SHEETJS, SHEETJS_UNAVAILABLE, loadSheetJS } =
+    await import("../files.js");
+  assert.match(SHEETJS.src, /\/xlsx\/0\.18\.5\/xlsx\.full\.min\.js$/);
+  assert.match(SHEETJS.integrity, /^sha512-[A-Za-z0-9+/]{86}==$/);
+  // A fake page: the script tag is checked, then its load succeeds or fails.
+  const page = (outcome) => {
+    const added = [];
+    const win = {};
+    const doc = {
+      createElement: () => ({ remove() {} }),
+      head: {
+        append(script) {
+          added.push(script);
+          queueMicrotask(() => {
+            if (outcome === "ok") win.XLSX = { read() {} };
+            (outcome === "ok" ? script.onload : script.onerror)();
+          });
+        },
+      },
+    };
+    return { added, win, doc };
+  };
+  const failing = page("blocked");
+  await assert.rejects(loadSheetJS(failing.doc, failing.win), (e) => {
+    assert.equal(e.message, SHEETJS_UNAVAILABLE);
+    assert.equal(e.code, "sheet-reader");
+    return true;
+  });
+  const [tag] = failing.added;
+  assert.deepEqual(
+    [tag.src, tag.integrity, tag.crossOrigin],
+    [SHEETJS.src, SHEETJS.integrity, "anonymous"],
+  );
+  // After a failure it tries again, and a loaded reader is reused.
+  const ok = page("ok");
+  const XLSX = await loadSheetJS(ok.doc, ok.win);
+  assert.equal(XLSX, ok.win.XLSX);
+  assert.equal(await loadSheetJS(ok.doc, ok.win), XLSX);
+  assert.equal(ok.added.length, 1);
+});

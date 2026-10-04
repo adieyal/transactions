@@ -64,7 +64,11 @@ export function createImport(runtime, actions) {
           `${batch.account} (${batch.periods.length === 1 ? monthName(batch.periods[0]) : batch.periods.length + " months"})`,
         );
       } catch (e) {
-        toast(`Couldn't read ${f.name}: ${e.message || e}`);
+        // The spreadsheet reader's message stays up long enough to read.
+        toast(
+          `Couldn't read ${f.name}: ${e.message || e}`,
+          e?.code === "sheet-reader" ? 12000 : undefined,
+        );
       }
     }
     actions.refresh();

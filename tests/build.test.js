@@ -29,9 +29,13 @@ test("build produces identical single-file HTML from any working directory", () 
   const externalScripts = [...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map(
     (m) => m[1],
   );
-  assert.deepEqual(externalScripts, [
-    "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
-  ]);
+  // SheetJS is no longer loaded with the page; files.js adds it, pinned and
+  // hash-checked, only when someone chooses a spreadsheet.
+  assert.deepEqual(externalScripts, []);
+  assert.ok(
+    !/cdnjs|xlsx\.full/.test(html.split("</head>")[0]),
+    "no SheetJS in <head>",
+  );
   // The fonts stay on Google Fonts (ADR 0007, the user's decision).
   assert.match(
     html,

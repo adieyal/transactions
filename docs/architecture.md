@@ -378,7 +378,7 @@ When a test fails, check whether it also fails on the base commit before changin
 - **The network boundary.** The only code that may send data is `assistant.js` (`fetch` to the provider the person configured) and calls to `caps.sample` (Claude). Both run only from a handler the person triggered. Nothing is sent on load, on a timer or in a render. The guardrail test fails if `fetch(`, `XMLHttpRequest`, `WebSocket`, `sendBeacon` or `EventSource` appear anywhere else.
 - **What is sent.** Prompt and tool payloads are built by pure functions in `assistant/prompts.js` and `assistant/tools.js`. Tests can therefore check what leaves the browser, for example that `buildIntro` without tools includes at most 1,800 transactions and no AI settings.
 - **Assistant output** is accepted only when every claim cites transaction ids (constitution, anti-goal 4). Generated summaries fall back to the template text, never to unchecked assistant text.
-- **Known exceptions, decided by the user.** Google Fonts stay external (ADR 0007): a request on load, with fallback fonts offline. The SheetJS CDN script (`index.html:10`) is a request on load, and it makes `.xlsx` import fail offline. Lens code runs with page access (`ui/lenses.js:60`), so a lens arriving in an imported backup is code the person runs.
+- **Known exceptions, decided by the user.** Google Fonts stay external (ADR 0007): a request on load, with fallback fonts offline. SheetJS loads only when a spreadsheet is chosen, pinned and hash-checked, from `files.js`. Offline, the person is told to use CSV instead. Lens code runs with page access (`ui/lenses.js:60`), so a lens arriving in an imported backup is code the person runs.
 
 ## 7. Where the story-first modules fit
 
@@ -427,7 +427,7 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 | R9   | Split `ui/chat.js` into tools, prompts and log rendering (done)                                                            | 6                      |
 | R10  | `html` tag and delegated events, adopted as modules are touched (started: tag, guardrail, 5 modules)                       | 8                      |
 | R11  | `localStorage` keys into `storage.js` (done)                                                                               | 8                      |
-| R12  | Fonts and SheetJS bundled or lazy-loaded (needs the user's decision)                                                       | 10                     |
+| R12  | Fonts kept external; SheetJS loaded on demand, pinned with an integrity hash (done, the user's decisions)                  | 10                     |
 
 ## 9. Guardrails
 

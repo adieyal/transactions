@@ -268,7 +268,7 @@ Keep new transaction rules in `transactions/` and test them with plain data. Put
 
 ## Runtime dependencies
 
-The generated file embeds this application's CSS and JavaScript. Fonts still come from Google Fonts, and XLSX support still comes from the existing CDN script. CSV import does not require XLSX. This output is suitable for static hosting, but it is not a fully offline package.
+The generated file embeds this application's CSS and JavaScript. Fonts come from Google Fonts. XLSX support loads SheetJS from cdnjs only when you choose a spreadsheet file, using a pinned version checked against its integrity hash; if it can't load, you are asked to use CSV instead. CSV import does not need it. This output is suitable for static hosting, but it is not a fully offline package.
 
 Inside Claude, startup can use the available `db`, `user`, `sample`, and `downloads` capabilities. Outside that runtime, saved documents use browser storage. An OpenAI-compatible assistant needs network access and an endpoint that accepts browser requests. Its settings and key stay in browser storage and are excluded from transaction exports.
 

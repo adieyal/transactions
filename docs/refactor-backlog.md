@@ -25,7 +25,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 |    9 | [R9](#r9-split-uichatjs) Split `ui/chat.js`                                                                     |      M      | Low–medium | `ui/chat.js` size ceiling                                                    |       **Done** (`next`)       |
 |   10 | [R8](#r8-timeline-layout-into-a-pure-helper) Timeline layout into a pure helper                                 |      L      |   Medium   | `ui/timeline.js` size ceiling                                                |       **Done** (`next`)       |
 |   11 | [R10](#r10-escaped-html-tag-and-delegated-events) Escaped `html` tag and delegated events                       |   S each    |    Low     | none (adds a guardrail)                                                      |   Started (`next`): 5 of 13   |
-|   12 | [R12](#r12-fonts-and-sheetjs) Fonts and SheetJS                                                                 |     S–M     |   Medium   | none                                                                         |   Needs the user's decision   |
+|   12 | [R12](#r12-fonts-and-sheetjs) Fonts and SheetJS                                                                 |     S–M     |   Medium   | none                                                                         |       **Done** (`next`)       |
 
 Items that can start now: R6, R11 for the settings, and R4d.
 
@@ -243,3 +243,7 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Size:** S to M. **Risk:** medium (network behaviour and appearance).
 - **Wait:** this needs the user's decision. It is raised as a fleet attention item.
 - **Fonts, decided (user, 2026-10-04):** keep the external Google Fonts. Nothing changes in `index.html`, and ADR 0007 records it.
+- **Done** on branch `next`, 4 October 2026:
+  - **SheetJS (user's decision): on demand.** The page-load script tag is gone. `files.js` `loadSheetJS()` adds the pinned 0.18.5 script with its `sha512` integrity hash (checked against cdnjs's published value) and `crossorigin="anonymous"`, when an `.xlsx` or `.xls` file is chosen.
+  - **Failure.** A failed load rejects with a clear message, shown in a 12-second toast that suggests CSV. CSV import never needs the script.
+  - **Tests.** `tests/build.test.js` asserts no external scripts on load and that the font link stays. `tests/transactions.test.js` covers the loader with a fake page. A new guardrail allows `<script>` creation only in `files.js`.
