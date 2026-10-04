@@ -208,6 +208,7 @@ const COLUMN_WORDS = {
     debit: ["debit", "withdraw"],
     credit: ["credit", "deposit"],
     amount: ["amount"],
+    balance: ["balance"],
     currencyColumn: ["currency", "ccy"],
   },
   he: {
@@ -217,7 +218,11 @@ const COLUMN_WORDS = {
     credit: ["זכות"],
     amount: ["סכום"],
     currencyColumn: ["מטבע"],
+    balance: ["יתרה"],
   },
+  fr: { balance: ["solde"] },
+  de: { balance: ["saldo"] },
+  es: { balance: ["saldo"] },
 };
 const columnWords = (k) =>
   new RegExp(
@@ -257,6 +262,8 @@ function guessColumns(matrix, headerRow = 0) {
       text: text.length / n,
       distinct: new Set(text).size,
       length: text.reduce((s, c) => s + c.length, 0) / (text.length || 1),
+      head: String(head[i] ?? "").trim(),
+      vals: rows.map((r) => parseAmount(r[i])?.amount ?? null),
     };
   });
   // The hinted column when its cells agree, else the best by content.
@@ -286,16 +293,80 @@ function guessColumns(matrix, headerRow = 0) {
   );
   const debit = moneyCols.find((c) => c.word("debit"))?.i ?? null;
   const credit = moneyCols.find((c) => c.word("credit"))?.i ?? null;
-  // One signed column: the one headed as the amount, or the first that holds
-  // money on most rows (a running balance usually comes after it).
-  const amount =
+  const { amount, amountNote } =
     debit != null || credit != null
-      ? null
-      : ((
-          moneyCols.find((c) => c.word("amount") && c.money >= 0.6) ??
-          moneyCols.find((c) => c.money >= 0.6)
-        )?.i ?? null);
-  return { date, merchant, amount, debit, credit, currencyColumn };
+      ? { amount: null, amountNote: "" }
+      : amountColumn(moneyCols.filter((c) => c.money >= 0.6));
+  return { date, merchant, amount, debit, credit, currencyColumn, amountNote };
+}
+
+// The one signed column of each transaction's amount, never a running
+// balance, and a sentence saying why. A column is a balance when it moves by
+// another column's amounts row after row, or its heading says so; a column
+// whose values only climb or only fall looks like one. When the cells don't
+// settle it, the amount is left for the person.
+function amountColumn(cands) {
+  const label = (c) => `column ${c.i + 1}${c.head ? ` (${c.head})` : ""}`;
+  const near = (x, y) => Math.abs(Math.abs(x) - Math.abs(y)) < 0.005;
+  // b moves by a's amount between rows, whichever way the file is sorted.
+  const runsAlong = (b, a) => {
+    let pairs = 0,
+      hits = 0;
+    for (let k = 1; k < b.vals.length; k++) {
+      const [b0, b1, a0, a1] = [
+        b.vals[k - 1],
+        b.vals[k],
+        a.vals[k - 1],
+        a.vals[k],
+      ];
+      if (b0 == null || b1 == null || a0 == null || a1 == null) continue;
+      pairs++;
+      if (near(b1 - b0, a1) || near(b1 - b0, a0)) hits++;
+    }
+    return pairs >= 2 && hits / pairs >= 0.8;
+  };
+  const drifts = (c) => {
+    const v = c.vals.filter((x) => x != null);
+    const steps = v.slice(1).map((x, k) => Math.sign(x - v[k]));
+    return v.length >= 3 && steps.every((s) => s && s === steps[0]);
+  };
+  const why = new Map();
+  for (const b of cands) {
+    const a = cands.find((a) => a !== b && runsAlong(b, a) && !runsAlong(a, b));
+    if (a) why.set(b, `moves by the amounts in ${label(a)} from row to row`);
+    else if (b.word("balance")) why.set(b, "is headed as a balance");
+  }
+  const balances = [...why].map(
+    ([b, w]) => `C${label(b).slice(1)} looks like a running balance: it ${w}.`,
+  );
+  let rest = cands.filter((c) => !why.has(c));
+  const hinted = rest.find((c) => c.word("amount"));
+  if (hinted) rest = [hinted];
+  else if (rest.length > 1) {
+    const steady = rest.filter((c) => !drifts(c));
+    if (steady.length === 1) {
+      for (const c of rest)
+        if (c !== steady[0])
+          balances.push(
+            `C${label(c).slice(1)} looks like a running balance: its values only ${c.vals.find((x) => x != null) < c.vals.findLast((x) => x != null) ? "climb" : "fall"}.`,
+          );
+      rest = steady;
+    }
+  }
+  if (rest.length === 1)
+    return {
+      amount: rest[0].i,
+      amountNote: balances.length
+        ? `${balances.join(" ")} So ${label(rest[0])} is read as the amount; change it if it's wrong.`
+        : "",
+    };
+  return {
+    amount: null,
+    amountNote:
+      rest.length > 1 || balances.length
+        ? `${balances.join(" ") || "Several columns hold amounts."} Choose the column with each transaction's amount, not a running balance.`
+        : "",
+  };
 }
 
 // A row's currency: from the currency column when it holds an ISO code or a

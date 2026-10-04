@@ -114,6 +114,8 @@ test("columns are found from what the cells hold, in any language", async () => 
     debit: null,
     credit: null,
     currencyColumn: null,
+    amountNote:
+      "Column 4 (Saldo) looks like a running balance: it moves by the amounts in column 3 (Betrag (EUR)) from row to row. So column 3 (Betrag (EUR)) is read as the amount; change it if it's wrong.",
   });
   const ja = [
     ["メモ", "日付", "通貨", "金額"],
@@ -127,6 +129,7 @@ test("columns are found from what the cells hold, in any language", async () => 
     debit: null,
     credit: null,
     currencyColumn: 2,
+    amountNote: "",
   });
   // Heading words name money out and in, which the cells can't.
   const en = [
@@ -179,4 +182,62 @@ test("money out and in each keep the currency of the cell that holds them", () =
   );
   assert.equal(both.batch.rows.length, 0);
   assert.deepEqual(both.unread, [{ row: 1, reason: "mixed" }]);
+});
+
+// Fictional statements where a running balance sits beside the amounts.
+test("a running balance is never read as the amount", async () => {
+  const { guessColumns, detectCurrency } =
+    await import("../transactions/import.js");
+  // Balance first, heading in a language with no amount word: its steps
+  // match the other column, so the other column is the amount.
+  const fr = [
+    ["Date opération", "Libellé", "Solde (EUR)", "Montant (EUR)"],
+    ["17/09/2026", "Librairie Fictive", "975,50", "-24,50"],
+    ["21/09/2026", "Boulangerie Inventée", "969,30", "-6,20"],
+    ["29/09/2026", "Atelier Imaginé", "957,00", "-12,30"],
+  ];
+  const g = guessColumns(fr, 0);
+  assert.equal(g.amount, 3);
+  assert.match(
+    g.amountNote,
+    /Column 3 \(Solde \(EUR\)\) looks like a running balance/,
+  );
+  const read = readMapping(
+    fr,
+    {
+      ...g,
+      headerRow: 0,
+      dateFormat: "DMY",
+      expenseSign: "negative",
+      currency: detectCurrency(fr, { ...g, headerRow: 0 }),
+    },
+    "fr.csv",
+  ).batch.rows;
+  assert.equal(read.reduce((s, t) => s + t.amount, 0).toFixed(2), "43.00");
+  // Newest first, balance after the amount: still found.
+  const desc = [
+    ["Date", "Memo", "Amount", "Running total"],
+    ["2026-09-29", "Fictional Café", "-12.30", "957.00"],
+    ["2026-09-21", "Fictional Bakery", "-6.20", "969.30"],
+    ["2026-09-17", "Fictional Books", "-24.50", "975.50"],
+  ];
+  assert.equal(guessColumns(desc, 0).amount, 2);
+  // Only the heading says which is the balance.
+  const named = [
+    ["Date", "Memo", "Balance", "Value"],
+    ["2026-09-01", "Fictional A", "100.00", "-3.00"],
+    ["2026-09-02", "Fictional B", "250.00", "-7.00"],
+    ["2026-09-03", "Fictional C", "120.00", "-2.00"],
+  ];
+  assert.equal(guessColumns(named, 0).amount, 3);
+  // Nothing settles it: the person is asked.
+  const open = [
+    ["D", "N", "X", "Y"],
+    ["2026-09-01", "Fictional A", "10.00", "3.00"],
+    ["2026-09-02", "Fictional B", "4.00", "7.00"],
+    ["2026-09-03", "Fictional C", "8.00", "2.00"],
+  ];
+  const o = guessColumns(open, 0);
+  assert.equal(o.amount, null);
+  assert.match(o.amountNote, /Choose the column/);
 });

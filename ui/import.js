@@ -196,7 +196,9 @@ export function createImport(runtime, actions) {
         currencyColumn: null,
         account: fileName.replace(/\.[^.]+$/, ""),
       };
-      Object.assign(map, guessColumns(matrix, hdr));
+      // Why the amount column was chosen or left open, until it is changed.
+      let { amountNote, ...guess } = guessColumns(matrix, hdr);
+      Object.assign(map, guess);
       if (preset)
         Object.assign(map, preset, {
           dateChosen: !!preset.dateFormat,
@@ -273,7 +275,7 @@ export function createImport(runtime, actions) {
             ],
           )}</select><span class="sub">${esc(dateNote)}</span></label>`,
           merchant: f("merchant", "Merchant or description"),
-          amount: f("amount", "Amount (one signed column)"),
+          amount: `<label>Amount (one signed column)<select data-k="amount">${colOpts(map.amount)}</select><span class="sub">${esc(preset ? "" : amountNote)}</span></label>`,
           expenseSign: `<label>In that column, spending is<select data-k="expenseSign">${pick(
             "expenseSign",
             [
@@ -331,6 +333,8 @@ export function createImport(runtime, actions) {
           map[k === "dateFormat" ? "dateChosen" : "signChosen"] = !!v;
         } else if (k !== "account") v = v === "" ? null : +v;
         map[k] = v;
+        if (["amount", "debit", "credit", "headerRow"].includes(k))
+          amountNote = "";
         if (k === "amount" && v != null) {
           map.debit = map.credit = null;
         }
