@@ -71,7 +71,7 @@ test("the demo year yields each kind of moment with the right transactions", () 
     "2026-04-12 Kettle & Coil 540",
     "2026-04-14 Kettle & Coil 75",
     "2026-04-15 Northgate Hardware 48",
-    "2026-04-16 Linen Lane 120",
+    "2026-04-15 Linen Lane 120",
   ]);
   assert.equal(move.month, "2026-04");
   assert.equal(move.facts.total, 2313);
@@ -326,7 +326,7 @@ test("question copy states the facts and offers options without an assistant", (
   );
   const move = find(all, "cluster", "Bluebell Removals");
   assert.equal(kindLabel(move), "Several purchases close together");
-  assert.equal(momentWhen(move), "9–16 April 2026");
+  assert.equal(momentWhen(move), "9–15 April 2026");
   assert.equal(
     momentWhen(find(all, "gap", "Demo savings transfer")),
     "December 2025 and January 2026",
@@ -487,4 +487,21 @@ test("a missing month is only asked about for steady charges", () => {
   };
   for (const [name, [amount, day]] of Object.entries(regular))
     assert.equal(withShop(amount, day).length, 1, name);
+});
+
+// UX review m1: "within seven days" counts days inclusively, as the design's
+// "2–6 Jun" is five days. The demo's move had grown to eight (9–16 April).
+test("a busy stretch spans at most seven calendar days", () => {
+  const state = unexplained();
+  const derived = derive(state);
+  const clusters = detectMoments(derived, state).filter(
+    (m) => m.kind === "cluster",
+  );
+  assert.ok(clusters.length);
+  for (const m of clusters) {
+    const dates = m.txnIds.map((id) => derived.byId.get(id).date).sort();
+    const days =
+      (Date.parse(dates.at(-1)) - Date.parse(dates[0])) / 86400000 + 1;
+    assert.ok(days <= 7, `${dates[0]} to ${dates.at(-1)} is ${days} days`);
+  }
 });

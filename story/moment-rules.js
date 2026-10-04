@@ -58,7 +58,7 @@ export function clusters(ctx) {
       const group = [];
       for (
         let j = i;
-        j < pool.length && daysBetween(pool[i].date, pool[j].date) <= 7;
+        j < pool.length && daysBetween(pool[i].date, pool[j].date) < 7;
         j++
       )
         group.push(pool[j]);

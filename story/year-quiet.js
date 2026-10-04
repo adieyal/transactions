@@ -339,9 +339,11 @@ export function largestSentence(ts, run, big) {
     { text: "The largest single payment was " },
     {
       ...what,
-      text: monthly
-        ? `${money(big.amount)} to ${name(big.merchant)} on the ${ordinal(Number([...days][0]))}, every month`
-        : `${money(big.amount)} to ${name(big.merchant)}, ${ties.length === 2 ? "twice" : `${count(ties.length)} times`}`,
+      text: !monthly
+        ? `${money(big.amount)} to ${name(big.merchant)}, ${ties.length === 2 ? "twice" : `${count(ties.length)} times`}`
+        : run.length === 2
+          ? `${money(big.amount)} to ${name(big.merchant)} on the ${ordinal(Number([...days][0]))} of ${monthName(run[1])}, also on the ${ordinal(Number([...days][0]))} of ${monthName(run[0])}`
+          : `${money(big.amount)} to ${name(big.merchant)} on the ${ordinal(Number([...days][0]))}, every month`,
     },
     { text: "." },
   ];

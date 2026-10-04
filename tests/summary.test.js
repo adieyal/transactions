@@ -195,7 +195,7 @@ test("answering the move question changes April's summary", () => {
   );
   assert.equal(
     sectionText(after.find((s) => s.kind === "period")),
-    "“Moving house”, 9–16 April 2026: ₪2,313 went out, with ₪1,505 at Kettle & Coil (three purchases), ₪640 at Bluebell Removals, ₪120 at Linen Lane and ₪48 at Northgate Hardware.",
+    "“Moving house”, 9–15 April 2026: ₪2,313 went out, with ₪1,505 at Kettle & Coil (three purchases), ₪640 at Bluebell Removals, ₪120 at Linen Lane and ₪48 at Northgate Hardware.",
   );
   assert.ok(!after.some((s) => s.kind === "yours"), "no words were written");
   checkIds(after, again);

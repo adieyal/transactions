@@ -90,7 +90,7 @@ export function createDemoData(
       add(card, "Demo Card", "Kettle & Coil", 12, 540);
       add(card, "Demo Card", "Kettle & Coil", 14, 75);
       add(card, "Demo Card", "Northgate Hardware", 15, 48);
-      add(card, "Demo Card", "Linen Lane", 16, 120, {
+      add(card, "Demo Card", "Linen Lane", 15, 120, {
         details: "Curtains",
       });
       add(card, "Demo Card", "Paper Kite Cafe", 11, 31);

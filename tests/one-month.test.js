@@ -85,8 +85,8 @@ test("with one month, a busy stretch is 3+ payments in 7 days over a third of th
   assert.deepEqual(periods, []);
   assert.equal(stretches.length, 1);
   const [b] = stretches;
-  assert.equal(b.label, "₪2,520 · 9–16 Apr");
-  assert.equal(b.aria, "A busy stretch, 9 to 16 April, not named yet");
+  assert.equal(b.label, "₪2,520 · 9–15 Apr");
+  assert.equal(b.aria, "A busy stretch, 9 to 15 April, not named yet");
   const paid = d.allTxns.filter((t) => b.txnIds.includes(t.id));
   const spent = d.allTxns
     .filter((t) => t.amount > 0 && !t.transfer && !t.inflow)

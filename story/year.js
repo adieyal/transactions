@@ -38,6 +38,17 @@ const sum = (ts) => ts.reduce((a, t) => a + t.amount, 0);
 const ids = (ts) => ts.map((t) => t.id);
 const monthName = (ym) => monthLong(ym).split(" ")[0];
 
+// "Most months came to about ₪5,576" is only true when more than half the
+// months are close to a typical month, and there are at least four of them:
+// with three, the median is just the middle month (UX review m3), so the
+// story says "A typical month" (Copy rules, s2).
+function mostNearTypical(months, byMonth, typical) {
+  const near = months.filter(
+    (m) => Math.abs(sum(byMonth.get(m)) / typical - 1) < 0.15,
+  );
+  return months.length >= 4 && near.length * 2 > months.length;
+}
+
 // "about three times a typical month", "close to a typical month".
 function againstTypical(total, typical) {
   if (!typical) return "";
@@ -151,7 +162,11 @@ function tell(derived, state, months, inRange, today) {
       { text: "." },
     );
   } else {
-    lead.push({ text: ` Most months came to about ${money(typical)}` });
+    lead.push({
+      text: mostNearTypical(months, byMonth, typical)
+        ? ` Most months came to about ${money(typical)}`
+        : ` A typical month came to about ${money(typical)}`,
+    });
     if (outs.length) {
       lead.push({
         text: `, and ${word(outs.length)} ${outs.length === 1 ? "stretch stood out" : "stretches stood out"}: `,

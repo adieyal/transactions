@@ -294,3 +294,54 @@ test("a month with no thread names its merchants, and offers no Numbers", () => 
   );
   assert.equal(five.m.numbersHint, false);
 });
+
+// Final verify finding 2: Copy rules s2 allow "also in August" with two
+// months, and "every month" only from three.
+test("the same payment on the same day of two months is not 'every month'", () => {
+  const rent = (id, date) => ({
+    id,
+    date,
+    merchant: "Harbour Rentals",
+    amount: 6800,
+  });
+  const ts = [rent("a", "2026-08-01"), rent("b", "2026-09-01")];
+  const two = flat(
+    withCurrency("ILS", () =>
+      largestSentence(ts, ["2026-08", "2026-09"], ts[0]),
+    ),
+  );
+  assert.doesNotMatch(two, /every month/);
+  assert.match(
+    two,
+    /Harbour Rentals on the 1st of September, also on the 1st of August\.$/,
+  );
+  const three = [...ts, rent("c", "2026-10-01")];
+  assert.match(
+    flat(
+      withCurrency("ILS", () =>
+        largestSentence(three, ["2026-08", "2026-09", "2026-10"], ts[0]),
+      ),
+    ),
+    /on the 1st, every month\.$/,
+  );
+});
+
+// UX review m3: July ₪5,590, August ₪5,055, September ₪7,845. One month is
+// not "most months".
+test("with three months the lead says 'a typical month', not 'most months'", () => {
+  const ms = coveredMonths(derived).slice(-3);
+  const three = {
+    ...demo,
+    periods: [],
+    batches: Object.fromEntries(
+      Object.entries(demo.batches).filter(([, b]) =>
+        b.periods.every((m) => ms.includes(m)),
+      ),
+    ),
+  };
+  const d3 = deriveTransactions(three, { today });
+  assert.equal(coveredMonths(d3).length, 3);
+  const lead = words(yearStory(d3, three, today).lead);
+  assert.doesNotMatch(lead, /Most months/);
+  assert.match(lead, /A typical month came to about/);
+});
