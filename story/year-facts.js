@@ -46,6 +46,7 @@ export function rhythmSentence(rhythms, run, last, told) {
 
 // Money moved to another of your accounts on the same day for the same
 // amount in every month of a run: "₪150 went into Demo Savings on the 24th".
+// A clause, without its full stop; the quiet section joins it to others.
 export function transferSentence(derived, run, told) {
   const moved = derived.allTxns.filter(
     (t) =>
@@ -66,7 +67,7 @@ export function transferSentence(derived, run, told) {
         text: `${money(ts[0].amount)} went into ${name(to(ts[0]))} on the ${ordinal(day(ts[0]))}`,
         txnIds: ids(ts.sort(byDate)),
       },
-      { text: run.length > 1 ? " of each month." : "." },
+      ...(run.length > 1 ? [{ text: " of each month" }] : []),
     ];
   }
   return null;
