@@ -8,6 +8,14 @@ import {
 import { detectMoments } from "./moments.js";
 import { periodNotes, summarizeMonth, summarizePeriod } from "./summary.js";
 import { count, dateRange, list, money, monthLong, name } from "./copy.js";
+import {
+  addFact,
+  aheadSection,
+  gapSentence,
+  priceSentence,
+  rhythmSentence,
+  transferSentence,
+} from "./year-facts.js";
 
 // Artboard 3, two months or more: the year told as sections, each about a
 // stretch of months or one that stood out (Copy rules, sections 2–4). A
@@ -81,13 +89,13 @@ function merchantCounts(ts) {
 }
 
 // The periods and busy stretches inside the covered months, in date order.
-function standouts(derived, state, first, last) {
+function standouts(derived, state, first, last, moments) {
   const end = `${last}-31`,
     start = `${first}-01`;
   const periods = (state.periods || [])
     .filter((p) => p.start <= end && p.end >= start)
     .map((p) => ({ kind: "period", id: p.id, from: p.start, to: p.end, p }));
-  const stretches = detectMoments(derived, state)
+  const stretches = moments
     .filter((m) => m.kind === "cluster")
     .map((m) => ({ kind: "stretch", id: m.id, from: m.from, to: m.to, m }));
   return [...periods, ...stretches].sort((a, b) =>
@@ -113,7 +121,22 @@ function tell(derived, state, months, inRange) {
   for (const t of pays) byMonth.get(monthOf(t.date)).push(t);
   const typical = typicalMonth(derived);
   const [first, last] = [months[0], months.at(-1)];
-  const outs = standouts(derived, state, first, last);
+  const moments = detectMoments(derived, state);
+  const outs = standouts(derived, state, first, last, moments);
+  // Rhythms, gaps and price changes need three months (Copy rules, s2).
+  const found = (typical == null ? [] : moments)
+    .filter((m) => m.currency === currency)
+    .map((m) => ({
+      ...m,
+      txns: m.txnIds
+        .map((id) => derived.byId.get(id))
+        .filter(Boolean)
+        .sort(byDate),
+    }));
+  const of = (kind) => found.filter((m) => m.kind === kind);
+  const rhythms = of("rhythm"),
+    gaps = of("gap").filter((m) => !m.facts.stopped),
+    prices = of("price").filter((m) => months.includes(m.month));
   const title = `${monthLong(first)} to ${monthLong(last)}`;
 
   // "December came to ₪2,542, about three times a typical month."
@@ -170,13 +193,29 @@ function tell(derived, state, months, inRange) {
       months.filter((m) => o.from <= `${m}-31` && o.to >= `${m}-01`),
     ),
   );
+  // What's ahead: recent price changes and the charges that repeat. The
+  // latest month, when nothing stood out in it, is told with them.
+  const recent = prices.filter((p) => p.month >= months.at(-3));
+  const ahead =
+    typical == null
+      ? null
+      : aheadSection(derived, last, !busy.has(last), currency, recent);
+  const told = new Set();
   const sections = [];
   let run = [];
   const flush = () => {
-    if (run.length) sections.push(quietSection(run, byMonth, typical));
+    if (run.length)
+      sections.push(
+        quietSection(run, byMonth, typical, {
+          rhythm: rhythmSentence(rhythms, run, last, told),
+          transfer:
+            typical == null ? null : transferSentence(derived, run, told),
+        }),
+      );
     run = [];
   };
   for (const m of months) {
+    if (ahead?.months.includes(m)) continue;
     if (!busy.has(m)) {
       run.push(m);
       continue;
@@ -190,6 +229,18 @@ function tell(derived, state, months, inRange) {
       );
   }
   flush();
+  if (ahead) sections.push(ahead);
+  // A gap, and a price change not told ahead, sit in the section holding
+  // their month.
+  const holding = (m) => sections.find((s) => s.months.includes(m)) ?? null;
+  for (const g of gaps) {
+    const s = holding(g.facts.months[0]);
+    if (s) addFact(s, gapSentence(derived, g));
+  }
+  for (const p of prices.filter((p) => !ahead || !recent.includes(p))) {
+    const s = holding(p.month);
+    if (s) addFact(s, priceSentence([p]));
+  }
   return {
     months: months.length,
     first,
@@ -201,7 +252,7 @@ function tell(derived, state, months, inRange) {
   };
 }
 
-function quietSection(run, byMonth, typical) {
+function quietSection(run, byMonth, typical, { rhythm, transfer }) {
   const ts = run.flatMap((m) => byMonth.get(m));
   const totals = run.map((m) => sum(byMonth.get(m)));
   let parts;
@@ -240,6 +291,12 @@ function quietSection(run, byMonth, typical) {
   }
   const big = [...ts].sort((a, b) => b.amount - a.amount)[0];
   const paragraphs = [parts];
+  const shape = [
+    ...(transfer ?? []),
+    ...(transfer && rhythm ? [{ text: " " }] : []),
+    ...(rhythm ?? []),
+  ];
+  if (shape.length) paragraphs.push(shape);
   if (big)
     paragraphs.push([
       { text: "The largest single payment was " },
@@ -252,6 +309,7 @@ function quietSection(run, byMonth, typical) {
   return {
     id: `months-${run[0]}`,
     label: monthRange(run[0], run.at(-1)),
+    months: run,
     from: `${run[0]}-01`,
     to: `${run.at(-1)}-28`,
     paragraphs,
@@ -271,6 +329,7 @@ function periodSection(derived, state, o, monthSentence) {
     chip: o.p.name,
     periodId: o.id,
     paragraphs: told.map((s) => s.parts),
+    months: [month],
     note: o.p.story?.trim()
       ? { label: "Your description", text: o.p.story.trim() }
       : null,
@@ -317,6 +376,7 @@ function stretchSection(derived, state, o, monthSentence) {
     ],
     after: monthSentence(o.from.slice(0, 7)),
     month: o.from.slice(0, 7),
+    months: [o.from.slice(0, 7)],
   };
 }
 

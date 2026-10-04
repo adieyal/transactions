@@ -106,18 +106,45 @@ function rowsHTML(derived, txns, scale, { year, compact, numbers }) {
         .filter((t) => t.amount < 0 && !t.expected)
         .reduce((s, t) => s - t.amount, 0);
       const cur = ts[0].currency;
-      const meta =
+      const th = derived.R.threads.find((x) => x.name === thread);
+      const budget = numbers && year && !compact ? th?.budget : null;
+      let meta =
         numbers && !compact && out > 0
           ? year
             ? `${money(out, cur)} in ${scale.cols.length - (scale.ahead ? 1 : 0)} months${back ? ` · ${money(back, cur)} back` : ""}`
             : money(out, cur)
           : "";
+      if (budget) meta += ` · budget ${money(budget, cur)} a month`;
+      const add =
+        numbers && year && !compact && th && !th.budget
+          ? `<button class="yr-addbudget" data-add-budget="${esc(thread)}">+ Budget</button>`
+          : "";
       return `<div class="yr-row" data-thread="${esc(thread)}" style="height: ${RH}px">
-        <div class="yr-rowhead"><span class="yr-thread" style="color: ${esc(col)}; font-size: ${compact ? 13 : 15}px">${esc(thread)}</span>${meta ? `<span class="yr-meta">${esc(meta)}</span>` : ""}</div>
-        <div class="yr-track"><div class="yr-wire" style="top: ${WY}px"></div>${arcs ? `<svg class="yr-arcs" viewBox="0 0 1000 ${RH}" preserveAspectRatio="none" aria-hidden="true"><path d="${esc(arcs)}" style="stroke: ${esc(col)}"></path></svg>` : ""}${beads}</div>
+        <div class="yr-rowhead"><span class="yr-thread" style="color: ${esc(col)}; font-size: ${compact ? 13 : 15}px">${esc(thread)}</span>${meta ? `<span class="yr-meta">${esc(meta)}</span>` : ""}${add}</div>
+        <div class="yr-track">${budget ? budgetHTML(ts, budget, cur, col, scale) : ""}<div class="yr-wire" style="top: ${WY}px"></div>${arcs ? `<svg class="yr-arcs" viewBox="0 0 1000 ${RH}" preserveAspectRatio="none" aria-hidden="true"><path d="${esc(arcs)}" style="stroke: ${esc(col)}"></path></svg>` : ""}${beads}</div>
       </div>`;
     })
     .join("");
+}
+
+// Numbers on, a thread with a budget: each month's payments as a box
+// against the budget's dashed line, 40px high ("Apr: ₪305 of ₪300").
+const LANE = 40;
+function budgetHTML(ts, budget, cur, col, scale) {
+  const months = scale.cols.length - (scale.ahead ? 1 : 0);
+  const w = (months / scale.N) * 100;
+  const boxes = scale.cols
+    .slice(0, months)
+    .map((m, i) => {
+      const v = ts
+        .filter((t) => t.amount > 0 && !t.expected && monthOf(t.date) === m)
+        .reduce((a, t) => a + t.amount, 0);
+      const h = Math.min(56, Math.round((v / budget) * LANE));
+      const [, mm] = m.split("-").map(Number);
+      return `<div class="yr-budgetbox" title="${esc(`${MONTHS[mm - 1]}: ${money(v, cur)} of ${money(budget, cur)}`)}" style="height: ${h}px; left: calc(${pct((i / scale.N) * 100)}% + 3px); width: calc(${(100 / scale.N).toFixed(3)}% - 6px); border-color: ${esc(col)}; background: ${esc(col)}14"></div>`;
+    })
+    .join("");
+  return `${boxes}<div class="yr-budgetline" style="width: ${pct(w)}%; bottom: ${4 + LANE}px; border-top-color: ${esc(col)}"></div><div class="yr-budgetlabel" style="right: ${pct(100 - w)}%; bottom: ${6 + LANE}px">${esc(`${money(budget, cur)} a month`)}</div>`;
 }
 
 // Named periods as tinted bands with their name on the strip; busy

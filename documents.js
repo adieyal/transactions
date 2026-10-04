@@ -83,6 +83,7 @@ const reportFields = (r) => ({
   ranAt: r.ranAt || "",
   dataKey: r.dataKey || "",
   coverage: r.coverage || "",
+  by: r.by || "",
 });
 const turnFields = (t) => ({
   role: t.role,

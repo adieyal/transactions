@@ -713,3 +713,19 @@ tx-year .sp.on{background:var(--lit); border-bottom-color:var(--ink)}
 /* A phone shows the band above the story rather than over it: at 390px the
    band is taller than the screen, and sticky it would hide the story. */
 @media (max-width:700px){.yr-band{position:static}}
+.yr-saved .yr-col-story h1.yr-qh1{font:500 40px/1.15 var(--display); margin:0 0 8px}
+.yr-runrow{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-bottom:18px; font-size:14px; color:#4A5458}
+.yr-saved .yr-answer p:last-child, .yr-answer p:last-child{margin-bottom:16px}
+.yr-struck{color:#5B6569; text-decoration:line-through dotted #8D9699}
+.yr-struck-note{margin:-6px 0 16px; font-size:13px; color:#4A5458}
+.yr-receipts{display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 18px}
+tx-year .sp.yr-receipt{display:inline-flex; padding:3px 10px; border:1px solid #B7BEBD; border-radius:6px; background:#FFFFFF; font-size:13px}
+tx-year .sp.yr-receipt.on{background:var(--lit); border-color:var(--ink)}
+.yr-answered{margin:0 0 16px; font-size:13px; color:#4A5458}
+.yr-answered.by{margin:0 0 8px}
+.yr-budgetbox{position:absolute; bottom:4px; box-sizing:border-box; border:1px solid; border-bottom:0; border-radius:3px 3px 0 0; opacity:.7}
+.yr-budgetline{position:absolute; left:0; border-top:1px dashed; opacity:.7}
+.yr-budgetlabel{position:absolute; margin-right:4px; font-size:11px; color:#4A5458; white-space:nowrap}
+.yr-addbudget{display:none; align-self:flex-start; margin-top:2px; font:500 12px var(--ui); min-height:24px; padding:0 8px; border:1px solid #B7BEBD; border-radius:12px; background:#FFFFFF; color:#1E2528; cursor:pointer}
+.yr-row:hover .yr-addbudget, .yr-addbudget:focus-visible{display:inline-flex; align-items:center}
+.yr-notsent{margin:0 0 14px; font-size:14px; color:#3E474B}

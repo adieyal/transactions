@@ -94,3 +94,64 @@ test("the month inside the year keeps budgets for Numbers", () => {
   assert.equal(on.numbersHint, false);
   assert.ok(on.paragraphs.length > off.paragraphs.length);
 });
+
+test("the year's sections tell rhythms, a savings gap, a price change and what's ahead", () => {
+  const y = yearStory(derived, demo);
+  const all = y.sections.flatMap((s) => [...s.paragraphs, s.after ?? []]);
+  const said = all.map(words).join("\n");
+  assert.match(
+    said,
+    /You were at Paper Kite Cafe on the 9th of each of these three months, and of every month since\./,
+  );
+  assert.match(said, /₪150 went into Demo Savings on the 24th of each month\./);
+  assert.match(
+    said,
+    /Nothing went into Demo Savings in December or January; it did in every other month\./,
+  );
+  assert.match(
+    said,
+    /One price changed in August: Lantern Stream went from ₪29 to ₪35\./,
+  );
+  const ahead = y.sections.at(-1);
+  assert.equal(ahead.label, "Sep 2026 and ahead");
+  const coming = ahead.paragraphs.at(-1);
+  assert.match(
+    words(coming),
+    /^Coming up, going by what repeats: about ₪267 in Bills in the first week of October, ₪35 to Lantern Stream on the 15th and ₪95 to Meadow Paws on the 18th\. Your October statement isn’t added yet/,
+  );
+  // Each phrase lights exactly the expected charges it names.
+  const lit = coming.find((p) => p.txnIds).txnIds;
+  const byId = new Map(derived.expected.map((e) => [e.id, e]));
+  assert.equal(
+    lit.reduce((a, id) => a + byId.get(id).amount, 0),
+    267 + 35 + 95,
+  );
+  // A rhythm and a transfer are told once.
+  assert.equal(said.match(/Paper Kite Cafe on the 9th/g).length, 1);
+  assert.equal(said.match(/went into Demo Savings on/g).length, 1);
+});
+
+test("with two months there are no rhythms, gaps, price changes or expected charges", () => {
+  const two = {
+    ...demo,
+    batches: Object.fromEntries(
+      Object.entries(demo.batches).filter(([, b]) =>
+        JSON.stringify(b).match(/2026-0[78]/),
+      ),
+    ),
+  };
+  const d2 = deriveTransactions(two, { today });
+  assert.equal(coveredMonths(d2).length, 2);
+  const y = yearStory(d2, two);
+  const said = y.sections
+    .flatMap((s) => [...s.paragraphs, s.after ?? []])
+    .map(words)
+    .join("\n");
+  for (const w of [
+    "of every month",
+    "Nothing went",
+    "price changed",
+    "Coming up",
+  ])
+    assert.ok(!said.includes(w), `"${w}" needs three months`);
+});

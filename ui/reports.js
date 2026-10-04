@@ -64,6 +64,7 @@ export function createReports(runtime, actions) {
         },
       });
       r.answer = text;
+      r.by = actions.AI();
       r.ranAt = runtime.today;
       r.dataKey = dataKey();
       r.coverage = coverageText(runtime.derived);
@@ -80,7 +81,8 @@ export function createReports(runtime, actions) {
     for (const r of staleReports()) await runReport(r);
   }
 
-  function addReport(q, answer) {
+  // open: false when saved from the year's Ask, which stays where it is.
+  function addReport(q, answer, { open = true } = {}) {
     state.reports.push({
       id: "r" + Date.now().toString(36),
       q,
@@ -88,9 +90,10 @@ export function createReports(runtime, actions) {
       ranAt: answer ? runtime.today : "",
       dataKey: answer ? dataKey() : "",
       coverage: answer ? coverageText(runtime.derived) : "",
+      by: answer ? actions.AI() : "",
     });
     actions.save("reports");
-    actions.openTab("reports");
+    if (open) actions.openTab("reports");
   }
 
   function wireReports() {
@@ -154,6 +157,7 @@ export function createReports(runtime, actions) {
   return {
     addReport,
     renderReports,
+    runReport,
     runStale,
     staleReports,
     wireReports,
@@ -166,11 +170,13 @@ export const contract = {
   provides: [
     "addReport",
     "renderReports",
+    "runReport",
     "runStale",
     "staleReports",
     "wireReports",
   ],
   requires: [
+    "AI",
     "buildIntro",
     "callAssistant",
     "noAssistant",

@@ -241,8 +241,12 @@ export function createTimeline(runtime, actions) {
   const transferText = (t) => describeTransfer(t, runtime.derived.byId);
   const showTip = (t, ev) => showBeadTip(t, ev, runtime.derived.byId);
 
-  // Starts a budget at about the thread's monthly average.
-  function addBudget(name) {
+  // Starts a budget at about the thread's monthly average. hint: how to
+  // change it from where it was added.
+  function addBudget(
+    name,
+    hint = "Drag the handle on the right to change it.",
+  ) {
     const ts = runtime.derived.allTxns.filter(
       (t) => t.thread === name && t.amount > 0,
     );
@@ -251,9 +255,7 @@ export function createTimeline(runtime, actions) {
     );
     const avg = ts.reduce((a, t) => a + t.amount, 0) / Math.max(1, months.size);
     setBudget(name, niceBudget(avg) || 500);
-    toast(
-      `Budget line added at about your monthly average. Drag the handle on the right to change it.`,
-    );
+    toast(`Budget line added at about your monthly average. ${hint}`);
   }
 
   function removeBudget(name) {
@@ -538,6 +540,7 @@ export function createTimeline(runtime, actions) {
   }
 
   return {
+    addBudget,
     clearFocus,
     highlight,
     renderParkbar,
@@ -553,6 +556,7 @@ export const contract = {
   name: "timeline",
   create: createTimeline,
   provides: [
+    "addBudget",
     "clearFocus",
     "highlight",
     "renderParkbar",

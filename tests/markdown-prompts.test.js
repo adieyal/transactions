@@ -4,7 +4,7 @@ import { createDemoData } from "../demo.js";
 import { createRuntime } from "../state.js";
 import { deriveTransactions } from "../transactions/derive.js";
 import { markdown } from "../ui/markdown.js";
-import { coverageText, systemPrompt } from "../assistant/prompts.js";
+import { coverageText, systemPrompt, whatGoes } from "../assistant/prompts.js";
 
 const TODAY = "2026-09-30";
 function demo() {
@@ -72,5 +72,50 @@ test("the system prompt states the facts the assistant needs", () => {
   assert.equal(
     noTools.split("\n").filter((l) => l.startsWith('{"id":')).length,
     derived.allTxns.length + derived.expected.length,
+  );
+});
+
+test("the Ask preview's list matches what the opening message holds", () => {
+  const { state, derived } = demo();
+  state.lenses = [
+    { id: "l-x", title: "Lens SECRET-TITLE", code: "// SECRET-CODE" },
+  ];
+  const period = state.periods[0];
+  for (const tools of [true, false]) {
+    const intro = systemPrompt({
+      derived,
+      state,
+      today: TODAY,
+      tools,
+      write: true,
+      compact: (t) => ({ id: t.id, note: t.note }),
+    });
+    // Said to go: accounts, periods and their descriptions, budgets.
+    for (const a of derived.accounts) assert.ok(intro.includes(a));
+    assert.ok(intro.includes(period.name));
+    // Said not to go: lenses.
+    assert.ok(
+      !intro.includes("SECRET-TITLE") && !intro.includes("SECRET-CODE"),
+    );
+    // Without tools every transaction goes, so nothing else may be claimed.
+    if (!tools) assert.ok(intro.includes(derived.allTxns[0].id));
+    else assert.ok(!intro.includes(`"${derived.allTxns[0].id}"`));
+  }
+  const w = whatGoes({
+    question: "Why December?",
+    ai: "LM Studio",
+    tools: true,
+    earlier: 20,
+    selected: 2,
+  });
+  assert.equal(w.goes[0], "Your question: “Why December?”");
+  assert.match(w.goes.at(-2), /up to 16 messages/);
+  assert.equal(
+    w.notSent,
+    "Not sent: your lenses, and transactions LM Studio doesn’t look up.",
+  );
+  assert.equal(
+    whatGoes({ question: "q", ai: "X", tools: false }).notSent,
+    "Not sent: your lenses.",
   );
 });

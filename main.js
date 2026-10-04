@@ -128,6 +128,26 @@ document.addEventListener("tx-ask", (e) => {
   redraw();
   asking.finally(redraw);
 });
+// "+ Budget" on a row of the year's band, when Numbers is on.
+document.addEventListener("tx-add-budget", (e) =>
+  actions.addBudget(e.detail.thread, "You can change it in Threads."),
+);
+// A question asked there, saved as a story; and a saved one run again.
+document.addEventListener("tx-save-question", (e) => {
+  const reply = [...runtime.state.turns]
+    .reverse()
+    .find((t) => t.role === "assistant" && t.q === e.detail.question);
+  if (!reply?.content) return;
+  actions.addReport(e.detail.question, reply.content, { open: false });
+  redraw();
+});
+document.addEventListener("tx-run-question", (e) => {
+  const r = runtime.state.reports.find((x) => x.id === e.detail.id);
+  if (!r) return;
+  const running = actions.runReport(r);
+  redraw();
+  running.finally(redraw);
+});
 document.addEventListener("tx-open-period", (e) => {
   runtime.state.bench = true;
   refresh();

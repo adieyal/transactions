@@ -58,3 +58,33 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
       `\nYou can't change anything in this setup, only read. If they ask for changes, say so and suggest picking an assistant that supports tools.`;
   return intro;
 }
+
+// What goes with a question, for the year's Ask preview, in the order the
+// person reads it. Kept beside systemPrompt so the two change together:
+// the opening message above, the conversation so far (ui/chat.js sends the
+// last 16 messages), the ids of selected payments, and either the
+// transactions the assistant looks up (tools) or all of them (no tools).
+// tests/prompts.test.js checks the "not sent" line against systemPrompt.
+export function whatGoes({ question, ai, tools, earlier, selected }) {
+  const goes = [
+    `Your question: “${question}”`,
+    "Your account names and the months each statement covers, your thread names and budgets, and your periods with their descriptions",
+    tools
+      ? `The transactions ${ai} looks up to answer, with their notes and statement details, and your thread rules if it reads them`
+      : "All your transactions and the charges expected ahead, with their notes and statement details",
+  ];
+  if (earlier)
+    goes.push(
+      `Your earlier questions and answers in this conversation (up to ${Math.min(16, earlier)} messages)`,
+    );
+  if (selected)
+    goes.push(
+      `Which ${selected === 1 ? "payment" : `${selected} payments`} you’ve selected on the timeline`,
+    );
+  return {
+    goes,
+    notSent: tools
+      ? `Not sent: your lenses, and transactions ${ai} doesn’t look up.`
+      : "Not sent: your lenses.",
+  };
+}

@@ -7,6 +7,9 @@ import { emitHighlight, subscribeWhileConnected } from "./base.js";
 import { bandHTML } from "./tx-year-band.js";
 import { answeredHTML, askHTML } from "./tx-year-ask.js";
 import { wireYearStrip } from "./tx-year-strip.js";
+import { savedHTML } from "./tx-year-saved.js";
+import { whatGoes } from "../assistant/prompts.js";
+import { answerStory } from "../story/saved-question.js";
 
 const PRIVATE = "Only you see this. Your answer stays on this device.";
 
@@ -24,7 +27,11 @@ export function createYearComponent(runtime, actions) {
     ask: "idle",
     text: "",
     asked: null,
+    story: null,
   };
+  // The saved question picked from the story list, if it still exists.
+  const picked = () =>
+    ui.story && state.reports.find((r) => `r:${r.id}` === ui.story);
 
   const parts = (ps) =>
     ps
@@ -57,13 +64,14 @@ export function createYearComponent(runtime, actions) {
       <label for="story-pick" class="yr-side">Story</label>
       <div class="yr-pickrow">
         <select id="story-pick">
-          <optgroup label="Told from your statements">${opt("year", "Your year so far", year)}${[
+          <optgroup label="Told from your statements">${opt("year", "Your year so far", year && !picked())}${[
             ...ms,
           ]
             .reverse()
             .map((m) => opt(`m:${m}`, monthLong(m), !year && m === month))
             .join("")}</optgroup>
           ${periods.length ? `<optgroup label="Your periods">${periods.map((p) => opt(`p:${p.id}`, p.name, false)).join("")}</optgroup>` : ""}
+          ${state.reports.length ? `<optgroup label="Your saved questions">${state.reports.map((r) => opt(`r:${r.id}`, r.q, ui.story === `r:${r.id}`)).join("")}</optgroup>` : ""}
         </select>
         <button class="yr-small" data-open="reports">Make your own story</button>
       </div>
@@ -132,13 +140,24 @@ export function createYearComponent(runtime, actions) {
         <div class="yr-chips"><button class="yr-chipbtn" data-mark-period>Mark a period</button><button class="yr-chipbtn" data-open="month">Write a note</button><button class="yr-chipbtn" data-open="reports">Tell the story of something else</button></div>
         <p class="yr-fine">This story is written from your statements and your notes, and it changes when you add either.</p>
       </div></div>
-      ${answeredHTML(ui, state, actions.AI())}
-      <section class="yr-sec" aria-label="Ask"><div class="yr-side"><div class="yr-seclabel">Ask</div></div><div class="yr-col-story">${askHTML(ui, caps, actions.AI())}</div></section>`;
+      ${answeredHTML(ui, state, actions.AI(), runtime.derived.byId)}
+      <section class="yr-sec" aria-label="Ask"><div class="yr-side"><div class="yr-seclabel">Ask</div></div><div class="yr-col-story">${askHTML(
+        ui,
+        caps,
+        actions.AI(),
+        whatGoes({
+          question: ui.text.trim(),
+          ai: actions.AI(),
+          tools: !!caps.tools,
+          earlier: state.turns.filter((t) => !t.pending).length,
+          selected: [...state.selection].length,
+        }),
+      )}</div></section>`;
   }
 
   // The story column, and an empty slot for the bench (M4).
   function pageHTML(band, ms, year, month, story) {
-    return `${band}<main class="yr-main"><div class="yr-story">${pickerHTML(ms, year, month)}${year ? yearHTML(story) : monthHTML(story)}</div><aside class="yr-bench" aria-label="Details and tools"></aside></main>`;
+    return `${band}<main class="yr-main"><div class="yr-story">${pickerHTML(ms, year, month)}${!year ? monthHTML(story) : picked() ? savedHTML(picked(), answerStory(picked().answer, runtime.derived.byId), { canRun: caps.sample }) : yearHTML(story)}</div><aside class="yr-bench" aria-label="Details and tools"></aside></main>`;
   }
 
   // The notes written on a period's payments, each with its day.
@@ -267,7 +286,9 @@ export function createYearComponent(runtime, actions) {
           this.addEventListener("change", (e) => {
             if (e.target.id !== "story-pick") return;
             const v = e.target.value;
-            if (v === "year") this.go("year");
+            ui.story = v.startsWith("r:") ? v : null;
+            if (v.startsWith("r:")) this.go("year");
+            else if (v === "year") this.go("year");
             else if (v.startsWith("m:")) this.go("month", v.slice(2));
             else if (v.startsWith("p:")) {
               ui.sec = `period-${v.slice(2)}`;
@@ -350,7 +371,40 @@ export function createYearComponent(runtime, actions) {
                   detail: { question: ui.asked },
                 }),
               );
-            } else if ("askAgain" in d) {
+            } else if (d.addBudget)
+              this.dispatchEvent(
+                new CustomEvent("tx-add-budget", {
+                  bubbles: true,
+                  detail: { thread: d.addBudget },
+                }),
+              );
+            else if (d.runQuestion)
+              this.dispatchEvent(
+                new CustomEvent("tx-run-question", {
+                  bubbles: true,
+                  detail: { id: d.runQuestion },
+                }),
+              );
+            else if (d.removeQuestion) {
+              state.reports = state.reports.filter(
+                (r) => r.id !== d.removeQuestion,
+              );
+              actions.save("reports");
+              this.go("year");
+            } else if (d.changeQuestion) {
+              ui.text = picked()?.q ?? "";
+              ui.story = null;
+              ui.ask = "idle";
+              this.go("year");
+              this.querySelector("#ask")?.focus();
+            } else if ("saveQuestion" in d)
+              this.dispatchEvent(
+                new CustomEvent("tx-save-question", {
+                  bubbles: true,
+                  detail: { question: ui.asked },
+                }),
+              );
+            else if ("askAgain" in d) {
               ui.ask = "idle";
               this.render();
               this.querySelector("#ask")?.focus();

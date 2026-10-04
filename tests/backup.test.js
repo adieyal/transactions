@@ -24,6 +24,7 @@ function source() {
       ranAt: "2026-09-30",
       dataKey: "test",
       coverage: "Three months",
+      by: "LM Studio",
     },
   ];
   state.view.parked = ["Home"];

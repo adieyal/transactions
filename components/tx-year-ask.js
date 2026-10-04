@@ -1,24 +1,23 @@
 import { esc } from "../helpers.js";
+import { answerStory } from "../story/saved-question.js";
+import { answerHTML } from "./tx-year-saved.js";
 
 // The year's Ask section (artboard 3): connect, write, check what goes,
 // and the answer. Nothing is sent from here; tx-year asks the chat, and only
 // when Send is pressed.
 
 const SEND_NOTE = "Before anything is sent, you’ll see exactly what goes.";
-const cite = (text) =>
-  esc(text).replace(
-    /\[\[([a-z0-9-]+)\]\]/gi,
-    (_, id) => `<span class="sp" tabindex="0" data-cite="${esc(id)}">↗</span>`,
-  );
 
-export function askHTML(ui, caps, ai) {
+// goes: assistant/prompts.js whatGoes, the audited list of what is sent.
+export function askHTML(ui, caps, ai, goes) {
   if (!caps.sample)
     return `<div class="yr-card"><p class="yr-asktext"><b>Asking needs an assistant.</b> Connect ChatGPT, a local model through Ollama or LM Studio, or any OpenAI-compatible service. Your statements stay in this browser until you ask something. Then the question and the transactions it needs go to the service you pick.</p>
       <p class="yr-fine top">The story, threads, periods, notes and lenses all work without one.</p>
       <button class="yr-dark" data-connect-ai>Connect an assistant</button></div>`;
   if (ui.ask === "preview")
     return `<div class="yr-card"><h3 class="yr-h3">Ready to send to ${esc(ai)}</h3>
-      <ul class="yr-sendlist"><li>Your question: “${esc(ui.text.trim())}”</li><li>A summary of your statements, and the transactions ${esc(ai)} looks up to answer</li></ul>
+      <ul class="yr-sendlist">${goes.goes.map((g) => `<li>${esc(g)}</li>`).join("")}</ul>
+      <p class="yr-notsent">${esc(goes.notSent)}</p>
       <div class="yr-chips"><button class="yr-dark" data-ask-send>Send</button><button class="yr-small" data-ask-back>Change the question</button></div></div>`;
   return `<div class="yr-card">
     <div class="yr-askhead"><label for="ask" class="yr-asklabel">Ask about your spending</label><span class="yr-fine">Assistant: ${esc(ai)} · <button class="yr-link" data-connect-ai>Change</button></span></div>
@@ -28,7 +27,7 @@ export function askHTML(ui, caps, ai) {
 }
 
 // The latest answer to the question asked here, from the chat's turns.
-export function answeredHTML(ui, state, ai) {
+export function answeredHTML(ui, state, ai, byId) {
   if (!ui.asked) return "";
   const reply = [...state.turns]
     .reverse()
@@ -38,12 +37,16 @@ export function answeredHTML(ui, state, ai) {
     ? `<p class="yr-fine">${esc(reply.status || "Looking through your statements…")}</p>`
     : reply.error
       ? `<p class="yr-fine">${esc(reply.error)}</p>`
-      : reply.content
-          .split(/\n{2,}/)
-          .map((p) => `<p dir="auto">${cite(p)}</p>`)
-          .join("");
+      : answerHTML(answerStory(reply.content, byId));
+  const saved = state.reports.some(
+    (r) => r.q === ui.asked && r.answer === reply.content,
+  );
+  const save =
+    reply.pending || reply.error
+      ? ""
+      : `<button class="yr-small" data-save-question${saved ? " disabled" : ""}>${saved ? "Saved to your stories" : "Save as a story"}</button>`;
   return `<section class="yr-sec"><div class="yr-side"><div class="yr-seclabel">You asked</div></div>
     <div class="yr-col-story"><div class="yr-note gap"><div class="yr-notelabel">Your question</div><div class="yr-notetext" dir="auto">${esc(ui.asked)}</div></div>
-    <div class="yr-fine">Answered by ${esc(ai)}</div><div class="yr-prose">${text}</div>
-    <div class="yr-chips"><button class="yr-small" data-ask-again>Ask a follow-up</button></div></div></section>`;
+    <div class="yr-answered by">Answered by ${esc(ai)}</div>${text}
+    <div class="yr-chips">${save}<button class="yr-small" data-ask-again>Ask a follow-up</button></div></div></section>`;
 }
