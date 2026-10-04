@@ -6,8 +6,8 @@
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.js",
     "check": "npm run format:check && npm test && npm run build",
-    "format": "prettier --write \"*.js\" \"transactions/*.js\" \"story/*.js\" \"ui/*.js\" \"scripts/*.mjs\" \"tests/*.js\" README.md",
-    "format:check": "prettier --check \"*.js\" \"transactions/*.js\" \"story/*.js\" \"ui/*.js\" \"scripts/*.mjs\" \"tests/*.js\" README.md"
+    "format": "prettier --write \"*.js\" \"transactions/*.js\" \"story/*.js\" \"ui/*.js\" \"scripts/*.mjs\" \"tests/*.js\" \"tests/fixtures/*.js\" README.md",
+    "format:check": "prettier --check \"*.js\" \"transactions/*.js\" \"story/*.js\" \"ui/*.js\" \"scripts/*.mjs\" \"tests/*.js\" \"tests/fixtures/*.js\" README.md"
   },
   "devDependencies": {
     "@codemirror/autocomplete": "6.20.3",
