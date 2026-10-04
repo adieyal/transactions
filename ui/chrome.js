@@ -220,6 +220,7 @@ export function createChrome(runtime, actions) {
         state.highlight.clear();
         state.statement = null;
         state.periodSel = null;
+        state.threadSel = null;
         actions.refresh();
       }
     });

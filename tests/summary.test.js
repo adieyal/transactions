@@ -5,7 +5,13 @@ import { createRuntime } from "../state.js";
 import { deriveTransactions } from "../transactions/derive.js";
 import { findMoments } from "../story/moments.js";
 import { answerMoment } from "../story/answers.js";
-import { sectionText, summarizeMonth } from "../story/summary.js";
+import {
+  periodNotes,
+  sectionText,
+  summarizeMonth,
+  summarizePeriod,
+  summarizeThread,
+} from "../story/summary.js";
 
 const TODAY = "2026-09-30";
 function demo({ moveOpen = false } = {}) {
@@ -18,6 +24,11 @@ function demo({ moveOpen = false } = {}) {
 const derive = (state) => deriveTransactions(state, { today: TODAY });
 const text = (sections) => sections.map((s) => [s.kind, sectionText(s)]);
 const amount = (s) => Number(s.replace(/[₪,]/g, ""));
+function median(xs) {
+  const s = [...xs].sort((a, b) => a - b),
+    mid = s.length >> 1;
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
 
 // Every part that states an amount carries the transactions that add up to
 // its first figure; questions carry their moment's transactions.
@@ -36,12 +47,31 @@ function checkIds(sections, derived) {
       const figure = p.text.match(/₪[\d,.]+/);
       if (!figure) continue;
       assert.ok(Array.isArray(p.txnIds), `ids for “${p.text}”`);
-      const sum = p.txnIds.reduce(
-        (a, id) => a + derived.byId.get(id).amount,
-        0,
-      );
+      const txns = p.txnIds.map((id) => derived.byId.get(id));
+      const amounts = txns.map((t) => t.amount);
+      // "the ₪100 monthly budget": the figure is the limit, so check each
+      // month of the transactions against it.
+      if (/monthly budget/.test(p.text)) {
+        const limit = amount(figure[0]);
+        const perMonth = {};
+        for (const t of txns)
+          perMonth[t.date.slice(0, 7)] =
+            (perMonth[t.date.slice(0, 7)] || 0) + t.amount;
+        const over = Object.values(perMonth).filter((v) => v > limit);
+        assert.equal(
+          over.length > 0,
+          /more than/.test(p.text),
+          `“${p.text}” matches its months`,
+        );
+        checked++;
+        continue;
+      }
+      // "A typical one was about ₪28" and "usually about ₪26" are medians.
+      const value = /typical one|usually about/.test(p.text)
+        ? median(amounts)
+        : amounts.reduce((a, b) => a + b, 0);
       assert.equal(
-        Math.round(Math.abs(sum)),
+        Math.round(Math.abs(value)),
         amount(figure[0]),
         `“${p.text}” adds up`,
       );
@@ -198,4 +228,121 @@ test("with fewer than three months there is no comparison", () => {
     sectionText(summarizeMonth(derived, state, "2025-10")[0]),
     "₪651 went out in October. There aren't enough months of statements yet to compare it with a typical month.",
   );
+});
+
+test("a period is told apart from the regular spending in its dates", () => {
+  const state = demo();
+  const derived = derive(state);
+  const move = state.periods.find((p) => p.id === "demo-move");
+  assert.deepEqual(text(summarizePeriod(derived, state, move)), [
+    [
+      "period",
+      "₪2,409 went out in these dates, with ₪1,505 at Kettle & Coil (three purchases), ₪640 at Bluebell Removals, ₪144 at Northgate Hardware (three purchases) and ₪120 at Linen Lane.",
+    ],
+    [
+      "regular",
+      "Eight regular charges (₪359) also fell in these dates and aren't counted above.",
+    ],
+    [
+      "compare",
+      "That's more than in any of your other periods: “The car broke down” came to ₪1,600 and “Holiday in Lantern Bay” came to ₪770.",
+    ],
+  ]);
+  const listed = summarizePeriod(derived, state, move, { regular: true });
+  assert.equal(
+    sectionText(listed[1]),
+    "Regular spending in these dates came to ₪359: ₪106 on Groceries, ₪91 on Dining out, ₪55 on Pets, ₪40 on Bills, ₪38 on Getting around and ₪29 on Subscriptions.",
+  );
+  checkIds(listed, derived);
+  checkIds(summarizePeriod(derived, state, move), derived);
+
+  const notes = periodNotes(derived, move);
+  assert.deepEqual(
+    notes.map((n) => [n.date, n.merchant, n.note]),
+    [
+      [
+        "2026-03-09",
+        "Bluebell Removals",
+        "Van and two movers for the day. #move",
+      ],
+      [
+        "2026-03-11",
+        "Kettle & Coil",
+        "Fridge. The new flat came without one. #move",
+      ],
+      ["2026-03-12", "Kettle & Coil", "Washing machine. #move"],
+      [
+        "2026-03-14",
+        "Kettle & Coil",
+        "Kettle and toaster, ours are still in a box somewhere. #move",
+      ],
+      [
+        "2026-03-27",
+        "Northgate Hardware",
+        "Shelf brackets and wall plugs. #move",
+      ],
+    ],
+  );
+  // Regular spending's notes show up only when it is listed too.
+  const trip = state.periods.find((p) => p.id === "demo-trip");
+  assert.ok(
+    !periodNotes(derived, trip).some((n) => n.merchant === "Meadow Paws"),
+  );
+  assert.ok(
+    periodNotes(derived, trip, { regular: true }).some(
+      (n) => n.merchant === "Meadow Paws",
+    ),
+  );
+});
+
+test("a thread is told as a summary, a month strip and a blow-by-blow list", () => {
+  const state = demo();
+  const derived = derive(state);
+  const dining = summarizeThread(derived, state, "Dining out");
+  assert.deepEqual(text(dining.sections), [
+    [
+      "overview",
+      "Dining out had 14 charges between September 2025 and August 2026, ₪370 in all, all at Paper Kite Cafe. A typical one was about ₪28.",
+    ],
+    [
+      "rhythm",
+      "12 of them were on the 9th of the month at Paper Kite Cafe, usually about ₪26.",
+    ],
+    [
+      "busiest",
+      "The busiest month was March 2026: three charges, ₪91, all during “Moving to Elm Street”.",
+    ],
+    ["budget", "It stayed within the ₪100 monthly budget every month."],
+  ]);
+  checkIds(dining.sections, derived);
+  assert.equal(dining.months.length, 12);
+  assert.deepEqual(
+    dining.months.map((m) => m.count),
+    [1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1],
+  );
+  assert.equal(dining.items.length, 14);
+  const march = dining.items.filter((i) => i.date.startsWith("2026-03"));
+  assert.ok(march.every((i) => i.periods.includes("Moving to Elm Street")));
+
+  const bills = summarizeThread(derived, state, "Bills");
+  assert.equal(
+    sectionText(bills.sections.find((s) => s.kind === "budget")),
+    "It came to more than the ₪300 monthly budget in March 2026.",
+  );
+  const car = summarizeThread(derived, state, "Car");
+  assert.deepEqual(text(car.sections), [
+    [
+      "overview",
+      "Car had two charges in December 2025, ₪1,600 in all, all at Cobble Lane Garage. ",
+    ],
+  ]);
+  assert.deepEqual(
+    car.items.map((i) => i.note),
+    [
+      "Tow home after the clutch went on the ring road. #car",
+      "New clutch. Paid from the holiday money, so the savings transfers stop for a while. #car",
+    ],
+  );
+  const transfers = summarizeThread(derived, state, "Transfers");
+  assert.doesNotMatch(sectionText(transfers.sections[0]), /₪/);
 });

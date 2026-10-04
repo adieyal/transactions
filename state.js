@@ -17,6 +17,8 @@ export function createRuntime() {
     periods: [],
     periodSel: null,
     monthView: null,
+    periodRegular: false,
+    threadSel: null,
     storyEdit: null,
     reports: [],
     answers: {},

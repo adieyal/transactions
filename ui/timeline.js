@@ -797,7 +797,10 @@ export function createTimeline(runtime, actions) {
             .map((t) => t.id),
         );
         state.selection.clear();
-        if (lab.dataset.line !== "") actions.selectRuleLine(+lab.dataset.line);
+        // The thread's summary opens below; its rules are one click away there.
+        state.threadSel = name;
+        state.periodSel = null;
+        state.statement = null;
         actions.refresh();
         return;
       }

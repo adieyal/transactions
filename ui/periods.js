@@ -1,6 +1,9 @@
 import { $, TODAY, esc, fmt, ms } from "../helpers.js";
 import { toast } from "./dom.js";
 import { PALETTE } from "../transactions/constants.js";
+import { periodNotes, summarizePeriod } from "../story/summary.js";
+import { dayShort } from "../story/copy.js";
+import { phraseHTML } from "./highlight.js";
 
 export function createPeriods(runtime, actions) {
   const { state, caps } = runtime;
@@ -21,6 +24,22 @@ export function createPeriods(runtime, actions) {
       biggest: [...out].sort((a, b) => b.amount - a.amount).slice(0, 6),
       days,
     };
+  }
+
+  // The notes on the period's transactions: the person's words, shown as
+  // written, each lighting up its transaction.
+  function notesHTML(p) {
+    const notes = periodNotes(runtime.derived, p, {
+      regular: state.periodRegular,
+    });
+    if (!notes.length)
+      return `<div class="ins-label">Your notes</div><p class="sub">No notes on these transactions yet. Click a bead to add one.</p>`;
+    return `<div class="ins-label">Your notes</div><ul class="pnotes">${notes
+      .map(
+        (n) =>
+          `<li><span class="sp" tabindex="0" data-ids="${esc(n.id)}"><span class="pn-when">${dayShort(n.date)}</span> <span dir="auto">${esc(n.merchant)}</span> ${fmt(n.amount, 0)}</span><span class="pn-text" dir="auto">${esc(n.note)}</span></li>`,
+      )
+      .join("")}</ul>`;
   }
 
   function renderPeriodInspector(el, p) {
@@ -52,15 +71,26 @@ export function createPeriods(runtime, actions) {
       }
       ${st.biggest.length ? `<div class="sub" style="margin-top:6px">Biggest: ${st.biggest.map((t) => `<button class="cite" data-cite="${t.id}"><span dir="auto">${esc(t.merchant.slice(0, 22))}</span> ${fmt(t.amount, 0)}</button>`).join(" ")}</div>` : ""}
     </div><div>
-      <div class="sub" style="margin-bottom:4px">The story. What was going on?</div>
+      <div class="ins-label">Your description <span class="sub">In your own words, if you like. Only you can see it.</span></div>
       ${
         editing
           ? `<textarea class="note story" id="pStory" dir="auto" placeholder="e.g. Moved into the new flat. Most of the Home Center and IKEA runs are furniture and fixing up.">${esc(p.story || "")}</textarea>`
           : `<div class="storyview" dir="auto">${actions.md(p.story)}</div>`
       }
-      <div class="row-actions">${!editing ? `<button class="btn small quiet" id="pEdit">Edit the story</button>` : ""}${caps.sample ? `<button class="btn small quiet" id="pDraftStory">${p.story ? "Rework it with " : "Draft it with "}${actions.AI()}</button>` : ""}
-        <button class="btn small quiet" id="pFilter">Show only this period</button><button class="btn small quiet" id="pRemove">Remove period</button></div>
+      <div class="row-actions">${!editing ? `<button class="btn small quiet" id="pEdit">Edit</button>` : ""}${caps.sample ? `<button class="btn small quiet" id="pDraftStory">${p.story ? "Rework it with " : "Draft it with "}${actions.AI()}</button>` : ""}</div>
       <p class="sub" id="pNote"></p>
+      <div class="ins-label">Summary</div>
+      <div class="psum">${summarizePeriod(runtime.derived, state, p, {
+        regular: state.periodRegular,
+      })
+        .map(
+          (sec) =>
+            `<p dir="auto">${sec.parts.map((x) => phraseHTML(x, esc)).join("")}</p>`,
+        )
+        .join("")}</div>
+      <label class="pregular"><input type="checkbox" id="pRegular"${state.periodRegular ? " checked" : ""}> Also list regular spending in these dates</label>
+      ${notesHTML(p)}
+      <div class="row-actions"><button class="btn small quiet" id="pFilter">Show only this period</button><button class="btn small quiet" id="pRemove">Remove period</button></div>
     </div></div>`;
     const upd = () => {
       actions.savePeriods();
@@ -108,6 +138,10 @@ export function createPeriods(runtime, actions) {
       actions.refresh();
     };
     $("#pRemove").onclick = () => removePeriod(p.id);
+    $("#pRegular").onchange = (e) => {
+      state.periodRegular = e.target.checked;
+      actions.renderInspector();
+    };
     $("#pDraftStory")?.addEventListener("click", () => draftStory(p));
   }
 

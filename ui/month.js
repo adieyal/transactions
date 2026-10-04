@@ -2,13 +2,10 @@ import { $, esc } from "../helpers.js";
 import { coveredMonths } from "../story/moments.js";
 import { summarizeMonth } from "../story/summary.js";
 import { monthLong } from "../story/copy.js";
+import { phraseHTML, wireHoverHighlight } from "./highlight.js";
 
 export function createMonth(runtime, actions) {
   const { state } = runtime;
-  // The ids lit up by hovering or focusing a sentence, so leaving it only
-  // clears what it set.
-  let hovered = null;
-
   const months = () => (runtime.derived ? coveredMonths(runtime.derived) : []);
 
   // Opens on the latest month with statements.
@@ -18,10 +15,7 @@ export function createMonth(runtime, actions) {
     return state.monthView;
   }
 
-  const partHTML = (p) =>
-    p.txnIds?.length
-      ? `<span class="sp" tabindex="0" data-ids="${esc(p.txnIds.join(","))}">${esc(p.text)}</span>`
-      : esc(p.text);
+  const partHTML = (p) => phraseHTML(p, esc);
 
   function sectionHTML(s, i, all) {
     if (s.kind === "question") {
@@ -57,7 +51,6 @@ export function createMonth(runtime, actions) {
       <h2 class="mtitle">${esc(monthLong(m))}</h2>
       <div class="msum">${sections.map(sectionHTML).join("")}</div>
       <p class="sub">Hover or tab to underlined text to find it on the timeline.</p>`;
-    hovered = null;
   }
 
   function step(d) {
@@ -70,44 +63,7 @@ export function createMonth(runtime, actions) {
 
   function wireMonth() {
     const el = $("#month");
-    const target = (node) => {
-      const sp = node?.closest?.(".sp, [data-cite]");
-      return sp && el.contains(sp) ? sp : null;
-    };
-    function show(sp) {
-      const ids = sp.dataset.ids
-        ? sp.dataset.ids.split(",")
-        : [sp.dataset.cite];
-      el.querySelectorAll(".sp.on").forEach((x) => x.classList.remove("on"));
-      sp.classList.add("on");
-      hovered = new Set(ids);
-      state.highlight = hovered;
-      actions.renderTimeline();
-    }
-    function hide(sp) {
-      sp.classList.remove("on");
-      if (hovered && state.highlight === hovered) {
-        state.highlight = new Set();
-        actions.renderTimeline();
-      }
-      hovered = null;
-    }
-    el.addEventListener("mouseover", (e) => {
-      const sp = target(e.target);
-      if (sp && !sp.contains(e.relatedTarget)) show(sp);
-    });
-    el.addEventListener("mouseout", (e) => {
-      const sp = target(e.target);
-      if (sp && !sp.contains(e.relatedTarget)) hide(sp);
-    });
-    el.addEventListener("focusin", (e) => {
-      const sp = target(e.target);
-      if (sp) show(sp);
-    });
-    el.addEventListener("focusout", (e) => {
-      const sp = target(e.target);
-      if (sp) hide(sp);
-    });
+    wireHoverHighlight(el, runtime, actions);
     el.addEventListener("click", (e) => {
       const b = e.target.closest("[data-mstep]");
       if (b) step(+b.dataset.mstep);
