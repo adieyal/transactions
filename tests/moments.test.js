@@ -417,3 +417,45 @@ test("a regular charge that stops becomes a question, as Worth a look's flags di
     "Lantern Stream last appeared on 15 July 2026, and not in August 2026. Want to add a note?",
   );
 });
+
+// A shop visited most months, at different prices and on different days, is
+// not a regular charge, so a month without it is not "something missing". The
+// same merchant charging a steady amount on a steady day is.
+test("a missing month is only asked about for steady charges", () => {
+  const withShop = (amount, day) => {
+    const state = unexplained();
+    const cards = Object.values(state.batches)
+      .filter((b) => b.account === "Demo Card")
+      .sort((a, b) => a.periods[0].localeCompare(b.periods[0]));
+    cards.forEach((b, i) => {
+      if (i === 5) return;
+      const period = b.periods[0];
+      b.rows.push({
+        ...b.rows[0],
+        id: `shop-${period}`,
+        date: `${period}-${String(day(i)).padStart(2, "0")}`,
+        chargeDate: `${period}-${String(day(i)).padStart(2, "0")}`,
+        merchant: "Corner Hardware",
+        amount: amount(i),
+      });
+    });
+    return detectMoments(derive(state), state).filter(
+      (m) => m.kind === "gap" && m.facts.merchant === "Corner Hardware",
+    );
+  };
+  const prices = [42, 310, 18, 95, 160, 0, 27, 240, 66, 130, 12, 88];
+  assert.equal(
+    withShop(
+      (i) => prices[i],
+      (i) => 3 + ((i * 7) % 25),
+    ).length,
+    0,
+  );
+  assert.equal(
+    withShop(
+      () => 49,
+      () => 12,
+    ).length,
+    1,
+  );
+});

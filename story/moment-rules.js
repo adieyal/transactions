@@ -248,14 +248,28 @@ function regularItems(ctx) {
   return out;
 }
 
-// A regular charge or outgoing transfer missing from covered months, and a
+// Whether charges look like a standing payment rather than a shop someone
+// happens to visit most months: at least three in four are within 20% of the
+// usual amount and within five days of the usual day of the month.
+function steady(ts) {
+  const usual = median(ts.map((t) => t.amount)),
+    day = median(ts.map((t) => +t.date.slice(8, 10)));
+  const near = ts.filter(
+    (t) =>
+      Math.abs(t.amount - usual) <= 0.2 * Math.abs(usual) &&
+      Math.abs(+t.date.slice(8, 10) - day) <= 5,
+  );
+  return near.length >= 0.75 * ts.length;
+}
+
+// A steady charge or outgoing transfer missing from covered months, and a
 // regular charge that stopped (findChanges' "gone" flags). Months without a
 // statement never count as missing.
 export function gaps(ctx) {
   const out = [];
   const regular = regularItems(ctx);
   for (const { ts, perMonth } of regular) {
-    if (perMonth.size < 4) continue;
+    if (perMonth.size < 4 || !steady(ts)) continue;
     const present = [...perMonth.keys()].sort();
     const covered = accountMonths(ctx.derived, ts[0].account).filter(
       (m) => m >= present[0] && m <= present.at(-1),
@@ -285,10 +299,12 @@ export function gaps(ctx) {
         ),
       );
   }
-  // Stopped: a regular charge seen in 3+ months, missing from the latest
+  // Stopped: a steady charge seen in 3+ months, missing from the latest
   // covered month and for at least as long as it usually goes between charges.
   const regularKeys = new Map(
-    regular.filter((r) => r.perMonth.size >= 3).map((r) => [r.ts[0].key, r]),
+    regular
+      .filter((r) => r.perMonth.size >= 3 && steady(r.ts))
+      .map((r) => [r.ts[0].key, r]),
   );
   for (const f of ctx.derived.flags) {
     if (f.type !== "gone" || !regularKeys.has(f.t.key)) continue;
