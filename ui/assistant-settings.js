@@ -171,3 +171,19 @@ export function createAssistantSettings(runtime, actions) {
     wireConnect,
   };
 }
+
+export const contract = {
+  name: "assistant-settings",
+  create: createAssistantSettings,
+  provides: [
+    "AI",
+    "applyProvider",
+    "noAssistant",
+    "openAISettings",
+    "sampleErr",
+    "wireConnect",
+  ],
+  requires: ["refresh"],
+  renders: [],
+  wires: ["wireConnect"],
+};

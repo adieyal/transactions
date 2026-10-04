@@ -754,6 +754,37 @@ ${budgets.length ? `Monthly budgets they've set: ${budgets.join(", ")}.\n` : ""}
     renderAskCtx,
     renderLog,
     wireAsk,
-    renders: [renderAskCtx, renderLog],
   };
 }
+
+export const contract = {
+  name: "chat",
+  create: createChat,
+  provides: [
+    "buildIntro",
+    "callAssistant",
+    "md",
+    "renderAskCtx",
+    "renderLog",
+    "wireAsk",
+  ],
+  requires: [
+    "AI",
+    "addReport",
+    "coverageText",
+    "highlight",
+    "noAssistant",
+    "openPeriod",
+    "openTab",
+    "redraw",
+    "refresh",
+    "refreshSoon",
+    "sampleErr",
+    "save",
+    "select",
+    "transferText",
+    "writeLens",
+  ],
+  renders: ["renderAskCtx", "renderLog"],
+  wires: ["wireAsk"],
+};

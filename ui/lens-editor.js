@@ -374,3 +374,12 @@ export function createLensEditor(runtime, actions) {
 
   return { openLensEditor, wireLensEditor };
 }
+
+export const contract = {
+  name: "lens-editor",
+  create: createLensEditor,
+  provides: ["openLensEditor", "wireLensEditor"],
+  requires: ["redraw", "renderView", "rerunLens", "runLens", "save"],
+  renders: [],
+  wires: ["wireLensEditor"],
+};

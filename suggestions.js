@@ -104,3 +104,12 @@ Example transactions: ${JSON.stringify(sampleRows)}
 
   return { coverageText, suggestThreads, writeLens };
 }
+
+export const contract = {
+  name: "suggestions",
+  create: createSuggestions,
+  provides: ["coverageText", "suggestThreads", "writeLens"],
+  requires: ["AI", "publicTxn", "refresh", "sampleErr", "syncGutter"],
+  renders: [],
+  wires: [],
+};

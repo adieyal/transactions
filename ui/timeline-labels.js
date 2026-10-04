@@ -31,3 +31,30 @@ export function fitLabels(host) {
     }
   });
 }
+
+// Puts each park eye just left of its thread name, now that names have width.
+export function placeParkButtons(host, labelW) {
+  host.querySelectorAll(".parkbtn[data-park]").forEach((b) => {
+    const lab = host.querySelector(
+      `.rowlabel[data-thread="${CSS.escape(b.dataset.park)}"]`,
+    );
+    if (!lab) return;
+    const x = labelW - 12 - lab.getComputedTextLength() - 14;
+    b.setAttribute("transform", `translate(${x},${b.dataset.forY - 4})`);
+  });
+}
+
+// Keeps period names in view at the top of the scrolled timeline, while the
+// timeline itself is still on screen below them.
+export function placeStickyNames(host, perBottom) {
+  const svg = host.querySelector("svg");
+  if (!svg) return;
+  const top =
+    document.querySelector(".left").getBoundingClientRect().top -
+    svg.getBoundingClientRect().top;
+  const show = top > perBottom && top + 24 < svg.getBoundingClientRect().height;
+  svg.querySelectorAll(".pstick").forEach((t) => {
+    t.style.display = show ? "" : "none";
+    if (show) t.setAttribute("y", top + 16);
+  });
+}

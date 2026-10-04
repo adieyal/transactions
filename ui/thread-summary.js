@@ -66,3 +66,12 @@ export function createThreadSummary(runtime, actions) {
 
   return { renderThreadInspector };
 }
+
+export const contract = {
+  name: "thread-summary",
+  create: createThreadSummary,
+  provides: ["renderThreadInspector"],
+  requires: ["refresh", "selectRuleLine"],
+  renders: [],
+  wires: [],
+};

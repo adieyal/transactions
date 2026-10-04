@@ -313,6 +313,32 @@ export function createInspector(runtime, actions) {
   return {
     renderInspector,
     wireInspector,
-    renders: [() => renderInspector({ fromRefresh: true })],
+    // The registered render: a refresh, so a field being typed in is kept.
+    refreshInspector: () => renderInspector({ fromRefresh: true }),
   };
 }
+
+export const contract = {
+  name: "inspector",
+  create: createInspector,
+  provides: ["refreshInspector", "renderInspector", "wireInspector"],
+  requires: [
+    "addPeriod",
+    "highlight",
+    "openPeriod",
+    "openTab",
+    "refresh",
+    "refreshSoon",
+    "removeBatch",
+    "renderPeriodInspector",
+    "renderThreadInspector",
+    "save",
+    "select",
+    "selectRuleLine",
+    "tagToolsHTML",
+    "transferText",
+    "wireTagTools",
+  ],
+  renders: ["refreshInspector"],
+  wires: ["wireInspector"],
+};

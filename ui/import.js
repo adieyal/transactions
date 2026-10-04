@@ -254,3 +254,21 @@ ${JSON.stringify(matrix.slice(0, 18).map((r) => r.map((c) => String(c ?? "").sli
 
   return { importFiles };
 }
+
+export const contract = {
+  name: "import",
+  create: createImport,
+  provides: ["importFiles"],
+  requires: [
+    "AI",
+    "openTab",
+    "refresh",
+    "runStale",
+    "sampleErr",
+    "save",
+    "saveBatch",
+    "staleReports",
+  ],
+  renders: [],
+  wires: [],
+};

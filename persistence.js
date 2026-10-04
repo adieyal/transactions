@@ -75,3 +75,20 @@ export function createPersistence(runtime, actions) {
     setStatus,
   };
 }
+
+export const contract = {
+  name: "persistence",
+  create: createPersistence,
+  provides: [
+    "Store",
+    "blockSaves",
+    "removeBatch",
+    "restoreBackup",
+    "save",
+    "saveBatch",
+    "setStatus",
+  ],
+  requires: [],
+  renders: [],
+  wires: [],
+};

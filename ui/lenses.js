@@ -274,6 +274,29 @@ export function createLenses(runtime, actions) {
     rerunLens,
     runLens,
     wireLenses,
-    renders: [renderLenses],
   };
 }
+
+export const contract = {
+  name: "lenses",
+  create: createLenses,
+  provides: [
+    "lensLib",
+    "publicTxn",
+    "renderLenses",
+    "renderView",
+    "rerunLens",
+    "runLens",
+    "wireLenses",
+  ],
+  requires: [
+    "AI",
+    "highlight",
+    "openLensEditor",
+    "sampleErr",
+    "save",
+    "writeLens",
+  ],
+  renders: ["renderLenses"],
+  wires: ["wireLenses"],
+};

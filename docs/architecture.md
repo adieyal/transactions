@@ -140,21 +140,25 @@ export function createMonth(runtime, actions) {
 
 ### The registry
 
-`registry.js` (app layer) replaces the `Object.assign` chain in `main.js:27-50`:
+`registry.js` (app layer) replaced the `Object.assign` chain in `main.js` (R1, done):
 
 ```js
-// main.js (target)
-import * as persistence from "./persistence.js";
-import * as month from "./ui/month.js";
+// main.js
+import { contract as persistence } from "./persistence.js";
+import { contract as month } from "./ui/month.js";
 // …
-const actions = createRegistry(runtime, [
-  persistence,
-  filter,
-  timeline,
-  /* … */ month,
-]);
-actions.wireAll();
-await boot(actions);
+const MODULES = [persistence, chrome, filter, timeline /* … */, lensEditor];
+const registry = createRegistry(runtime, MODULES, {
+  derive() {
+    /* … */
+  },
+  redraw,
+  refresh,
+  refreshSoon: debounce(() => refresh(), 250),
+});
+const actions = registry.actions;
+// at boot: for (const wire of registry.wires) wire();
+// on refresh: for (const render of registry.renders) render();
 ```
 
 `createRegistry` does the following:
@@ -162,10 +166,10 @@ await boot(actions);
 1. Calls each `contract.create(runtime, view)`. `view` is a `Proxy` over the shared table whose `get` throws `ui/month.js did not declare "renderTimeline"` for any name missing from `requires`.
 2. Checks that the returned keys equal `provides`, and that no key is provided twice. It throws on a mismatch, so a name collision fails at startup instead of silently overwriting.
 3. After all modules are registered, checks that every `requires` entry has a provider.
-4. Adds the app-level functions: `refresh`, `refreshSoon`, `derive`, `wireAll`, `save`.
-5. Freezes the table.
+4. Takes the app-level functions from `main.js` first: `derive`, `redraw`, `refresh` and `refreshSoon`. (`save` belongs to `persistence.js`.)
+5. Checks that each module's `renders` and `wires` are among its own `provides`, then freezes the table. It returns the table, the renders in registration order and the wires in registration order.
 
-Because construction is DOM-free, `tests/architecture.test.js` runs the same `createRegistry` in Node against fake runtimes. It also scans each module's source for `actions.X` and checks that every `X` is in that module's `requires`. A typo then fails `npm test` instead of throwing on a click.
+Because construction is DOM-free, `tests/architecture.test.js` runs the same `createRegistry` in Node against fake runtimes. It also scans each module's source for `actions.X` and checks that every `X` is in that module's `requires`, and that every `requires` entry is used. That scan includes view helpers such as `ui/highlight.js` that the module hands its `actions` to. A typo then fails `npm test` instead of throwing on a click. The test also reports the largest group of modules that reach each other through `actions` (13 of 20 after R1), and fails if it grows past `CYCLE_MAX`.
 
 ### Commands, not renders
 
@@ -412,7 +416,7 @@ Each step is small, keeps behaviour unchanged, and has a backlog entry with the 
 
 | Step | Change                                                                                                                     | Answers review finding |
 | ---- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| R1   | `contract` exports, `registry.js`, the scoped `actions` proxy, the contract test                                           | 1                      |
+| R1   | `contract` exports, `registry.js`, the scoped `actions` proxy, the contract test (done)                                    | 1                      |
 | R2   | Boot, saves and backups derived from `documents.js`; the `demo`/`workspace` key reconciled (done)                          | 2                      |
 | R3   | One refresh path: registered renders, `highlight`/`select`/`clearFocus` commands, duplicate `renderReports` removed (done) | 3, 5                   |
 | R4   | Pure logic out of UI: rules-text editing, assistant tools, period statistics, tags, the lens runner                        | 4                      |

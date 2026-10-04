@@ -133,5 +133,23 @@ export function createMonth(runtime, actions) {
     actions.wireCards(el, "month");
   }
 
-  return { renderMonth, wireMonth, renders: [renderMonth] };
+  return { renderMonth, wireMonth };
 }
+
+export const contract = {
+  name: "month",
+  create: createMonth,
+  provides: ["renderMonth", "wireMonth"],
+  requires: [
+    "AI",
+    "highlight",
+    "md",
+    "openQuestions",
+    "questionCard",
+    "resetPanelScroll",
+    "sampleErr",
+    "wireCards",
+  ],
+  renders: ["renderMonth"],
+  wires: ["wireMonth"],
+};

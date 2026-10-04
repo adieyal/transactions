@@ -16,7 +16,7 @@ Items are ranked by how much they lower the risk of future change, against what 
 |    0 | [M0](#m0-merge-tasks-for-story-first) Merge tasks                                                               |      S      |    Low     | `answers`, `merchantAnswers` (done; adds `dismissed` under R2)               |           is the merge           |
 |    1 | [R2](#r2-derive-boot-saves-and-backups-from-documentsjs) Derive boot, saves and backups from `documents.js`     |      M      |   Medium   | `workspace is missing from: save`, `main.js writes undeclared document demo` |        **Done** (`next`)         |
 |    2 | [R3](#r3-one-refresh-path) One refresh path                                                                     |      M      |   Medium   | none (removes the duplicate `renderReports` call)                            |        **Done** (`next`)         |
-|    3 | [R1](#r1-declared-module-contracts-and-registry) Declared module contracts and registry                         |      M      |    Low     | none (turns the provider test into a contract test)                          |               Yes                |
+|    3 | [R1](#r1-declared-module-contracts-and-registry) Declared module contracts and registry                         |      M      |    Low     | none (turns the provider test into a contract test)                          |        **Done** (`next`)         |
 |    4 | [R4](#r4-pure-logic-out-of-the-ui) Pure logic out of the UI                                                     | L (4 × S/M) | Low–medium | none directly; shrinks `ui/chat.js` and `ui/timeline.js`                     |        Mostly yes; R4d no        |
 |    5 | [R6](#r6-browser-file-readers-out-of-transactionsimportjs) Browser file readers out of `transactions/import.js` |      S      |    Low     | 3: `transactions/import.js uses window`, `… DOMParser`, `… XLSX`             |              **No**              |
 |    6 | [R7](#r7-persistence-stops-importing-the-ui) Persistence stops importing the UI                                 |      S      |    Low     | `persistence.js (persistence) imports ui/dom.js (ui)`                        |               Yes                |
@@ -100,6 +100,12 @@ Items that can start now: R6, R11 for the settings, and R4d.
 - **Size:** M (mostly mechanical, one `contract` per file). **Risk:** low. Startup throws on a mismatch, and the test catches that first.
 - **Removes:** none. It tightens the actions rule from "some provider" to "a declared provider".
 - **Wait:** yes. It touches every `ui/` file and `main.js`.
+- **Done** on branch `next`, 4 October 2026:
+  - **Contracts.** All 20 factories export `contract = { name, create, provides, requires, renders, wires }`. The lists were generated from the code, then checked by the guardrail.
+  - **Registry.** `registry.js` builds the table, gives each module a scoped `actions` that throws on undeclared names, and throws at startup on a missing or doubled provider, or on provides that differ from the contract. `main.js` lists the modules once (`MODULES`); refresh renders and boot wiring follow that order.
+  - **Guardrail.** It checks used names against `requires`, both ways, and caps the largest cycle of modules reaching each other at `CYCLE_MAX = 13` (of 20; the review counted 18).
+  - **Size.** The label placement helpers moved from `ui/timeline.js` into `ui/timeline-labels.js`, to keep the file under its ceiling with its contract added.
+  - **Next.** Lower the cycle by moving shared commands (`openTab`, `refresh`, `save`) out of the cycle's hubs, mainly `ui/chrome.js` and `ui/chat.js`.
 
 ### R4. Pure logic out of the UI
 

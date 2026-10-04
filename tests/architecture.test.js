@@ -30,6 +30,7 @@ const LAYERS = {
   "assistant.js": "platform",
   "downloads.js": "platform",
   "state.js": "app",
+  "registry.js": "app",
   // A UI factory at the root until R4 splits its prompts from its handlers.
   "suggestions.js": "ui",
   "ui/": "ui",
@@ -46,6 +47,10 @@ const RANK = {
   entry: 5,
 };
 const PURE = new Set(["core", "domain"]);
+
+// The largest group of modules that all reach each other through actions
+// (review finding 1). It may only shrink: lower this when it does.
+const CYCLE_MAX = 13;
 
 const LAYER_ALLOW = [
   // R7: persistence.js shows its own toasts; main.js will pass in onError.
@@ -335,85 +340,146 @@ test("only the named adapters use the network or browser storage", () => {
   expectAllowlist("Boundaries", found, BOUNDARY_ALLOW);
 });
 
-test("every actions.X call has exactly one provider", async () => {
-  // main.js registers the factories; each must build without a DOM and
-  // without touching actions, so it can be built here. A factory's `renders`
-  // list goes to the refresh path, not onto actions.
+test("modules declare what they provide and require, and each requirement has one provider", async (t) => {
+  // Every module with a contract is registered in main.js.
   const main = SOURCE["main.js"];
-  const registered = [
-    ...main.matchAll(/register\((create\w+)\(runtime, actions\)\)/g),
-  ].map((m) => m[1]);
-  const factoryFile = {};
-  for (const [, names, spec] of main.matchAll(
-    /import \{([^}]*)\} from "\.\/([^"]+)"/g,
-  ))
-    for (const n of names.split(",").map((s) => s.trim()))
-      if (n.startsWith("create")) factoryFile[n] = spec;
-
-  const declared = FILES.flatMap((f) =>
+  const registered = Object.fromEntries(
     [
-      ...SOURCE[f].matchAll(/export function (create\w+)\(runtime, actions\)/g),
-    ].map((m) => `${m[1]} (${f})`),
+      ...main.matchAll(/import \{ contract as (\w+) \} from "\.\/([^"]+)"/g),
+    ].map((m) => [m[2], m[1]]),
   );
-  const unregistered = declared.filter(
-    (d) => !registered.includes(d.split(" ")[0]),
+  const withContract = FILES.filter((f) =>
+    /^export const contract = \{/m.test(SOURCE[f]),
   );
-  assert.deepEqual(unregistered, [], "Register these factories in main.js");
+  assert.deepEqual(
+    withContract.filter((f) => !registered[f]),
+    [],
+    "Register these modules in main.js",
+  );
+  const order = [
+    ...(main.match(/const MODULES = \[([^\]]*)\]/)?.[1] || "").matchAll(/\w+/g),
+  ].map((m) => m[0]);
+  const fileOf = Object.fromEntries(
+    Object.entries(registered).map(([f, n]) => [n, f]),
+  );
+  assert.deepEqual(
+    [...order].sort(),
+    Object.values(registered).sort(),
+    "MODULES lists every imported contract once",
+  );
 
   const { createRuntime } = await import(
     pathToFileURL(path.join(root, "state.js"))
   );
+  const { createRegistry } = await import(
+    pathToFileURL(path.join(root, "registry.js"))
+  );
   const saved = globalThis.localStorage;
   globalThis.localStorage = { length: 0, key() {}, getItem() {}, setItem() {} };
-  const untouchable = new Proxy(
-    {},
-    {
-      get(_, key) {
-        throw new Error(`actions.${String(key)} used while being constructed`);
-      },
-    },
-  );
-  const providers = {};
+  const contracts = [];
   try {
-    for (const name of registered) {
-      const mod = await import(
-        pathToFileURL(path.join(root, factoryFile[name]))
+    for (const name of order)
+      contracts.push(
+        (await import(pathToFileURL(path.join(root, fileOf[name])))).contract,
       );
-      const made = mod[name](createRuntime(), untouchable);
-      for (const key of Object.keys(made))
-        if (key !== "renders") (providers[key] ||= []).push(factoryFile[name]);
-    }
+    // Factories do nothing with actions while being built.
+    const untouchable = new Proxy(
+      {},
+      {
+        get(_, key) {
+          throw new Error(
+            `actions.${String(key)} used while being constructed`,
+          );
+        },
+      },
+    );
+    for (const c of contracts) c.create(createRuntime(), untouchable);
+    // The registry itself: one provider for every name, provides as declared.
+    const own = Object.fromEntries(
+      [
+        ...(
+          main.match(
+            /createRegistry\(runtime, MODULES, \{([\s\S]*?)\n\}\);/,
+          )?.[1] || ""
+        ).matchAll(/^ {2}(\w+)/gm),
+      ].map((m) => [m[1], () => {}]),
+    );
+    createRegistry(createRuntime(), contracts, own);
   } finally {
     globalThis.localStorage = saved;
   }
-  // main.js provides derive() up front and redraw/refresh/refreshSoon last.
-  const own = [
-    ...(main.match(/const actions = \{([\s\S]*?)\n\};/)?.[1] || "").matchAll(
-      /^ {2}(\w+)\(/gm,
-    ),
-    ...(
-      main.match(/Object\.assign\(actions, \{([^}]*)\}\)/)?.[1] || ""
-    ).matchAll(/(\w+)(?=\s*[:,]|\s*$)/g),
-  ].map((m) => m[1]);
-  for (const key of new Set(own)) (providers[key] ||= []).push("main.js");
 
-  const duplicates = Object.entries(providers)
-    .filter(([, files]) => files.length > 1)
-    .map(([key, files]) => `${key}: ${files.join(", ")}`);
+  // Each module uses exactly the actions it requires: its own code, plus the
+  // view helpers it hands its actions to.
+  const helpers = FILES.filter(
+    (f) =>
+      f.startsWith("ui/") &&
+      !withContract.includes(f) &&
+      /\bactions\./.test(CODE[f]),
+  );
+  const used = (file) => {
+    let code = CODE[file];
+    for (const h of helpers) {
+      const fn = [
+        ...CODE[h].matchAll(/export function (\w+)\([^)]*\bactions\b/g),
+      ].map((m) => m[1]);
+      if (fn.some((n) => new RegExp(`\\b${n}\\(`).test(code))) code += CODE[h];
+    }
+    return new Set(
+      [...code.matchAll(/(?<![\w$.])actions\.([A-Za-z_$][\w$]*)/g)].map(
+        (m) => m[1],
+      ),
+    );
+  };
+  const wrong = [];
+  const providerOf = {};
+  for (const c of contracts) for (const k of c.provides) providerOf[k] = c.name;
+  for (const c of contracts) {
+    const file = fileOf[order[contracts.indexOf(c)]];
+    const uses = used(file);
+    for (const k of uses)
+      if (!c.requires.includes(k))
+        wrong.push(`${file} uses actions.${k} without requiring it`);
+    for (const k of c.requires)
+      if (!uses.has(k)) wrong.push(`${file} requires ${k} but doesn't use it`);
+  }
   assert.deepEqual(
-    duplicates,
+    wrong,
     [],
-    "Each actions function needs a single provider",
+    "Keep each contract's requires in step with its code",
   );
 
-  const missing = [];
-  for (const file of FILES)
-    for (const m of CODE[file].matchAll(
-      /(?<![\w$.])actions\.([A-Za-z_$][\w$]*)/g,
-    ))
-      if (!providers[m[1]])
-        missing.push(`${file}:${lineOf(CODE[file], m.index)} actions.${m[1]}`);
-  assert.deepEqual(missing, [], "No module provides these actions functions");
+  // The largest cycle of modules reaching each other through actions.
+  const edges = Object.fromEntries(
+    contracts.map((c) => [
+      c.name,
+      [...new Set(c.requires.map((k) => providerOf[k]).filter(Boolean))],
+    ]),
+  );
+  const reach = (from) => {
+    const seen = new Set([from]);
+    const stack = [from];
+    while (stack.length)
+      for (const n of edges[stack.pop()] || [])
+        if (!seen.has(n)) seen.add(n) && stack.push(n);
+    return seen;
+  };
+  const reaches = Object.fromEntries(
+    contracts.map((c) => [c.name, reach(c.name)]),
+  );
+  const largest = Math.max(
+    ...contracts.map(
+      (c) =>
+        contracts.filter(
+          (o) => reaches[c.name].has(o.name) && reaches[o.name].has(c.name),
+        ).length,
+    ),
+  );
+  t.diagnostic(`largest cycle of modules: ${largest} of ${contracts.length}`);
+  assert.ok(
+    largest <= CYCLE_MAX,
+    `The largest cycle grew to ${largest} modules (cap ${CYCLE_MAX}); call through fewer modules`,
+  );
 });
 
 test("saved documents match documents.js in boot, saving and backups", async () => {

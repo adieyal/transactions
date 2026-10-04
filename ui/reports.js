@@ -155,6 +155,30 @@ export function createReports(runtime, actions) {
     runStale,
     staleReports,
     wireReports,
-    renders: [renderReports],
   };
 }
+
+export const contract = {
+  name: "reports",
+  create: createReports,
+  provides: [
+    "addReport",
+    "renderReports",
+    "runStale",
+    "staleReports",
+    "wireReports",
+  ],
+  requires: [
+    "buildIntro",
+    "callAssistant",
+    "coverageText",
+    "md",
+    "noAssistant",
+    "openTab",
+    "sampleErr",
+    "save",
+    "select",
+  ],
+  renders: ["renderReports"],
+  wires: ["wireReports"],
+};

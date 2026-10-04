@@ -100,3 +100,12 @@ export function createBackupImport(runtime, actions) {
   }
   return { restartDemo, wireBackupImport };
 }
+
+export const contract = {
+  name: "backup",
+  create: createBackupImport,
+  provides: ["restartDemo", "wireBackupImport"],
+  requires: ["applyPanel", "refresh", "resetPanelScroll", "restoreBackup"],
+  renders: [],
+  wires: ["wireBackupImport"],
+};

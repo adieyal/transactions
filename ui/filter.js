@@ -111,5 +111,14 @@ export function createFilter(runtime, actions) {
     });
   }
 
-  return { renderFilterBar, wireFilter, renders: [renderFilterBar] };
+  return { renderFilterBar, wireFilter };
 }
+
+export const contract = {
+  name: "filter",
+  create: createFilter,
+  provides: ["renderFilterBar", "wireFilter"],
+  requires: ["bulkTag", "parseTags", "refresh"],
+  renders: ["renderFilterBar"],
+  wires: ["wireFilter"],
+};

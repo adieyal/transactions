@@ -268,3 +268,25 @@ Write 80 to 180 words in the first person, as the person's own plain notes: what
 
   return { addPeriod, openPeriod, removePeriod, renderPeriodInspector };
 }
+
+export const contract = {
+  name: "periods",
+  create: createPeriods,
+  provides: [
+    "addPeriod",
+    "openPeriod",
+    "removePeriod",
+    "renderPeriodInspector",
+  ],
+  requires: [
+    "AI",
+    "coverageText",
+    "md",
+    "refresh",
+    "refreshSoon",
+    "sampleErr",
+    "save",
+  ],
+  renders: [],
+  wires: [],
+};

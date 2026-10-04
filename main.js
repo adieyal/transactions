@@ -1,4 +1,4 @@
-import { createBackupImport } from "./ui/backup.js";
+import { contract as backupImport } from "./ui/backup.js";
 import { saveBrowserDownload } from "./downloads.js";
 import { createDemoData } from "./demo.js";
 import { debounce } from "./helpers.js";
@@ -6,63 +6,62 @@ import { dbBackend, localBackend } from "./storage.js";
 import { toast } from "./ui/dom.js";
 import { createRuntime } from "./state.js";
 import { deriveTransactions } from "./transactions/derive.js";
-import { createPersistence } from "./persistence.js";
+import { contract as persistence } from "./persistence.js";
 import { documentFor, loadDocuments, toDocument } from "./documents.js";
-import { createFilter } from "./ui/filter.js";
-import { createTimeline } from "./ui/timeline.js";
-import { createTags } from "./ui/tags.js";
-import { createInspector } from "./ui/inspector.js";
-import { createPeriods } from "./ui/periods.js";
-import { createQuestions } from "./ui/questions.js";
-import { createMonth } from "./ui/month.js";
-import { createThreadSummary } from "./ui/thread-summary.js";
-import { createReports } from "./ui/reports.js";
-import { createThreads } from "./ui/threads.js";
-import { createLenses } from "./ui/lenses.js";
-import { createChrome } from "./ui/chrome.js";
-import { createAssistantSettings } from "./ui/assistant-settings.js";
-import { createSuggestions } from "./suggestions.js";
-import { createChat } from "./ui/chat.js";
-import { createImport } from "./ui/import.js";
-import { createTour } from "./ui/tour.js";
-import { createLensEditor } from "./ui/lens-editor.js";
+import { createRegistry } from "./registry.js";
+import { contract as filter } from "./ui/filter.js";
+import { contract as timeline } from "./ui/timeline.js";
+import { contract as tags } from "./ui/tags.js";
+import { contract as inspector } from "./ui/inspector.js";
+import { contract as periods } from "./ui/periods.js";
+import { contract as questions } from "./ui/questions.js";
+import { contract as month } from "./ui/month.js";
+import { contract as threadSummary } from "./ui/thread-summary.js";
+import { contract as reports } from "./ui/reports.js";
+import { contract as threads } from "./ui/threads.js";
+import { contract as lenses } from "./ui/lenses.js";
+import { contract as chrome } from "./ui/chrome.js";
+import { contract as assistantSettings } from "./ui/assistant-settings.js";
+import { contract as suggestions } from "./suggestions.js";
+import { contract as chat } from "./ui/chat.js";
+import { contract as importer } from "./ui/import.js";
+import { contract as tour } from "./ui/tour.js";
+import { contract as lensEditor } from "./ui/lens-editor.js";
 
 const runtime = createRuntime();
-const actions = {
+// Modules in registration order: the order of renders on every refresh and
+// of wiring at boot. registry.js checks each one's contract.
+const MODULES = [
+  persistence,
+  chrome,
+  filter,
+  timeline,
+  tags,
+  questions,
+  month,
+  reports,
+  threads,
+  inspector,
+  periods,
+  threadSummary,
+  lenses,
+  assistantSettings,
+  suggestions,
+  chat,
+  importer,
+  backupImport,
+  tour,
+  lensEditor,
+];
+const registry = createRegistry(runtime, MODULES, {
   derive() {
     runtime.derived = deriveTransactions(runtime.state);
   },
-};
-
-// Each factory's functions join actions; the renders it lists are called,
-// in registration order, by every refresh. A render returns early when its
-// pane is hidden, so this order is also the order on screen updates.
-const renders = [];
-function register({ renders: own = [], ...provided }) {
-  Object.assign(actions, provided);
-  renders.push(...own);
-}
-
-register(createPersistence(runtime, actions));
-register(createChrome(runtime, actions));
-register(createFilter(runtime, actions));
-register(createTimeline(runtime, actions));
-register(createTags(runtime, actions));
-register(createQuestions(runtime, actions));
-register(createMonth(runtime, actions));
-register(createReports(runtime, actions));
-register(createThreads(runtime, actions));
-register(createInspector(runtime, actions));
-register(createPeriods(runtime, actions));
-register(createThreadSummary(runtime, actions));
-register(createLenses(runtime, actions));
-register(createAssistantSettings(runtime, actions));
-register(createSuggestions(runtime, actions));
-register(createChat(runtime, actions));
-register(createImport(runtime, actions));
-register(createBackupImport(runtime, actions));
-register(createTour(runtime, actions));
-register(createLensEditor(runtime, actions));
+  redraw,
+  refresh,
+  refreshSoon: debounce(() => refresh(), 250),
+});
+const actions = registry.actions;
 
 // The one way the screen catches up with state: re-derive, then every
 // registered render. redraw() skips deriving, for a change of tab or layout.
@@ -71,7 +70,7 @@ function redraw() {
     actions.renderTimeline();
     return;
   }
-  for (const render of renders) render();
+  for (const render of registry.renders) render();
 }
 function refresh() {
   if (runtime.state.loaded) actions.derive();
@@ -87,20 +86,7 @@ async function useCap(name) {
 }
 
 async function boot() {
-  actions.wireChrome();
-  actions.wireBackupImport();
-  actions.wireTimeline();
-  actions.wireLenses();
-  actions.wireLensEditor();
-  actions.wireAsk();
-  actions.wireConnect();
-  actions.wireFilter();
-  actions.wireParkbar();
-  actions.wireQuestions();
-  actions.wireMonth();
-  actions.wirePrivacy();
-  actions.wireInspector();
-  actions.wireReports();
+  for (const wire of registry.wires) wire();
   actions.renderTimeline();
   const [db, user, sample, downloads] = await Promise.all(
     ["db", "user", "sample", "downloads"].map(useCap),
@@ -162,8 +148,5 @@ async function boot() {
   refresh();
   actions.maybeStartTour();
 }
-
-const refreshSoon = debounce(refresh, 250);
-Object.assign(actions, { redraw, refresh, refreshSoon });
 
 boot();

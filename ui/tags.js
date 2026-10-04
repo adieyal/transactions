@@ -129,3 +129,12 @@ export function createTags(runtime, actions) {
 
   return { bulkTag, parseTags, tagToolsHTML, wireTagTools };
 }
+
+export const contract = {
+  name: "tags",
+  create: createTags,
+  provides: ["bulkTag", "parseTags", "tagToolsHTML", "wireTagTools"],
+  requires: ["refresh", "save"],
+  renders: [],
+  wires: [],
+};

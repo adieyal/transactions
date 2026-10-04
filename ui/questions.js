@@ -276,6 +276,33 @@ export function createQuestions(runtime, actions) {
     wireCards,
     wirePrivacy,
     wireQuestions,
-    renders: [renderQuestions],
   };
 }
+
+export const contract = {
+  name: "questions",
+  create: createQuestions,
+  provides: [
+    "answerQuestion",
+    "openQuestions",
+    "questionCard",
+    "renderPrivacy",
+    "renderQuestions",
+    "wireCards",
+    "wirePrivacy",
+    "wireQuestions",
+  ],
+  requires: [
+    "AI",
+    "Store",
+    "addPeriod",
+    "highlight",
+    "openTab",
+    "redraw",
+    "refresh",
+    "sampleErr",
+    "save",
+  ],
+  renders: ["renderQuestions"],
+  wires: ["wireQuestions", "wirePrivacy"],
+};

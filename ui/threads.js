@@ -98,6 +98,14 @@ export function createThreads(runtime, actions) {
     renderEditor,
     selectRuleLine,
     syncGutter,
-    renders: [renderEditor],
   };
 }
+
+export const contract = {
+  name: "threads",
+  create: createThreads,
+  provides: ["caretHighlight", "renderEditor", "selectRuleLine", "syncGutter"],
+  requires: ["AI", "highlight", "openTab"],
+  renders: ["renderEditor"],
+  wires: [],
+};

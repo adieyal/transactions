@@ -230,6 +230,38 @@ export function createChrome(runtime, actions) {
     renderChrome,
     resetPanelScroll,
     wireChrome,
-    renders: [renderChrome],
   };
 }
+
+export const contract = {
+  name: "chrome",
+  create: createChrome,
+  provides: [
+    "applyPanel",
+    "openTab",
+    "renderChrome",
+    "resetPanelScroll",
+    "wireChrome",
+  ],
+  requires: [
+    "AI",
+    "caretHighlight",
+    "clearFocus",
+    "highlight",
+    "importFiles",
+    "openAISettings",
+    "redraw",
+    "refresh",
+    "removePeriod",
+    "renderPrivacy",
+    "renderTimeline",
+    "restartDemo",
+    "save",
+    "setStatus",
+    "startTour",
+    "suggestThreads",
+    "syncGutter",
+  ],
+  renders: ["renderChrome"],
+  wires: ["wireChrome"],
+};

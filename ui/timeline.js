@@ -15,7 +15,12 @@ import { LOOSE, TRANSFERS } from "../transactions/constants.js";
 import { toast } from "./dom.js";
 import { parseRules } from "../transactions/rules.js";
 import { name as bidi } from "../story/copy.js";
-import { anchorEnd, fitLabels } from "./timeline-labels.js";
+import {
+  anchorEnd,
+  fitLabels,
+  placeParkButtons,
+  placeStickyNames,
+} from "./timeline-labels.js";
 
 // Half a plain row's height (rowH below), for finding the row under the pointer.
 const ROW_HALF = 30;
@@ -405,7 +410,7 @@ export function createTimeline(runtime, actions) {
     s += `<rect id="lassoRect" class="lasso" x="0" y="0" width="0" height="0" style="display:none"/></svg>`;
     host.innerHTML = s;
     fitLabels(host);
-    placeParkButtons(labelW);
+    placeParkButtons(host, labelW);
     TL = {
       t0,
       t1,
@@ -432,7 +437,7 @@ export function createTimeline(runtime, actions) {
         ),
       inv: (x) => t0 + ((x - labelW) / (W - labelW - padR)) * (t1 - t0),
     };
-    placeStickyNames();
+    placeStickyNames(host, TL.perBottom);
   }
 
   function describe(t) {
@@ -524,20 +529,6 @@ export function createTimeline(runtime, actions) {
 
   // Keeps period names in view: hidden while the period lane shows, then
   // pinned just below the top of the scrolled timeline.
-  function placeStickyNames() {
-    const svg = $("#tl svg");
-    if (!svg || !TL) return;
-    const top =
-      $(".left").getBoundingClientRect().top - svg.getBoundingClientRect().top;
-    // Only while the timeline itself is still on screen below the names.
-    const show =
-      top > TL.perBottom && top + 24 < svg.getBoundingClientRect().height;
-    svg.querySelectorAll(".pstick").forEach((t) => {
-      t.style.display = show ? "" : "none";
-      if (show) t.setAttribute("y", top + 16);
-    });
-  }
-
   // The period band under a point, and which side if it is on an edge.
   function bandAt({ x, y }) {
     if (y < TL.perTop) return null;
@@ -553,7 +544,11 @@ export function createTimeline(runtime, actions) {
   }
 
   function wireTimeline() {
-    $(".left").addEventListener("scroll", placeStickyNames, { passive: true });
+    $(".left").addEventListener(
+      "scroll",
+      () => TL && placeStickyNames($("#tl"), TL.perBottom),
+      { passive: true },
+    );
     const host = $("#tl");
     let mode = null;
     // "+ Budget" shows only on the row under the pointer, or when focused.
@@ -862,20 +857,6 @@ export function createTimeline(runtime, actions) {
     });
   }
 
-  // Puts each park eye just left of its thread name, now that names have width.
-  function placeParkButtons(labelW) {
-    $("#tl")
-      .querySelectorAll(".parkbtn[data-park]")
-      .forEach((b) => {
-        const lab = $(
-          `#tl .rowlabel[data-thread="${CSS.escape(b.dataset.park)}"]`,
-        );
-        if (!lab) return;
-        const x = labelW - 12 - lab.getComputedTextLength() - 14;
-        b.setAttribute("transform", `translate(${x},${b.dataset.forY - 4})`);
-      });
-  }
-
   // Lights up beads without selecting them. A Set is kept as given, so a
   // caller can tell later whether the highlight is still its own.
   function highlight(ids, { clearSelection = false } = {}) {
@@ -989,6 +970,23 @@ export function createTimeline(runtime, actions) {
     transferText,
     wireParkbar,
     wireTimeline,
-    renders: [renderParkbar, renderTimeline],
   };
 }
+
+export const contract = {
+  name: "timeline",
+  create: createTimeline,
+  provides: [
+    "clearFocus",
+    "highlight",
+    "renderParkbar",
+    "renderTimeline",
+    "select",
+    "transferText",
+    "wireParkbar",
+    "wireTimeline",
+  ],
+  requires: ["addPeriod", "refresh", "removePeriod", "save"],
+  renders: ["renderParkbar", "renderTimeline"],
+  wires: ["wireTimeline", "wireParkbar"],
+};

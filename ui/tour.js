@@ -290,3 +290,20 @@ export function createTour(runtime, actions) {
 
   return { maybeStartTour, startTour };
 }
+
+export const contract = {
+  name: "tour",
+  create: createTour,
+  provides: ["maybeStartTour", "startTour"],
+  requires: [
+    "Store",
+    "answerQuestion",
+    "clearFocus",
+    "highlight",
+    "openTab",
+    "refresh",
+    "resetPanelScroll",
+  ],
+  renders: [],
+  wires: [],
+};
