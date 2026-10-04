@@ -18,6 +18,8 @@ export function createRuntime() {
     periodSel: null,
     storyEdit: null,
     reports: [],
+    answers: {},
+    merchantAnswers: {},
     budgetDrag: null,
     hiddenAccounts: new Set(),
     query: "",

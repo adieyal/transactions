@@ -152,6 +152,9 @@ async function boot() {
     runtime.state.periods = docs.periods.items;
   if (Array.isArray(docs.reports?.items))
     runtime.state.reports = docs.reports.items;
+  if (docs.answers?.map) runtime.state.answers = docs.answers.map;
+  if (docs.merchantAnswers?.map)
+    runtime.state.merchantAnswers = docs.merchantAnswers.map;
   if (docs.view) {
     runtime.state.view.parked = Array.isArray(docs.view.parked)
       ? docs.view.parked

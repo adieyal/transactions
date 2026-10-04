@@ -28,6 +28,22 @@ function source() {
   ];
   state.view.parked = ["Home"];
   state.dismissed = { "price|example": true };
+  state.answers = {
+    "cluster-2026-03-84d1cf4d": {
+      status: "answered",
+      choice: "Moving house",
+      note: null,
+      created: { periodId: "p-1", noteIds: ["demo-1"] },
+      at: "2026-10-04",
+    },
+  };
+  state.merchantAnswers = {
+    "Demo Everyday::bluebell removals": {
+      choice: "Moving house",
+      action: "period",
+      at: "2026-10-04",
+    },
+  };
   return state;
 }
 function memoryBackend(initial = {}) {
@@ -58,6 +74,8 @@ test("current exports restore transactions and annotations without credentials",
     "lenses",
     "adapters",
     "dismissed",
+    "answers",
+    "merchantAnswers",
     "view",
   ])
     assert.deepEqual(imported[key], state[key]);

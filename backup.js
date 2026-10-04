@@ -18,6 +18,8 @@ export function createBackup(state) {
     lenses: state.lenses,
     adapters: state.adapters,
     dismissed: state.dismissed,
+    answers: state.answers,
+    merchantAnswers: state.merchantAnswers,
     view: state.view,
     batches: Object.values(state.batches),
   };
@@ -191,6 +193,38 @@ export function parseBackup(source) {
       ),
     "saved reports",
   );
+  const answers = data.answers ?? {};
+  const optionalText = (v) => v == null || text(v);
+  requireValue(
+    record(answers) &&
+      Object.values(answers).every(
+        (a) =>
+          record(a) &&
+          ["answered", "skipped"].includes(a.status) &&
+          optionalText(a.choice) &&
+          optionalText(a.note) &&
+          optionalText(a.at) &&
+          (a.created == null ||
+            (record(a.created) &&
+              optionalText(a.created.periodId) &&
+              (a.created.noteIds == null ||
+                (Array.isArray(a.created.noteIds) &&
+                  a.created.noteIds.every(text))))),
+      ),
+    "saved answers",
+  );
+  const merchantAnswers = data.merchantAnswers ?? {};
+  requireValue(
+    record(merchantAnswers) &&
+      Object.values(merchantAnswers).every(
+        (a) =>
+          record(a) &&
+          text(a.choice) &&
+          optionalText(a.action) &&
+          optionalText(a.at),
+      ),
+    "saved merchant answers",
+  );
   const view = data.view ?? { parked: [], panel: true, showParked: false };
   requireValue(
     record(view) &&
@@ -219,6 +253,8 @@ export function parseBackup(source) {
       dataKey: r.dataKey ?? "",
       coverage: r.coverage ?? "",
     })),
+    answers,
+    merchantAnswers,
     view,
     isDemo: data.demo === true,
   };
@@ -260,6 +296,8 @@ function workspaceDocuments(state) {
     adapters: { items: state.adapters },
     periods: { items: state.periods },
     reports: { items: state.reports },
+    answers: { map: state.answers },
+    merchantAnswers: { map: state.merchantAnswers },
     view: state.view,
     chat: { turns: [] },
     ...Object.assign({}, ...Object.values(state.batches).map(batchDocuments)),
