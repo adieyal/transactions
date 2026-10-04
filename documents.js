@@ -1,4 +1,4 @@
-import { STARTER_LENSES } from "./defaults.js";
+import { BLANK_RULES, STARTER_LENSES } from "./defaults.js";
 
 // The single definition of every saved document: its storage key, the state
 // field it holds, the wrapper it is stored in, its field in a backup (null:
@@ -303,4 +303,14 @@ export function loadDocuments(docs, state) {
     b.rows.push(...(p.rows || []));
   }
   return { invalid, legacyDemo };
+}
+
+// The workspace that replaces the demo when someone adds their own first
+// statements: every saved document back to how a new workspace starts
+// (fresh, from createRuntime), no statements, no demo threads, and no longer
+// a demo. Their view settings stay.
+export function withoutDemo(state, fresh) {
+  const out = { batches: {} };
+  for (const d of DOCUMENTS) out[d.field] = fresh[d.field];
+  return { ...out, rules: BLANK_RULES, isDemo: false, view: state.view };
 }

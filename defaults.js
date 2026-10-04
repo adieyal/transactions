@@ -89,4 +89,10 @@ return {
 };`,
   },
 ];
-export { STARTER_LENSES, STARTER_RULES };
+// The threads text for someone's own workspace: how to write threads, and no
+// threads yet (the demo's threads name its fictional merchants).
+const BLANK_RULES =
+  STARTER_RULES.split("\n\n")[0] +
+  "\n\n// For example:\n// Groceries [budget 1500/month]\n//   supermarket\n";
+
+export { BLANK_RULES, STARTER_LENSES, STARTER_RULES };

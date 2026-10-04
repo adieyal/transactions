@@ -5,13 +5,27 @@ import { readMatrix } from "../files.js";
 
 export function createImport(runtime, actions) {
   const { state, caps } = runtime;
+  // Asked once per import, before anything changes. The demo is cleared only
+  // when the first statement is about to go in, so cancelling a mapping keeps
+  // it as well.
+  const REPLACE_DEMO =
+    "Replace the demo with your statements?\n\nThe fictional demo year, with its notes, periods and answers, is removed and your statements take its place.";
+
   async function importFiles(files) {
     let added = 0,
       dup = 0;
     const names = [];
+    let demo = state.isDemo ? "ask" : "no";
     for (const f of files) {
       try {
         const r = await readMatrix(f);
+        if (demo === "ask") {
+          if (!confirm(REPLACE_DEMO)) {
+            toast("Kept the demo. Nothing was imported.");
+            return;
+          }
+          demo = "replace";
+        }
         let batch = r.batch;
         if (!batch) {
           const m = r.matrix;
@@ -42,6 +56,10 @@ export function createImport(runtime, actions) {
         if (!batch.rows.length) {
           toast(`Nothing to import from ${f.name}.`);
           continue;
+        }
+        if (demo === "replace") {
+          await actions.replaceDemo();
+          demo = "no";
         }
         const existing = new Set(
           Object.values(state.batches).flatMap((b) => b.rows.map((r) => r.id)),
@@ -263,6 +281,7 @@ export const contract = {
     "AI",
     "openTab",
     "refresh",
+    "replaceDemo",
     "runStale",
     "sampleErr",
     "save",

@@ -178,3 +178,39 @@ test("lenses in an imported backup arrive switched off, unless they are starter 
   delete older.lenses;
   assert.ok(parseBackup(JSON.stringify(older), TODAY).lenses.every(lensIsOn));
 });
+
+test("the first real statements replace the demo: no demo data stays, and it's no longer a demo", async () => {
+  const { withoutDemo } = await import("../documents.js");
+  const demo = demoState();
+  demo.view.panel = false;
+  const docs = {};
+  const backend = {
+    all: async () => clone(docs),
+    put: async (k, v) => void (docs[k] = clone(v)),
+    del: async (k) => void delete docs[k],
+  };
+  await restoreBackupDocuments(backend, demo);
+  assert.ok(Object.keys(docs).some((k) => k.startsWith("batch_")));
+
+  const blank = withoutDemo(demo, fresh());
+  assert.equal(blank.isDemo, false);
+  assert.deepEqual(blank.batches, {});
+  assert.deepEqual([blank.notes, blank.periods, blank.answers], [{}, [], {}]);
+  assert.equal(blank.view, demo.view, "the person's view settings stay");
+  const { parseRules } = await import("../transactions/rules.js");
+  assert.equal(parseRules(blank.rules).threads.length, 0, "no demo threads");
+  assert.match(blank.rules, /^\/\/ A thread: a name on its own line/);
+
+  await restoreBackupDocuments(backend, blank);
+  assert.ok(!Object.keys(docs).some((k) => k.startsWith("batch_")));
+  assert.deepEqual(docs.workspace, { demo: false });
+  const loaded = fresh();
+  assert.deepEqual(loadDocuments(docs, loaded).invalid, []);
+  assert.equal(loaded.isDemo, false);
+  assert.deepEqual(
+    [loaded.batches, loaded.notes, loaded.periods, loaded.view.panel],
+    [{}, {}, [], false],
+  );
+  // The input is left as it was, so a cancelled import changes nothing.
+  assert.ok(Object.keys(demo.batches).length > 0 && demo.isDemo);
+});

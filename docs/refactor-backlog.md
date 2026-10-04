@@ -60,6 +60,7 @@ Items that can start now: R6, R11 for the settings, and R4d.
   - Make the seed write `workspace`, and read the old `demo` marker as legacy.
   - Report invalid documents at boot instead of skipping them silently.
   - Whether importing real statements should end demo mode is a product question for the user, not part of this item.
+  - Decided by the user (2026-10-04) and done on `next`: the first real statement import into a demo workspace asks "Replace the demo with your statements?". If confirmed, `withoutDemo()` (`documents.js`) and `actions.replaceDemo()` clear the demo through the checked restore: statements, notes, periods, answers and the demo's threads go, and the view settings stay. Cancelling, at the question or at the column mapping, changes nothing.
 - **Size:** M. **Risk:** medium. Boot touches saved user data, so add a test that loads today's demo workspace documents unchanged.
 - **Removes:** `workspace is missing from: save`, `main.js writes undeclared document demo`, and `dismissed is missing from: save` (kept by M0).
 - **Wait:** yes.

@@ -2,6 +2,7 @@ import { $, toast } from "./dom.js";
 import { parseBackup } from "../backup.js";
 import { createRuntime } from "../state.js";
 import { createDemoData } from "../demo.js";
+import { withoutDemo } from "../documents.js";
 
 export function createBackupImport(runtime, actions) {
   let pending = null;
@@ -34,6 +35,17 @@ export function createBackupImport(runtime, actions) {
         done: "The demo is back to its starting point.",
       },
     );
+  }
+
+  // Clears the demo for someone's first real statements: saved through the
+  // same checked restore as a backup, then put in place. The caller asked.
+  async function replaceDemo() {
+    const blank = withoutDemo(runtime.state, createRuntime().state);
+    await actions.restoreBackup(blank);
+    Object.assign(runtime.state, createRuntime().state, blank, {
+      loaded: true,
+    });
+    $("#q").value = "";
   }
 
   function wireBackupImport() {
@@ -101,13 +113,13 @@ export function createBackupImport(runtime, actions) {
       }
     };
   }
-  return { restartDemo, wireBackupImport };
+  return { replaceDemo, restartDemo, wireBackupImport };
 }
 
 export const contract = {
   name: "backup",
   create: createBackupImport,
-  provides: ["restartDemo", "wireBackupImport"],
+  provides: ["replaceDemo", "restartDemo", "wireBackupImport"],
   requires: ["applyPanel", "refresh", "resetPanelScroll", "restoreBackup"],
   renders: [],
   wires: ["wireBackupImport"],
