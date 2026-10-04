@@ -48,3 +48,42 @@ test("chips name one payment by its day, and repeats by their amount", () => {
   assert.equal(s.unchecked, false);
   assert.deepEqual(answerStory("", derived.byId).paragraphs, []);
 });
+
+// M4-VERIFY finding 1: the label "each sentence checked against your
+// transactions" only when every figure was compared with the cited payments.
+test("an answer is checked only when every figure in it was compared and matched", () => {
+  const garage = derived.allTxns.filter(
+    (t) => t.merchant === "Cobble Lane Garage",
+  );
+  const cite = garage.map((t) => `[[${t.id}]]`).join(" ");
+  const total = garage.reduce((a, t) => a + t.amount, 0);
+  assert.equal(total, 1600);
+  const checked = (sentence) =>
+    answerStory(`${sentence} ${cite}`, derived.byId).checked;
+  // Right: amounts in the payments' own currency, each one matched.
+  assert.equal(checked("Cobble Lane Garage came to ₪1,600."), true);
+  assert.equal(
+    checked(
+      `Cobble Lane Garage came to ₪1,600: ₪${garage[0].amount.toLocaleString("en")} and ₪${garage[1].amount.toLocaleString("en")}.`,
+    ),
+    true,
+  );
+  assert.equal(checked("Cobble Lane Garage came to ILS 1,600."), true);
+  // The verifier's probes.
+  assert.equal(checked("Cobble Lane Garage came to ₪1,700."), false);
+  assert.equal(checked("Cobble Lane Garage came to 1700."), false);
+  assert.equal(checked("Cobble Lane Garage came to 1,700 shekels."), false);
+  assert.equal(
+    checked("You paid Cobble Lane Garage 9 times, ₪1,600 in all."),
+    false,
+  );
+  assert.equal(checked("Cobble Lane Garage came to $1,600."), false);
+  assert.equal(checked("Cobble Lane Garage came to ₪1,600 on 30 June."), false);
+  // A count in words can't be compared either.
+  assert.equal(
+    checked("You paid Cobble Lane Garage nine times, ₪1,600 in all."),
+    false,
+  );
+  // An unknown code is never matched.
+  assert.equal(checked("Cobble Lane Garage came to USD 1,600."), false);
+});

@@ -136,18 +136,55 @@ export function figures(text) {
   );
 }
 
-// Each named amount matches a cited payment, a merchant's total among them,
+// A currency's own sign as the story writes it: ILS → "₪", USD → "$".
+const signOf = (c) =>
+  new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: c,
+    currencyDisplay: "narrowSymbol",
+  })
+    .formatToParts(0)
+    .find((p) => p.type === "currency")?.value;
+
+// Counts and amounts written as words can't be compared, so they are never
+// checked ("one" is left out: it is mostly not a count).
+const NUMBER_WORD =
+  /\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|dozen|twice|thrice)\b/i;
+
+// A sentence is checked only when every figure in it was compared and
+// matched: each amount is marked with the cited payments' own currency (its
+// sign or code) and equals a cited payment, a merchant's total among them,
 // or the total of them all, to the nearest whole unit as the story rounds.
-function figuresMatch(text, ts) {
-  const sums = new Map();
+// Any other number (a bare 1700, "9 times", "30 June", "$1,600" for shekel
+// payments) or a number word means it wasn't compared, so it isn't checked.
+export function figuresMatch(text, ts) {
+  const str = String(text);
+  if (NUMBER_WORD.test(str)) return false;
+  const byCurrency = new Map();
   for (const t of ts)
-    sums.set(t.merchant, (sums.get(t.merchant) ?? 0) + Math.abs(t.amount));
-  const ok = [
-    ...ts.map((t) => Math.abs(t.amount)),
-    ...sums.values(),
-    ts.reduce((a, t) => a + Math.abs(t.amount), 0),
-  ];
-  return figures(text).every((f) => ok.some((v) => Math.abs(v - f) < 1));
+    byCurrency.set(t.currency, [...(byCurrency.get(t.currency) ?? []), t]);
+  const allowed = (group) => {
+    const sums = new Map();
+    for (const t of group)
+      sums.set(t.merchant, (sums.get(t.merchant) ?? 0) + Math.abs(t.amount));
+    return [
+      ...group.map((t) => Math.abs(t.amount)),
+      ...sums.values(),
+      group.reduce((a, t) => a + Math.abs(t.amount), 0),
+    ];
+  };
+  let rest = str;
+  for (const m of str.matchAll(FIGURE)) {
+    const mark = m[0].replace(/[\d,.\s]/g, "");
+    const group = [...byCurrency]
+      .filter(([c]) => c && (mark === c || mark === signOf(c)))
+      .flatMap(([, g]) => g);
+    const f = Number((m[1] ?? m[2]).replace(/,/g, ""));
+    if (!group.length || !allowed(group).some((v) => Math.abs(v - f) < 1))
+      return false;
+    rest = rest.replace(m[0], " ");
+  }
+  return !/\d/.test(rest);
 }
 
 // "Meadow Paws · 18 Sep · ₪95", "Meadow Paws · 11 payments · ₪55 each".
